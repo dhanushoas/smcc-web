@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Container, Row, Col, Card, Form, Button, Alert } from 'react-bootstrap';
 import { motion } from 'framer-motion';
 import API_URL from '../utils/api';
@@ -11,10 +11,15 @@ const Profile = () => {
     const [formData, setFormData] = useState({ username: '', password: '' });
     const [error, setError] = useState('');
     const navigate = useNavigate();
+    const location = useLocation();
 
     useEffect(() => {
         document.title = 'SMCC | Profile';
-    }, []);
+        const params = new URLSearchParams(location.search);
+        if (params.get('expired') === 'true') {
+            setError({ msg: 'Session expired. Please sign in again.', type: 'EXPIRED' });
+        }
+    }, [location]);
 
     const { username, password } = formData;
 

@@ -1,395 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
-import { Container, Row, Col, Card, Badge, Spinner, Button } from 'react-bootstrap';
+import { Container, Row, Col, Badge, Spinner, Button } from 'react-bootstrap';
 import { io } from 'socket.io-client';
 import { useApp } from '../AppContext';
-import { toCamelCase, formatTime } from '../utils/formatters';
-import { toast } from 'react-hot-toast';
+import { formatTime } from '../utils/formatters';
 import { motion, AnimatePresence } from 'framer-motion';
 import API_URL from '../utils/api';
-
 
 const socket = io(API_URL);
 
 const Home = () => {
     const navigate = useNavigate();
-    const handleCardClick = (matchId) => {
-        navigate(`/match/${matchId}`);
-    };
+    const { t } = useApp();
     const [matches, setMatches] = useState([]);
     const [loading, setLoading] = useState(true);
-    const { t, language } = useApp();
+    const [activeSeries, setActiveSeries] = useState('ALL');
 
     const [blastValue, setBlastValue] = useState(0);
     const [blastMatchId, setBlastMatchId] = useState(null);
-
-    const renderMatchesByDate = (filteredMatches) => {
-        const groups = {};
-        filteredMatches.forEach(m => {
-            const dateKey = new Date(m.date).toDateString();
-            if (!groups[dateKey]) groups[dateKey] = [];
-            groups[dateKey].push(m);
-        });
-
-        return Object.keys(groups).map(dateKey => (
-            <motion.div
-                key={dateKey}
-                className="mb-5"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-            >
-                <div className="mb-4 d-flex align-items-center">
-                    <div className="px-3 py-1 bg-primary text-white rounded-pill shadow-sm d-inline-flex align-items-center gap-2">
-                        <i className="bi bi-calendar3"></i>
-                        <small className="fw-bold text-uppercase" style={{ letterSpacing: '1px' }}>
-                            {new Date(dateKey).toLocaleDateString([], { weekday: 'long', day: '2-digit', month: 'long' })}
-                        </small>
-                    </div>
-                    <div className="flex-grow-1 ms-3 border-bottom opacity-25"></div>
-                </div>
-                <Row className="g-4">
-                    {groups[dateKey].map(match => renderMatchCard(match, 12))}
-                </Row>
-            </motion.div>
-        ));
-    };
-
-    const renderMatchCard = (match, colSize = 6) => {
-        const getTeamScore = (teamName) => {
-            // Priority: Always show Main Match score (Index 0 or 1)
-            // Even if Super Over is live, we show the main match score on the card
-
-            const mainInnings = (match.innings || []).slice(0, 2).find(inn => inn.team?.toLowerCase() === teamName.toLowerCase());
-
-            // If no main innings found (match just started), check if they are currently batting in main match
-            const isBattingMain = match.status === 'live' && match.score?.battingTeam?.toLowerCase() === teamName.toLowerCase() && (match.innings || []).length < 2;
-
-            if (!mainInnings && !isBattingMain) return <div className="text-muted small opacity-50 mt-2">Yet to bat</div>;
-
-            // If main innings is finished, use that. If live in main match, use live score.
-            // If live in Super Over, we STILL show the completed main innings score.
-            let runs, wickets, overs;
-
-            if (mainInnings) {
-                runs = mainInnings.runs;
-                wickets = mainInnings.wickets;
-                overs = mainInnings.overs;
-            } else {
-                // Live in 1st/2nd innings
-                runs = match.score?.runs || 0;
-                wickets = match.score?.wickets || 0;
-                overs = match.score?.overs || 0;
-            }
-
-            return (
-                <div className="mt-2">
-                    <div className="score-text text-primary">
-                        {runs}/{wickets}
-                    </div>
-                    <div className="small opacity-75">({overs} ov)</div>
-                </div>
-            );
-        };
-
-        return (
-            <Col key={match._id || match.id} xs={12} lg={colSize}>
-                <motion.div
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.99 }}
-                    layout
-                >
-                    <Card className="glass-card h-100 border-0 overflow-hidden">
-                        {match.status === 'live' && (
-                            <div className="position-absolute top-0 end-0 m-3 z-3">
-                                <Badge className="badge-live px-3 py-2 animate-pulse d-flex align-items-center gap-2">
-                                    <span className="dot bg-white rounded-circle" style={{ width: 6, height: 6 }}></span>
-                                    {match.innings && match.innings.length > 2 ? 'SUPER OVER' : (t('live')?.toUpperCase() || 'LIVE')}
-                                </Badge>
-                            </div>
-                        )}
-
-                        <AnimatePresence>
-                            {blastMatchId === (match._id || match.id) && (
-                                <motion.div
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    className="blast-overlay rounded-4"
-                                >
-                                    <motion.div
-                                        initial={{ scale: 0.5, y: 50 }}
-                                        animate={{ scale: 1, y: 0 }}
-                                        exit={{ scale: 1.2, opacity: 0 }}
-                                        className="blast-text"
-                                        style={{ color: blastValue === 6 ? '#10b981' : '#f59e0b' }}
-                                    >
-                                        {blastValue}
-                                    </motion.div>
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="blast-label"
-                                    >
-                                        {blastValue === 6 ? 'SIX!' : 'FOUR!'}
-                                    </motion.div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-
-                        <Card.Body className="p-4 p-md-5">
-                            <div className="text-center mb-4">
-                                <h4 className="fw-black m-0 mb-2 letter-spacing-1 text-uppercase">{match.title}</h4>
-                                <div className="d-flex justify-content-center align-items-center gap-3 text-muted">
-                                    <div className="d-flex align-items-center gap-1 small fw-bold">
-                                        <i className="bi bi-geo-alt-fill text-primary"></i>
-                                        <span>{match.venue.toUpperCase()}</span>
-                                    </div>
-                                    <div className="d-flex align-items-center gap-1 small fw-bold">
-                                        <i className="bi bi-clock-fill text-primary"></i>
-                                        <span>{formatTime(match.date)}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <Row className="align-items-center text-center gy-4">
-                                <Col xs={5}>
-                                    <div className="team-name fs-5 text-truncate mb-2 text-uppercase fw-black">{match.teamA}</div>
-                                    {getTeamScore(match.teamA)}
-                                </Col>
-                                <Col xs={2}>
-                                    <div className="d-flex flex-column align-items-center">
-                                        <div className="bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-circle p-2 shadow-sm mb-1" style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            <span className="fw-black x-small">VS</span>
-                                        </div>
-                                    </div>
-                                </Col>
-                                <Col xs={5}>
-                                    <div className="team-name fs-5 text-truncate mb-2 text-uppercase fw-black">{match.teamB}</div>
-                                    {getTeamScore(match.teamB)}
-                                </Col>
-                            </Row>
-
-                            <div className="mt-5">
-                                {(() => {
-                                    const isFinished = match.status === 'completed' || (
-                                        match.score?.target && (
-                                            match.score.runs >= match.score.target ||
-                                            (match.score.overs >= (match.innings?.length > 2 ? 1 : match.totalOvers) && match.score.runs < match.score.target - 1) ||
-                                            (match.score.wickets >= (match.innings?.length > 2 ? 2 : 10) && match.score.runs < match.score.target - 1)
-                                        )
-                                    );
-
-                                    if (isFinished) {
-                                        const innings = match.innings || [];
-                                        if (innings.length < 2) return null;
-                                        let inn1, inn2;
-                                        if (innings.length >= 4) {
-                                            const lastIdx = innings.length - 1;
-                                            inn2 = innings[lastIdx];
-                                            inn1 = innings[lastIdx - 1];
-                                        } else {
-                                            inn1 = innings[0];
-                                            inn2 = innings[1];
-                                        }
-
-                                        let resultText = "MATCH COMPLETED";
-                                        if (inn1.runs > inn2.runs) {
-                                            const diff = inn1.runs - inn2.runs;
-                                            if (innings.length > 2) resultText = `${inn1.team.toUpperCase()} WON (SUPER OVER)`;
-                                            else resultText = `${inn1.team.toUpperCase()} WON BY ${diff} ${diff === 1 ? 'RUN' : 'RUNS'}`;
-                                        } else if (inn2.runs > inn1.runs) {
-                                            const wicketsRemaining = (innings.length > 2 ? 2 : 10) - inn2.wickets;
-                                            if (innings.length > 2) resultText = `${inn2.team.toUpperCase()} WON (SUPER OVER)`;
-                                            else resultText = `${inn2.team.toUpperCase()} WON BY ${wicketsRemaining} ${wicketsRemaining === 1 ? 'WICKET' : 'WICKETS'}`;
-                                        } else if (inn1.runs === inn2.runs && inn1.runs > 0) {
-                                            resultText = "MATCH TIED";
-                                        }
-
-                                        return (
-                                            <div className="bg-success bg-opacity-10 p-4 rounded-4 border border-success border-opacity-20 text-center shadow-sm">
-                                                <div className="d-flex align-items-center justify-content-center gap-2 mb-2">
-                                                    <i className="bi bi-trophy-fill text-success fs-3"></i>
-                                                    <h4 className="fw-black mb-0 text-success text-uppercase letter-spacing-1">{resultText}</h4>
-                                                </div>
-                                                {match.manOfTheMatch && (
-                                                    <div className="mt-3">
-                                                        <Badge bg="success" className="rounded-pill px-4 py-2 border-0 shadow-sm fw-black">
-                                                            <i className="bi bi-star-fill me-2"></i>
-                                                            MOM: {toCamelCase(match.manOfTheMatch)}
-                                                        </Badge>
-                                                    </div>
-                                                )}
-                                                <div className="mt-4 pt-4 border-top border-success border-opacity-10 d-flex justify-content-center">
-                                                    <Button
-                                                        variant="outline-success"
-                                                        size="sm"
-                                                        className="rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2"
-                                                        onClick={(e) => { e.stopPropagation(); handleCardClick(match._id || match.id); }}
-                                                    >
-                                                        <i className="bi bi-file-earmark-text-fill"></i>
-                                                        VIEW FULL SCORECARD
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        );
-                                    }
-
-                                    if (match.status === 'live') {
-                                        return (
-                                            <motion.div
-                                                initial={{ opacity: 0, y: 10 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                className="bg-primary bg-opacity-10 p-4 rounded-4 border border-primary border-opacity-20 shadow-sm"
-                                            >
-                                                {match.score?.target && (
-                                                    <div className="mb-4 text-center border-bottom border-primary border-opacity-10 pb-3">
-                                                        <div className="text-danger fw-black fs-5 d-flex align-items-center justify-content-center gap-2">
-                                                            <i className="bi bi-flag-fill"></i>
-                                                            <span>TARGET: {match.score.target}</span>
-                                                        </div>
-                                                        {(() => {
-                                                            const currentRuns = match.score.runs || 0;
-                                                            const currentOvers = match.score.overs || 0;
-                                                            if (currentRuns === 0 && currentOvers === 0) return null;
-
-                                                            const isSuperOver = match.innings.length > 2;
-                                                            const totalOversLimit = isSuperOver ? 1 : match.totalOvers;
-
-                                                            const runsNeeded = Math.max(0, match.score.target - currentRuns);
-                                                            const totalBalls = totalOversLimit * 6;
-                                                            const ballsBowled = (Math.floor(currentOvers) * 6) + Math.round((currentOvers % 1) * 10);
-                                                            const ballsRemaining = Math.max(0, totalBalls - ballsBowled);
-                                                            return (
-                                                                <div className="small fw-black text-muted text-uppercase mt-2 letter-spacing-1">
-                                                                    {runsNeeded} runs needed from {ballsRemaining} balls
-                                                                </div>
-                                                            );
-                                                        })()}
-                                                    </div>
-                                                )}
-
-                                                {(!match.currentBatsmen || match.currentBatsmen.length === 0) ? (
-                                                    <div className="py-4 text-center w-100">
-                                                        <div className="text-muted fw-black text-uppercase letter-spacing-2 animate-pulse">
-                                                            ☕ Innings Break
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <div className="d-flex justify-content-between align-items-center w-100">
-                                                        <div className="flex-grow-1">
-                                                            {match.currentBatsmen.map(b => (
-                                                                <div key={b.name} className={`d-flex align-items-center gap-2 mb-2 ${b.onStrike ? 'text-primary fw-black' : 'text-muted fw-bold small'}`}>
-                                                                    {b.onStrike && <motion.i animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity }} className="bi bi-lightning-fill"></motion.i>}
-                                                                    <span>{toCamelCase(b.name)}</span>
-                                                                    <span className="ms-auto text-dark">{b.runs}*({b.balls})</span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                        <div className="ms-4 ps-4 border-start border-primary border-opacity-10 text-end">
-                                                            <div className="x-small fw-black text-muted text-uppercase mb-1" style={{ letterSpacing: '1px' }}>Bowling</div>
-                                                            <div className="fw-black text-primary d-flex align-items-center gap-2 justify-content-end">
-                                                                <span className="small text-uppercase">{toCamelCase(match.currentBowler) || 'N/A'}</span>
-                                                                <i className="bi bi-circle-fill" style={{ fontSize: '8px' }}></i>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                {match.score?.thisOver && match.score.thisOver.length > 0 && (
-                                                    <div className="mt-4 pt-4 border-top border-primary border-opacity-10">
-                                                        <div className="d-flex align-items-center gap-2 mb-3">
-                                                            <span className="x-small fw-black text-muted text-uppercase letter-spacing-2">THIS OVER</span>
-                                                            <div className="flex-grow-1 border-bottom border-primary border-opacity-10 opacity-25"></div>
-                                                        </div>
-                                                        <div className="d-flex gap-2 flex-wrap">
-                                                            {match.score.thisOver.map((ball, idx) => {
-                                                                const isWicket = ['W', 'OUT'].includes(ball.toString().toUpperCase());
-                                                                const isFour = ball.toString() === '4';
-                                                                const isSix = ball.toString() === '6';
-                                                                const isExtra = ['WD', 'NB'].includes(ball.toString().toUpperCase());
-
-                                                                return (
-                                                                    <motion.div
-                                                                        key={idx}
-                                                                        initial={{ scale: 0 }}
-                                                                        animate={{ scale: 1 }}
-                                                                        className={`
-                                                                            rounded-circle d-flex align-items-center justify-content-center fw-black
-                                                                            ${isWicket ? 'bg-danger text-white shadow-danger' :
-                                                                                isSix ? 'bg-success text-white shadow-success' :
-                                                                                    isFour ? 'bg-warning text-dark shadow-warning' :
-                                                                                        isExtra ? 'bg-info bg-opacity-25 text-info border border-info border-opacity-50' :
-                                                                                            'bg-white border text-dark'}
-                                                                        `}
-                                                                        style={{
-                                                                            width: '32px',
-                                                                            height: '32px',
-                                                                            fontSize: '13px',
-                                                                            boxShadow: (isWicket || isSix || isFour) ? '0 4px 12px rgba(0,0,0,0.1)' : 'none'
-                                                                        }}
-                                                                    >
-                                                                        {ball}
-                                                                    </motion.div>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                <div className="mt-4 pt-4 border-top border-primary border-opacity-10 d-flex justify-content-center">
-                                                    <Button
-                                                        variant="outline-primary"
-                                                        size="sm"
-                                                        className="rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleCardClick(match._id || match.id);
-                                                        }}
-                                                    >
-                                                        <i className="bi bi-file-earmark-text-fill"></i>
-                                                        VIEW FULL SCORECARD
-                                                    </Button>
-                                                </div>
-                                            </motion.div>
-                                        );
-                                    }
-                                    return null;
-                                })()}
-
-
-                                {match.status === 'upcoming' && match.toss?.winner && (
-                                    <div className="alert bg-warning bg-opacity-10 border-warning border-opacity-25 rounded-4 shadow-sm mb-0 p-3 text-center">
-                                        <div className="fw-black d-flex align-items-center justify-content-center gap-2 text-dark">
-                                            <i className="bi bi-coin text-warning fs-4"></i>
-                                            <span>TOSS: <span className="text-primary">{match.toss.winner.toUpperCase()}</span> WON & ELECTED TO {match.toss.decision.toUpperCase()}</span>
-                                        </div>
-                                    </div>
-                                )}
-
-
-
-                                {['completed', 'abandoned', 'cancelled'].includes(match.status) && (
-                                    <div className="mt-4">
-                                        <Button
-                                            as={Link}
-                                            to={`/match/${match._id || match.id}`}
-                                            variant="outline-primary"
-                                            className="premium-btn w-100 border-2 py-3 d-flex align-items-center justify-content-center gap-3"
-                                        >
-                                            <span className="letter-spacing-1">Full Scorecard</span>
-                                            <i className="bi bi-chevron-right fs-5"></i>
-                                        </Button>
-                                    </div>
-                                )}
-                            </div>
-                        </Card.Body>
-                    </Card>
-                </motion.div>
-            </Col>
-        );
-    };
 
     const fetchMatches = async () => {
         try {
@@ -406,6 +35,7 @@ const Home = () => {
     useEffect(() => {
         document.title = 'SMCC LIVE | Real-time Cricket';
         fetchMatches();
+
         socket.on('matchUpdate', (updatedMatch) => {
             setMatches(prevMatches => {
                 const matchesArr = Array.isArray(prevMatches) ? prevMatches : [];
@@ -425,14 +55,13 @@ const Home = () => {
                     const newMatches = [...matchesArr];
                     newMatches[index] = updatedMatch;
                     return newMatches;
-                } else {
-                    return [updatedMatch, ...matchesArr];
                 }
+                return [updatedMatch, ...matchesArr];
             });
         });
 
         socket.on('matchDeleted', (matchId) => {
-            setMatches(prevMatches => (Array.isArray(prevMatches) ? prevMatches : []).filter(m => m._id !== matchId && m.id !== matchId));
+            setMatches(prev => (Array.isArray(prev) ? prev : []).filter(m => m._id !== matchId && m.id !== matchId));
         });
 
         return () => {
@@ -441,122 +70,252 @@ const Home = () => {
         };
     }, []);
 
+    const renderMatchCard = (match) => {
+        const isLive = match.status === 'live';
+        const isCompleted = match.status === 'completed';
+
+        return (
+            <Col xs={12} key={match._id || match.id} className="mb-3">
+                <motion.div
+                    layout
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="bg-white border rounded-3 overflow-hidden shadow-sm hover-shadow transition-all"
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => navigate(`/match/${match._id || match.id}`)}
+                >
+                    <div className="px-3 py-2 border-bottom bg-light d-flex justify-content-between align-items-center">
+                        <span className="x-small fw-black text-muted text-uppercase letter-spacing-1">
+                            {match.series || 'SMCC LIVE'} • {new Date(match.date).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                        </span>
+                        <div>
+                            {match.status === 'upcoming' && <Badge bg="info" className="x-small px-2"><i className="bi bi-clock me-1"></i>UPCOMING</Badge>}
+                            {isLive && <Badge bg="danger" className="animate-pulse x-small px-2"><i className="bi bi-broadcast me-1"></i>LIVE</Badge>}
+                            {isCompleted && <Badge bg="success" className="x-small px-2"><i className="bi bi-check-circle me-1"></i>COMPLETED</Badge>}
+                        </div>
+                    </div>
+
+                    <div className="p-3">
+                        <div className="d-flex justify-content-between align-items-center mb-2">
+                            <span className="fw-black fs-5 text-dark">
+                                {match.teamA}
+                            </span>
+                            <span className="fw-black fs-5">
+                                {(match.status === 'live' || isCompleted) ? (match.innings?.[0]?.runs || 0) + '/' + (match.innings?.[0]?.wickets || 0) : ''}
+                                <small className="text-dark ms-2 x-small fw-bold">{(match.status === 'live' || isCompleted) ? '(' + (match.innings?.[0]?.overs || 0) + ' ov)' : ''}</small>
+                            </span>
+                        </div>
+
+                        <div className="d-flex justify-content-between align-items-center mb-3">
+                            <span className="fw-black fs-5 text-dark">
+                                {match.teamB}
+                            </span>
+                            <span className="fw-black fs-5">
+                                {(match.status === 'live' || isCompleted) ? (match.innings?.[1]?.runs || 0) + '/' + (match.innings?.[1]?.wickets || 0) : ''}
+                                <small className="text-dark ms-2 x-small fw-bold">{(match.status === 'live' || isCompleted) ? '(' + (match.innings?.[1]?.overs || 0) + ' ov)' : ''}</small>
+                            </span>
+                        </div>
+
+                        {isLive && match.currentBatsmen && match.currentBatsmen.length > 0 && (
+                            <div className="mb-3 small bg-light p-2 rounded border">
+                                <Row className="g-2">
+                                    <Col xs={6}>
+                                        <div className="fw-black text-dark x-small text-uppercase mb-1">Batting</div>
+                                        {match.currentBatsmen.map((b, idx) => (
+                                            <div key={idx} className="text-truncate fw-bold text-dark">
+                                                {b.onStrike ? <span title="Striker" className="me-1">🏏</span> : <span style={{ opacity: 0 }} className="me-1">🏏</span>}
+                                                {b.name} {b.onStrike ? '*' : ''} <span className="fw-black text-primary ms-1">{b.runs || 0}<span className="text-muted small fw-bold">({b.balls || 0})</span></span>
+                                            </div>
+                                        ))}
+                                    </Col>
+                                    <Col xs={6} className="border-start ps-2">
+                                        <div className="fw-black text-dark x-small text-uppercase mb-1">Bowling</div>
+                                        <div className="text-truncate fw-bold text-dark mb-1 d-flex align-items-center">
+                                            <span title="Bowler" className="me-1">⚾</span>
+                                            {match.currentBowler || '...'}
+                                        </div>
+                                        {match.score?.thisOver && match.score.thisOver.length > 0 && (
+                                            <div className="d-flex gap-1 overflow-auto no-scrollbar pb-1">
+                                                {match.score.thisOver.map((ball, bIdx) => {
+                                                    const ballStr = ball.toString().toUpperCase();
+                                                    const isFour = ballStr === '4';
+                                                    const isSix = ballStr === '6';
+                                                    const isWicket = ballStr === 'W' || ballStr === 'OUT';
+                                                    const isExtra = ballStr.includes('WD') || ballStr.includes('NB');
+
+                                                    let badgeClass = 'bg-white text-dark border';
+                                                    if (isSix) badgeClass = 'bg-primary text-white border-primary';
+                                                    else if (isFour) badgeClass = 'bg-success text-white border-success';
+                                                    else if (isWicket) badgeClass = 'bg-danger text-white border-danger';
+                                                    else if (isExtra) badgeClass = 'bg-warning text-dark border-warning';
+
+                                                    let initialAnim = { scale: 0.8, opacity: 0 };
+                                                    if (isSix) initialAnim = { scale: 1.8, rotate: [0, 360, 0], filter: 'brightness(1.5)' };
+                                                    else if (isFour) initialAnim = { scale: 1.5, rotate: [0, 15, -15, 0], filter: 'brightness(1.5)' };
+
+                                                    return (
+                                                        <motion.span
+                                                            key={bIdx}
+                                                            initial={initialAnim}
+                                                            animate={{ scale: 1, rotate: 0, opacity: 1, filter: 'brightness(1)' }}
+                                                            transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+                                                            className={`badge fw-bold d-inline-flex align-items-center justify-content-center p-0 ${badgeClass}`}
+                                                            style={{ minWidth: '20px', height: '20px', fontSize: '0.65rem' }}
+                                                        >
+                                                            {ball}
+                                                        </motion.span>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </Col>
+                                </Row>
+                            </div>
+                        )}
+
+                        <div className="border-top pt-2">
+                            <div className="small fw-bold text-primary">
+                                {isCompleted ? (
+                                    <div className="d-flex align-items-center justify-content-between">
+                                        <span>{(() => {
+                                            const innings = match.innings || [];
+                                            if (innings.length < 2) return "COMPLETED";
+                                            let inn1, inn2;
+                                            if (innings.length >= 4) {
+                                                const lastIdx = innings.length - 1;
+                                                inn2 = innings[lastIdx];
+                                                inn1 = innings[lastIdx - 1];
+
+                                                if (inn1.runs > inn2.runs) {
+                                                    return `MATCH TIED | ${inn1.team.toUpperCase()} WON VIA SUPER OVER`;
+                                                } else if (inn2.runs > inn1.runs) {
+                                                    return `MATCH TIED | ${inn2.team.toUpperCase()} WON VIA SUPER OVER`;
+                                                }
+                                                return "MATCH DRAWN | SUPER OVER TIED";
+                                            } else {
+                                                inn1 = innings[0];
+                                                inn2 = innings[1];
+
+                                                if (inn1.runs > inn2.runs) {
+                                                    const diff = inn1.runs - inn2.runs;
+                                                    return `${inn1.team.toUpperCase()} WON BY ${diff} ${diff === 1 ? 'RUN' : 'RUNS'}`;
+                                                } else if (inn2.runs > inn1.runs) {
+                                                    const wicketsRemaining = 10 - inn2.wickets;
+                                                    return `${inn2.team.toUpperCase()} WON BY ${wicketsRemaining} ${wicketsRemaining === 1 ? 'WICKET' : 'WICKETS'}`;
+                                                }
+                                                return "MATCH DRAWN";
+                                            }
+                                        })()}</span>
+                                        {match.manOfTheMatch && <span className="x-small text-muted fw-black">MOM: {match.manOfTheMatch}</span>}
+                                    </div>
+                                ) : isLive ? (
+                                    <div className="d-flex align-items-center gap-2">
+                                        <span className="text-danger">●</span>
+                                        <span>{(() => {
+                                            if (match.score?.isPaused) {
+                                                return `MATCH PAUSED: ${match.score.pauseReason}`;
+                                            }
+                                            if (match.score?.target) {
+                                                const currentRuns = match.score?.runs || 0;
+                                                const runsNeeded = match.score.target - currentRuns;
+
+                                                const overs = match.score?.overs || 0;
+                                                const ballsBowled = (Math.floor(overs) * 6) + Math.round((overs * 10) % 10);
+                                                const isSuperOver = match.innings && match.innings.length > 2;
+                                                const matchOvers = isSuperOver ? 1 : (match.totalOvers || 20);
+                                                const totalBalls = matchOvers * 6;
+                                                let remainingBalls = totalBalls - ballsBowled;
+                                                if (remainingBalls < 0) remainingBalls = 0;
+
+                                                const statusText = runsNeeded > 0
+                                                    ? `${match.score.battingTeam} needs ${runsNeeded} run${runsNeeded === 1 ? '' : 's'} from ${remainingBalls} ball${remainingBalls === 1 ? '' : 's'} to win`
+                                                    : 'Scores Level';
+
+                                                return <span className="fw-bold">{isSuperOver ? `Match Tied | (Super Over) - ${statusText}` : statusText}</span>;
+                                            }
+
+                                            const isSuperOver = match.innings && match.innings.length > 2;
+                                            return <span className="fw-bold">{isSuperOver ? 'Match Tied | Super Over in progress' : 'Match in progress'}</span>;
+                                        })()}</span>
+                                    </div>
+                                ) : (
+                                    <span className="text-dark fw-bold"><i className="bi bi-geo-alt-fill text-danger me-1"></i> Starting at {formatTime(match.date)} • {match.venue || 'TBA'}</span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </motion.div>
+            </Col>
+        );
+    };
+
     if (loading) return (
         <Container className="d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
-            <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            >
-                <Spinner animation="border" variant="primary" style={{ width: '3rem', height: '3rem' }} />
-            </motion.div>
+            <Spinner animation="border" variant="primary" />
         </Container>
     );
 
-    return (
-        <Container fluid="lg" className="py-5 px-3 px-md-4">
-            <header className="text-center mb-5 position-relative">
-                <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 260, damping: 20 }}
-                >
-                    <img src="/logo.png" alt="SMCC Logo" className="mb-4 shadow-lg rounded-circle border border-4 border-white" style={{ width: '120px', height: 'auto' }} />
-                </motion.div>
-                <motion.h1
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="display-3 fw-black mb-1 premium-gradient-text"
-                >
-                    SMCC LIVE
-                </motion.h1>
-                <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                    className="lead text-muted fw-black d-flex align-items-center justify-content-center gap-3 mt-3"
-                >
-                    <motion.span
-                        animate={{ scale: [1, 1.5, 1] }}
-                        transition={{ repeat: Infinity, duration: 2 }}
-                        className="dot bg-danger rounded-circle"
-                        style={{ width: 12, height: 12 }}
-                    ></motion.span>
-                    <span className="text-uppercase letter-spacing-2 fs-5">{t('real_time_intelligence') || 'Real-time Cricket Intelligence'}</span>
-                </motion.p>
-            </header>
+    const seriesList = ['ALL', ...new Set(matches.map(m => m.series || 'SMCC LIVE'))];
+    const filteredBySeries = activeSeries === 'ALL' ? matches : matches.filter(m => (m.series || 'SMCC LIVE') === activeSeries);
 
-            {/* LIVE SECTION */}
-            <div className="mb-5">
-                <div className="mb-4">
-                    <h2 className="fw-black m-0 text-uppercase letter-spacing-2 text-danger">Live Matches</h2>
-                </div>
-                {Array.isArray(matches) && matches.filter(m => m.status === 'live' || (m.status === 'upcoming' && m.toss?.winner)).length > 0 ? (
-                    renderMatchesByDate(matches.filter(m => m.status === 'live' || (m.status === 'upcoming' && m.toss?.winner)))
-                ) : (
+    const liveMatches = filteredBySeries.filter(m => m.status === 'live' || m.status === 'upcoming');
+    const completedMatches = filteredBySeries.filter(m => m.status === 'completed');
+
+    return (
+        <div style={{ backgroundColor: '#f8f9fa' }}>
+            <Container className="py-4 px-lg-5">
+                <Row className="justify-content-center">
+                    <Col lg={10} xl={8}>
+                        <div className="mb-5">
+                            <h5 className="fw-black text-uppercase letter-spacing-2 mb-3 d-flex align-items-center gap-2">
+                                <span className="p-1 px-2 bg-danger text-white rounded x-small">LIVE</span>
+                                Match Feed
+                            </h5>
+                            {liveMatches.length > 0 ? (
+                                liveMatches.map(m => renderMatchCard(m))
+                            ) : (
+                                <div className="bg-white p-5 rounded-3 border text-center mb-4">
+                                    <h5 className="fw-bold text-muted">No live matches scheduled in this series</h5>
+                                </div>
+                            )}
+                        </div>
+
+                        <div>
+                            <h5 className="fw-black text-uppercase letter-spacing-2 mb-3">Recently Completed</h5>
+                            {completedMatches.length > 0 ? (
+                                completedMatches.map(m => renderMatchCard(m))
+                            ) : (
+                                <div className="text-muted small">No recently completed matches.</div>
+                            )}
+                        </div>
+                    </Col>
+                </Row>
+            </Container>
+
+            <AnimatePresence>
+                {blastMatchId && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className="text-center py-5 glass-card mb-5 border-dashed"
+                        exit={{ opacity: 0 }}
+                        className="fixed-top h-100 w-100 d-flex align-items-center justify-content-center pointer-events-none"
+                        style={{ zIndex: 9999, pointerEvents: 'none' }}
                     >
-                        <i className="bi bi-cup-hot fs-1 text-muted opacity-25 d-block mb-3"></i>
-                        <span className="text-muted fw-medium small">No matches currently in progress</span>
+                        <motion.h1
+                            initial={{ scale: 0, rotate: -20 }}
+                            animate={{ scale: [0, 1.5, 1], rotate: 0 }}
+                            className="display-1 fw-black text-white px-5 py-3 rounded-4 shadow-lg text-center"
+                            style={{
+                                background: blastValue === 6 ? 'linear-gradient(45deg, #059669, #10b981)' : 'linear-gradient(45deg, #d97706, #fbbf24)',
+                                border: '8px solid white'
+                            }}
+                        >
+                            {blastValue === 6 ? 'SIX!' : 'FOUR!'}
+                        </motion.h1>
                     </motion.div>
                 )}
-            </div>
-
-            {/* COMPLETED SECTION */}
-            <div className="mb-5">
-                <div className="d-flex align-items-center gap-3 mb-4">
-                    <div className="bg-success p-2 rounded-3 shadow-sm d-flex align-items-center justify-content-center text-white">
-                        <i className="bi bi-check-circle-fill fs-4"></i>
-                    </div>
-                    <div>
-                        <h2 className="fw-black m-0 text-uppercase letter-spacing-2 text-success">Recently Completed</h2>
-                        <small className="text-muted">Final results and highlights</small>
-                    </div>
-                </div>
-                {Array.isArray(matches) && matches.filter(m => m.status === 'completed').length > 0 ? (
-                    renderMatchesByDate(matches.filter(m => m.status === 'completed'))
-                ) : (
-                    <div className="text-center py-5 glass-card mb-5 opacity-75">
-                        <span className="text-muted small">No recently completed matches found</span>
-                    </div>
-                )}
-            </div>
-
-            {/* UPCOMING SECTION */}
-            <div className="mb-5">
-                <div className="d-flex align-items-center gap-3 mb-4">
-                    <div className="bg-primary p-2 rounded-3 shadow-sm d-flex align-items-center justify-content-center text-white">
-                        <i className="bi bi-calendar-event-fill fs-4"></i>
-                    </div>
-                    <div>
-                        <h2 className="fw-black m-0 text-uppercase letter-spacing-2 text-primary">Scheduled Matches</h2>
-                        <small className="text-muted">Gear up for upcoming action</small>
-                    </div>
-                </div>
-                {Array.isArray(matches) && matches.filter(m => m.status === 'upcoming' && !m.toss?.winner).length > 0 ? (
-                    renderMatchesByDate(matches.filter(m => m.status === 'upcoming' && !m.toss?.winner))
-                ) : (
-                    <div className="text-center py-5 glass-card mb-5 opacity-75">
-                        <span className="text-muted small">No scheduled matches at the moment</span>
-                    </div>
-                )}
-            </div>
-
-            {matches.length === 0 && (
-                <motion.div
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="text-center py-5"
-                >
-                    <div className="fs-1 mb-3">🏏</div>
-                    <h3 className="fw-bold">Welcome to SMCC</h3>
-                    <p className="text-muted">We're getting ready for the next tournament!</p>
-                </motion.div>
-            )}
-
-        </Container>
+            </AnimatePresence>
+        </div>
     );
 };
 

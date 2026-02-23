@@ -32,6 +32,25 @@ if (API_URL.includes('localhost') || API_URL.includes('127.0.0.1')) {
     API_URL = 'https://' + API_URL;
 }
 
+// Setup global Axios interceptor for Token Expiry (401 Unauthorized)
+import axios from 'axios';
+
+axios.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response && error.response.status === 401) {
+            const token = localStorage.getItem('token');
+            if (token) {
+                // Token has expired or is invalid
+                localStorage.removeItem('token');
+                localStorage.removeItem('userId');
+                window.location.href = '/login?expired=true';
+            }
+        }
+        return Promise.reject(error);
+    }
+);
+
 console.log(`SMCC API initialized at: ${API_URL} (${CONNECT_TO_PROD ? 'PRODUCTION OVERRIDE' : 'STANDARD'})`);
 
 export default API_URL;

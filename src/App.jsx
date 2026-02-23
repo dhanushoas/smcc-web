@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import LiveScoreStrip from './components/LiveScoreStrip';
 import Home from './pages/Home';
 import Profile from './pages/Profile';
 import AdminDashboard from './pages/AdminDashboard';
@@ -26,9 +27,9 @@ function App() {
   return (
     <AppProvider>
       <Router>
-        <div className="d-flex flex-column min-vh-100">
+        <div className="d-flex flex-column" style={{ height: '100vh', overflow: 'hidden' }}>
           <Navbar />
-          <main className="flex-grow-1">
+          <main className="flex-grow-1 overflow-auto no-scrollbar">
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/profile" element={<Profile />} />
@@ -49,8 +50,8 @@ function App() {
               <Route path="/join" element={<JoinCouncil />} />
               <Route path="/sponsorship" element={<Sponsorship />} />
             </Routes>
+            <Footer />
           </main>
-          <Footer />
         </div>
       </Router>
     </AppProvider>

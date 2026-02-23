@@ -21,6 +21,8 @@ const FullScorecard = () => {
     const [activeInnings, setActiveInnings] = useState(0);
     const [activeTab, setActiveTab] = useState('scorecard');
     const { t } = useApp();
+    const [blastValue, setBlastValue] = useState(0);
+    const [showBlast, setShowBlast] = useState(false);
 
     const fetchMatch = async () => {
         try {
@@ -50,7 +52,22 @@ const FullScorecard = () => {
         document.title = 'SMCC | Match Scorecard';
         fetchMatch();
         socket.on('matchUpdate', (updatedMatch) => {
-            if (updatedMatch._id === id || updatedMatch.id === id) setMatch(updatedMatch);
+            if (updatedMatch._id === id || updatedMatch.id === id) {
+                setMatch(prevMatch => {
+                    if (prevMatch && updatedMatch.status === 'live') {
+                        const oldRuns = prevMatch.score?.runs || 0;
+                        const newRuns = updatedMatch.score?.runs || 0;
+                        const diff = newRuns - oldRuns;
+
+                        if (diff === 4 || diff === 6) {
+                            setBlastValue(diff);
+                            setShowBlast(true);
+                            setTimeout(() => setShowBlast(false), 2500);
+                        }
+                    }
+                    return updatedMatch;
+                });
+            }
         });
         return () => { socket.off('matchUpdate'); };
     }, [id]);
@@ -62,14 +79,68 @@ const FullScorecard = () => {
         doc.text(`${match.teamA.toUpperCase()} VS ${match.teamB.toUpperCase()} - FULL SCORECARD`, 14, 20);
         doc.setFontSize(10);
         doc.setFont(undefined, 'normal');
-        doc.text(`SERIES: ${(match.series || 'SMCC').toUpperCase()} | VENUE: ${match.venue.toUpperCase()} | DATE: ${new Date(match.date).toDateString().toUpperCase()} ${formatTime(match.date).toUpperCase()}`, 14, 30);
+        doc.text(`SERIES: ${(match.series || 'SMCC').toUpperCase()} | VENUE: ${match.venue.toUpperCase()} | DATE: ${new Date(match.date).toDateString().toUpperCase()} ${formatTime(match.date).toUpperCase()}`, 14, 28);
+
+        let initialTableY = 40;
+        if (match.status === 'completed') {
+            const winnerString = (() => {
+                const innings = match.innings || [];
+                if (innings.length < 2) return null;
+                let inn1, inn2;
+                if (innings.length >= 4) {
+                    const lastIdx = innings.length - 1;
+                    inn2 = innings[lastIdx];
+                    inn1 = innings[lastIdx - 1];
+
+                    if (inn1.runs > inn2.runs) {
+                        return `MATCH TIED | ${inn1.team.toUpperCase()} WON VIA SUPER OVER`;
+                    } else if (inn2.runs > inn1.runs) {
+                        return `MATCH TIED | ${inn2.team.toUpperCase()} WON VIA SUPER OVER`;
+                    }
+                    return "MATCH DRAWN | SUPER OVER TIED";
+                } else {
+                    inn1 = innings[0];
+                    inn2 = innings[1];
+
+                    if (inn1.runs > inn2.runs) {
+                        const diff = inn1.runs - inn2.runs;
+                        return `${inn1.team.toUpperCase()} WON BY ${diff} ${diff === 1 ? 'RUN' : 'RUNS'}`;
+                    } else if (inn2.runs > inn1.runs) {
+                        const wicketsRemaining = 10 - inn2.wickets;
+                        return `${inn2.team.toUpperCase()} WON BY ${wicketsRemaining} ${wicketsRemaining === 1 ? 'WICKET' : 'WICKETS'}`;
+                    } else if (inn1.runs === inn2.runs && inn1.runs > 0) {
+                        return "MATCH DRAWN";
+                    }
+                    return null;
+                }
+            })();
+
+            if (winnerString) {
+                doc.setFontSize(12);
+                doc.setTextColor(0, 146, 112);
+                doc.setFont(undefined, 'bold');
+                doc.text(`RESULT: ${winnerString.toUpperCase()}`, 14, 36);
+
+                if (match.manOfTheMatch) {
+                    doc.setFontSize(10);
+                    doc.setTextColor(100);
+                    doc.text(`POTM: ${match.manOfTheMatch.toUpperCase()}`, 14, 42);
+                    initialTableY = 52;
+                } else {
+                    initialTableY = 46;
+                }
+
+                doc.setTextColor(0);
+                doc.setFont(undefined, 'normal');
+            }
+        }
 
         (match.innings || []).forEach((inn, idx) => {
             if (idx >= 2 && inn.runs === 0 && inn.wickets === 0 && (!inn.batting || inn.batting.length === 0)) {
                 return;
             }
 
-            let startY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 40;
+            let startY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : initialTableY;
 
             if (idx === 2) {
                 // Force super over cleanly onto page 2
@@ -165,50 +236,6 @@ const FullScorecard = () => {
             }
         });
 
-        if (match.status === 'completed') {
-            const winnerString = (() => {
-                const innings = match.innings || [];
-                if (innings.length < 2) return null;
-                let inn1, inn2;
-                if (innings.length >= 4) {
-                    const lastIdx = innings.length - 1;
-                    inn2 = innings[lastIdx];
-                    inn1 = innings[lastIdx - 1];
-                } else {
-                    inn1 = innings[0];
-                    inn2 = innings[1];
-                }
-                if (inn1.runs > inn2.runs) {
-                    const diff = inn1.runs - inn2.runs;
-                    if (innings.length > 2) return `${inn1.team.toUpperCase()} WON (SUPER OVER)`;
-                    return `${inn1.team.toUpperCase()} WON BY ${diff} ${diff === 1 ? 'RUN' : 'RUNS'}`;
-                } else if (inn2.runs > inn1.runs) {
-                    const wicketsRemaining = (innings.length > 2 ? 2 : 10) - inn2.wickets;
-                    if (innings.length > 2) return `${inn2.team.toUpperCase()} WON (SUPER OVER)`;
-                    return `${inn2.team.toUpperCase()} WON BY ${wicketsRemaining} ${wicketsRemaining === 1 ? 'WICKET' : 'WICKETS'}`;
-                } else if (inn1.runs === inn2.runs && inn1.runs > 0) {
-                    return "MATCH TIED";
-                }
-                return null;
-            })();
-
-            if (winnerString) {
-                doc.addPage();
-                doc.setFontSize(16);
-                doc.setTextColor(0, 146, 112);
-                doc.setFont(undefined, 'bold');
-                doc.text("MATCH RESULT", 105, 100, { align: 'center' });
-                doc.setFontSize(22);
-                doc.text(winnerString.toUpperCase(), 105, 120, { align: 'center' });
-
-                if (match.manOfTheMatch) {
-                    doc.setFontSize(14);
-                    doc.setTextColor(100);
-                    doc.text(`MAN OF THE MATCH: ${match.manOfTheMatch.toUpperCase()}`, 105, 140, { align: 'center' });
-                }
-            }
-        }
-
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 16).replace('T', '_');
         doc.save(`${match.teamA}_vs_${match.teamB}_${timestamp}.pdf`);
     };
@@ -246,7 +273,7 @@ const FullScorecard = () => {
                                 <h2 className="fw-black mb-1 premium-gradient-text letter-spacing-1">{t('full_scorecard')}</h2>
                                 <div className="d-flex align-items-center gap-2 text-muted fw-bold small text-uppercase">
                                     <i className="bi bi-shield-check text-primary"></i>
-                                    <span>{match.series || 'SMCC Premier League'}</span>
+                                    <span>{match.series || 'SMCC LIVE'}</span>
                                 </div>
                             </div>
                         </div>
@@ -291,33 +318,35 @@ const FullScorecard = () => {
                                                         const lastIdx = innings.length - 1;
                                                         inn2 = innings[lastIdx];
                                                         inn1 = innings[lastIdx - 1];
-                                                    } else {
-                                                        inn1 = innings[0];
-                                                        inn2 = innings[1];
-                                                    }
-                                                    if (inn1.runs > inn2.runs) {
-                                                        const diff = inn1.runs - inn2.runs;
-                                                        if (innings.length > 2) return `${inn1.team.toUpperCase()} WON (SUPER OVER)`;
-                                                        return `${inn1.team.toUpperCase()} WON BY ${diff} ${diff === 1 ? 'RUN' : 'RUNS'}`;
-                                                    }
-                                                    if (inn2.runs > inn1.runs) {
-                                                        const wicketsRemaining = (innings.length > 2 ? 2 : 10) - inn2.wickets;
-                                                        if (innings.length > 2) return `${inn2.team.toUpperCase()} WON (SUPER OVER)`;
-                                                        return `${inn2.team.toUpperCase()} WON BY ${wicketsRemaining} ${wicketsRemaining === 1 ? 'WICKET' : 'WICKETS'}`;
-                                                    }
 
-                                                    // Add Boundary Count Check for Super Over Tie
-                                                    if (innings.length > 2) {
+                                                        if (inn1.runs > inn2.runs) {
+                                                            return `MATCH TIED | ${inn1.team.toUpperCase()} WON VIA SUPER OVER`;
+                                                        } else if (inn2.runs > inn1.runs) {
+                                                            return `MATCH TIED | ${inn2.team.toUpperCase()} WON VIA SUPER OVER`;
+                                                        }
+
+                                                        // Fallback Boundary Count Check for Super Over Tie
                                                         const countBoundaries = (inn) => (inn.batting || []).reduce((acc, p) => acc + (p.fours || 0) + (p.sixes || 0), 0);
-
                                                         const b1 = countBoundaries(inn1);
                                                         const b2 = countBoundaries(inn2);
 
                                                         if (b1 > b2) return `${inn1.team.toUpperCase()} WON ON BOUNDARY COUNT (${b1}-${b2})`;
                                                         if (b2 > b1) return `${inn2.team.toUpperCase()} WON ON BOUNDARY COUNT (${b2}-${b1})`;
-                                                        return "MATCH TIED (SUPER OVER DRAW)";
+
+                                                        return "MATCH DRAWN | SUPER OVER TIED";
+                                                    } else {
+                                                        inn1 = innings[0];
+                                                        inn2 = innings[1];
+
+                                                        if (inn1.runs > inn2.runs) {
+                                                            const diff = inn1.runs - inn2.runs;
+                                                            return `${inn1.team.toUpperCase()} WON BY ${diff} ${diff === 1 ? 'RUN' : 'RUNS'}`;
+                                                        } else if (inn2.runs > inn1.runs) {
+                                                            const wicketsRemaining = 10 - inn2.wickets;
+                                                            return `${inn2.team.toUpperCase()} WON BY ${wicketsRemaining} ${wicketsRemaining === 1 ? 'WICKET' : 'WICKETS'}`;
+                                                        }
+                                                        return "MATCH DRAWN";
                                                     }
-                                                    return "MATCH DRAWN";
                                                 })() : "COMPLETED"}
                                             </div>
                                         </div>
@@ -408,151 +437,146 @@ const FullScorecard = () => {
                                                 </div>
 
                                                 {match.innings[activeInnings] ? (
-                                                    <>
-                                                        <div className="border rounded-4 overflow-hidden shadow-sm bg-white mb-5">
-                                                            <Table hover responsive className="mb-0 border-0">
-                                                                <thead className="bg-dark text-white">
-                                                                    <tr>
-                                                                        <th className="ps-4 py-3 x-small text-uppercase letter-spacing-1">Batting</th>
-                                                                        <th className="py-3 x-small text-uppercase letter-spacing-1">Status</th>
-                                                                        <th className="text-center py-3 x-small text-uppercase letter-spacing-1">R</th>
-                                                                        <th className="text-center py-3 x-small text-uppercase letter-spacing-1">B</th>
-                                                                        <th className="text-center py-3 x-small text-uppercase letter-spacing-1">4s</th>
-                                                                        <th className="text-center py-3 x-small text-uppercase letter-spacing-1">6s</th>
-                                                                        <th className="text-center py-3 x-small text-uppercase letter-spacing-1">SR</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody>
-                                                                    {(match.innings[activeInnings].batting || []).map((b, idx) => (
-                                                                        <tr key={idx} className="align-middle">
-                                                                            <td className="ps-4 fw-black text-primary fs-6">{toCamelCase(b.player)}</td>
-                                                                            <td className="text-muted fw-bold small">{b.status}</td>
-                                                                            <td className="text-center fw-black fs-5">{b.runs}</td>
-                                                                            <td className="text-center fw-bold">{b.balls}</td>
-                                                                            <td className="text-center fw-bold">{b.fours}</td>
-                                                                            <td className="text-center fw-bold">{b.sixes}</td>
-                                                                            <td className="text-center text-muted fw-black small">{b.strikeRate}</td>
+                                                    <Row className="gx-lg-4">
+                                                        <Col lg={7}>
+                                                            <div className="border rounded-4 overflow-hidden shadow-sm bg-white mb-5">
+                                                                <Table hover responsive className="mb-0 border-0">
+                                                                    <thead className="bg-dark text-white">
+                                                                        <tr>
+                                                                            <th className="ps-4 py-3 x-small text-uppercase letter-spacing-1">Batting</th>
+                                                                            <th className="py-3 x-small text-uppercase letter-spacing-1">Status</th>
+                                                                            <th className="text-center py-3 x-small text-uppercase letter-spacing-1">R</th>
+                                                                            <th className="text-center py-3 x-small text-uppercase letter-spacing-1">B</th>
+                                                                            <th className="text-center py-3 x-small text-uppercase letter-spacing-1">4s</th>
+                                                                            <th className="text-center py-3 x-small text-uppercase letter-spacing-1">6s</th>
+                                                                            <th className="text-center py-3 x-small text-uppercase letter-spacing-1">SR</th>
                                                                         </tr>
-                                                                    ))}
-                                                                    <tr className="bg-light bg-opacity-50">
-                                                                        <td colSpan={2} className="ps-4 text-muted fw-bold">EXTRAS</td>
-                                                                        <td colSpan={5} className="ps-3 fw-black fs-5">
-                                                                            {match.innings[activeInnings].extras?.total || 0}
-                                                                            <small className="ms-3 text-muted fw-bold">
-                                                                                (b {match.innings[activeInnings].extras?.byes || 0},
-                                                                                lb {match.innings[activeInnings].extras?.legByes || 0},
-                                                                                w {match.innings[activeInnings].extras?.wides || 0},
-                                                                                nb {match.innings[activeInnings].extras?.noBalls || 0})
-                                                                            </small>
-                                                                        </td>
-                                                                    </tr>
-                                                                    <tr className="bg-primary bg-opacity-10 border-top border-primary border-opacity-25">
-                                                                        <td colSpan={2} className="ps-4 fw-black fs-4 py-4 text-uppercase text-primary">Total</td>
-                                                                        <td colSpan={5} className="ps-3 py-4">
-                                                                            <div className="d-flex align-items-baseline gap-3">
-                                                                                <span className="fw-black fs-2 text-primary">{match.innings[activeInnings].runs}/{match.innings[activeInnings].wickets}</span>
-                                                                                <span className="text-muted fs-5 fw-bold">({match.innings[activeInnings].overs} Ov)</span>
-                                                                                <span className="small fw-black text-muted ms-auto pe-4">RR: {(match.innings[activeInnings].runs / (Math.floor(match.innings[activeInnings].overs) + (match.innings[activeInnings].overs % 1) / 0.6 || 1)).toFixed(2)}</span>
-                                                                            </div>
-                                                                        </td>
-                                                                    </tr>
-                                                                    {(() => {
-                                                                        const currentInnings = match.innings[activeInnings];
-                                                                        const battingTeamName = currentInnings.team;
-                                                                        const squad = battingTeamName === match.teamA ? match.teamASquad : match.teamBSquad;
-                                                                        if (!squad || squad.length === 0) return null;
-
-                                                                        const battedPlayers = (currentInnings.batting || []).map(b => b.player);
-                                                                        const yetToBat = squad.filter(p => p && p.trim() !== '' && !battedPlayers.includes(p));
-                                                                        if (yetToBat.length === 0) return null;
-
-                                                                        return (
-                                                                            <tr className="bg-light">
-                                                                                <td colSpan={7} className="ps-4 py-3">
-                                                                                    <div className="d-flex align-items-center gap-2">
-                                                                                        <span className="x-small fw-black text-uppercase text-muted">Did not bat:</span>
-                                                                                        <span className="small fw-bold text-dark">
-                                                                                            {yetToBat.map(p => toCamelCase(p)).join(', ')}
-                                                                                        </span>
-                                                                                    </div>
-                                                                                </td>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        {(match.innings[activeInnings].batting || []).map((b, idx) => (
+                                                                            <tr key={idx} className="align-middle">
+                                                                                <td className="ps-4 fw-black text-primary fs-6">{toCamelCase(b.player)}</td>
+                                                                                <td className="text-muted fw-bold small">{b.status}</td>
+                                                                                <td className="text-center fw-black fs-5">{b.runs}</td>
+                                                                                <td className="text-center fw-bold">{b.balls}</td>
+                                                                                <td className="text-center fw-bold">{b.fours}</td>
+                                                                                <td className="text-center fw-bold">{b.sixes}</td>
+                                                                                <td className="text-center text-muted fw-black small">{b.strikeRate}</td>
                                                                             </tr>
-                                                                        );
-                                                                    })()}
-                                                                </tbody>
-                                                            </Table>
-                                                        </div>
-
-                                                        <div className="border rounded-4 overflow-hidden shadow-sm bg-white">
-                                                            <div className="bg-dark text-white px-4 py-3 fw-black text-uppercase letter-spacing-1 d-flex align-items-center gap-2">
-                                                                <i className="bi bi-bullseye text-primary"></i>
-                                                                Bowling Summary: {(() => {
-                                                                    const currentInn = match.innings[activeInnings];
-                                                                    // Bowling team is the one NOT batting
-                                                                    if (currentInn.team === match.teamA) return match.teamB;
-                                                                    return match.teamA;
+                                                                        ))}
+                                                                        <tr className="bg-light bg-opacity-50">
+                                                                            <td colSpan={2} className="ps-4 text-muted fw-bold">EXTRAS</td>
+                                                                            <td colSpan={5} className="ps-3 fw-black fs-5">
+                                                                                {match.innings[activeInnings].extras?.total || 0}
+                                                                                <small className="ms-3 text-muted fw-bold">
+                                                                                    (b {match.innings[activeInnings].extras?.byes || 0},
+                                                                                    lb {match.innings[activeInnings].extras?.legByes || 0},
+                                                                                    w {match.innings[activeInnings].extras?.wides || 0},
+                                                                                    nb {match.innings[activeInnings].extras?.noBalls || 0})
+                                                                                </small>
+                                                                            </td>
+                                                                        </tr>
+                                                                        <tr className="bg-primary bg-opacity-10 border-top border-primary border-opacity-25">
+                                                                            <td colSpan={2} className="ps-4 fw-black fs-4 py-4 text-uppercase text-primary">Total</td>
+                                                                            <td colSpan={5} className="ps-3 py-4">
+                                                                                <div className="d-flex align-items-baseline gap-3">
+                                                                                    <span className="fw-black fs-2 text-primary">{match.innings[activeInnings].runs}/{match.innings[activeInnings].wickets}</span>
+                                                                                    <span className="text-muted fs-5 fw-bold">({match.innings[activeInnings].overs} Ov)</span>
+                                                                                </div>
+                                                                            </td>
+                                                                        </tr>
+                                                                    </tbody>
+                                                                </Table>
+                                                                {(() => {
+                                                                    const currentInnings = match.innings[activeInnings];
+                                                                    const squad = currentInnings.team === match.teamA ? match.teamASquad : match.teamBSquad;
+                                                                    if (!squad || squad.length === 0) return null;
+                                                                    const battedPlayers = (currentInnings.batting || []).map(b => b.player);
+                                                                    const yetToBat = squad.filter(p => p && p.trim() !== '' && !battedPlayers.includes(p));
+                                                                    if (yetToBat.length === 0) return null;
+                                                                    return (
+                                                                        <div className="bg-light p-3 border-top">
+                                                                            <span className="x-small fw-black text-uppercase text-muted me-2">Yet to bat:</span>
+                                                                            <span className="small fw-bold text-dark">{yetToBat.map(p => toCamelCase(p)).join(', ')}</span>
+                                                                        </div>
+                                                                    );
                                                                 })()}
                                                             </div>
-                                                            <Table hover responsive className="mb-0">
-                                                                <thead className="bg-light">
-                                                                    <tr>
-                                                                        <th className="ps-4 py-3 text-muted x-small text-uppercase">Bowling</th>
-                                                                        <th className="text-center py-3 text-muted x-small text-uppercase">O</th>
-                                                                        <th className="text-center py-3 text-muted x-small text-uppercase">M</th>
-                                                                        <th className="text-center py-3 text-muted x-small text-uppercase">R</th>
-                                                                        <th className="text-center py-3 text-muted x-small text-uppercase">W</th>
-                                                                        <th className="text-center py-3 text-muted x-small text-uppercase">ECON</th>
-                                                                        <th className="text-center py-3 text-muted x-small text-uppercase">0s</th>
-                                                                        <th className="text-center py-3 text-muted x-small text-uppercase">WD</th>
-                                                                        <th className="text-center py-3 text-muted x-small text-uppercase">NB</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody>
-                                                                    {(() => {
-                                                                        let bowlingTeamIdx;
-                                                                        if (activeInnings >= 2) {
-                                                                            // Super Over: Co-located data. Batting & Bowling in SAME innings object.
-                                                                            bowlingTeamIdx = activeInnings;
-                                                                        } else {
-                                                                            // Main Match: Split data. Batting in 0, Bowling in 1.
-                                                                            bowlingTeamIdx = activeInnings % 2 === 0 ? activeInnings + 1 : activeInnings - 1;
-                                                                        }
-                                                                        const bowlingInnings = match.innings[bowlingTeamIdx];
-                                                                        if (!bowlingInnings || !bowlingInnings.bowling) return (
-                                                                            <tr><td colSpan={6} className="text-center py-4 text-muted fw-bold">No bowling data for this innings yet</td></tr>
-                                                                        );
-                                                                        return bowlingInnings.bowling.map((bowler, idx) => (
-                                                                            <tr key={idx} className="align-middle">
-                                                                                <td className="ps-4 fw-black text-primary">{toCamelCase(bowler.player)}</td>
-                                                                                <td className="text-center fw-bold">{bowler.overs}</td>
-                                                                                <td className="text-center">{bowler.maidens || 0}</td>
-                                                                                <td className="text-center fw-black">{bowler.runs}</td>
-                                                                                <td className="text-center fw-black text-danger fs-5">{bowler.wickets}</td>
-                                                                                <td className="text-center text-muted fw-bold">{bowler.economy}</td>
-                                                                                <td className="text-center">{bowler.dots || 0}</td>
-                                                                                <td className="text-center">{bowler.wides || 0}</td>
-                                                                                <td className="text-center">{bowler.noBalls || 0}</td>
-                                                                            </tr>
-                                                                        ));
-                                                                    })()}
-                                                                </tbody>
-                                                            </Table>
-                                                        </div>
+                                                        </Col>
 
-                                                        {match.innings[activeInnings].fallOfWickets && match.innings[activeInnings].fallOfWickets.length > 0 && (
-                                                            <div className="bg-light p-4 rounded-4 border-dashed mt-4">
-                                                                <h6 className="fw-black text-uppercase x-small text-muted letter-spacing-1 mb-3">Fall of Wickets</h6>
-                                                                <div className="small fw-bold text-dark" style={{ lineHeight: '1.8' }}>
-                                                                    {match.innings[activeInnings].fallOfWickets.map((fow, i) => (
-                                                                        <span key={i}>
-                                                                            {fow.wicket}-{fow.runs} ({toCamelCase(fow.player)}, {fow.overs} ov)
-                                                                            {i < match.innings[activeInnings].fallOfWickets.length - 1 ? <span className="text-muted mx-2">|</span> : ''}
-                                                                        </span>
-                                                                    ))}
+                                                        <Col lg={5}>
+                                                            <div className="border rounded-4 overflow-hidden shadow-sm bg-white mb-4">
+                                                                <div className="bg-dark text-white px-4 py-3 fw-black text-uppercase letter-spacing-1 d-flex align-items-center gap-2">
+                                                                    <i className="bi bi-bullseye text-primary"></i>
+                                                                    Bowling Summary
                                                                 </div>
+                                                                <Table hover responsive className="mb-0">
+                                                                    <thead className="bg-light">
+                                                                        <tr>
+                                                                            <th className="ps-4 py-3 text-muted x-small text-uppercase">Bowling</th>
+                                                                            <th className="text-center py-3 text-muted x-small text-uppercase">O</th>
+                                                                            <th className="text-center py-3 text-muted x-small text-uppercase">R</th>
+                                                                            <th className="text-center py-3 text-muted x-small text-uppercase">W</th>
+                                                                            <th className="text-center py-3 text-muted x-small text-uppercase">E</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        {(() => {
+                                                                            const bTeamIdx = activeInnings % 2 === 0 ? activeInnings + 1 : activeInnings - 1;
+                                                                            const bInn = match.innings[bTeamIdx];
+                                                                            if (!bInn || !bInn.bowling) return (
+                                                                                <tr><td colSpan={5} className="text-center py-4 text-muted fw-bold">No bowling data</td></tr>
+                                                                            );
+                                                                            return bInn.bowling.map((bowler, idx) => (
+                                                                                <tr key={idx} className="align-middle">
+                                                                                    <td className="ps-4 fw-black text-primary">{toCamelCase(bowler.player)}</td>
+                                                                                    <td className="text-center fw-bold">{bowler.overs}</td>
+                                                                                    <td className="text-center fw-black">{bowler.runs}</td>
+                                                                                    <td className="text-center fw-black text-danger">{bowler.wickets}</td>
+                                                                                    <td className="text-center text-muted small">{bowler.economy}</td>
+                                                                                </tr>
+                                                                            ));
+                                                                        })()}
+                                                                    </tbody>
+                                                                </Table>
+                                                                {(() => {
+                                                                    const bowlingTeamIdx = activeInnings % 2 === 0 ? activeInnings + 1 : activeInnings - 1;
+                                                                    const bowlingInnings = match.innings[bowlingTeamIdx];
+                                                                    if (!bowlingInnings || !bowlingInnings.team) return null;
+
+                                                                    const bowlingTeamName = bowlingInnings.team;
+                                                                    const squad = bowlingTeamName === match.teamA ? match.teamASquad : match.teamBSquad;
+                                                                    if (!squad || squad.length === 0) return null;
+
+                                                                    const bowledPlayers = (bowlingInnings.bowling || []).map(b => b.player);
+                                                                    const yetToBowl = squad.filter(p => p && p.trim() !== '' && !bowledPlayers.includes(p));
+                                                                    if (yetToBowl.length === 0) return null;
+
+                                                                    return (
+                                                                        <div className="bg-light p-3 border-top">
+                                                                            <span className="x-small fw-black text-uppercase text-muted me-2">Yet to bowl:</span>
+                                                                            <span className="small fw-bold text-dark">{yetToBowl.map(p => toCamelCase(p)).join(', ')}</span>
+                                                                        </div>
+                                                                    );
+                                                                })()}
                                                             </div>
-                                                        )}
-                                                    </>
+
+                                                            {match.innings[activeInnings].fallOfWickets && match.innings[activeInnings].fallOfWickets.length > 0 && (
+                                                                <div className="bg-light p-4 rounded-4 border-dashed mb-4">
+                                                                    <h6 className="fw-black text-uppercase x-small text-muted letter-spacing-1 mb-3">Fall of Wickets</h6>
+                                                                    <div className="small fw-bold text-dark" style={{ lineHeight: '1.8' }}>
+                                                                        {match.innings[activeInnings].fallOfWickets.map((fow, i) => (
+                                                                            <span key={i}>
+                                                                                {fow.wicket}-{fow.runs} ({toCamelCase(fow.player)})
+                                                                                {i < match.innings[activeInnings].fallOfWickets.length - 1 ? <span className="text-muted mx-2">|</span> : ''}
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                        </Col>
+                                                    </Row>
                                                 ) : (
                                                     <div className="text-center py-5 glass-card border-dashed">
                                                         <p className="text-muted fw-bold">Innings data not initialized</p>
@@ -622,6 +646,31 @@ const FullScorecard = () => {
                     </Card.Body >
                 </Card >
             </motion.div >
+            <AnimatePresence>
+                {showBlast && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed-top h-100 w-100 d-flex align-items-center justify-content-center pointer-events-none"
+                        style={{ zIndex: 9999, pointerEvents: 'none' }}
+                    >
+                        <motion.h1
+                            initial={{ scale: 0, rotate: -20, y: 100 }}
+                            animate={{ scale: [0, 1.5, 1], rotate: [20, -10, 0], y: 0 }}
+                            className="display-1 fw-black text-white px-5 py-4 rounded-4 shadow-lg text-center"
+                            style={{
+                                background: blastValue === 6 ? 'linear-gradient(45deg, #059669, #10b981)' : 'linear-gradient(45deg, #d97706, #fbbf24)',
+                                border: '10px solid white',
+                                textShadow: '0 10px 20px rgba(0,0,0,0.3)',
+                                letterSpacing: '4px'
+                            }}
+                        >
+                            {blastValue === 6 ? 'SIX!' : 'FOUR!'}
+                        </motion.h1>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </Container >
     );
 };
