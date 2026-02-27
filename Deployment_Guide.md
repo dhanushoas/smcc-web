@@ -78,7 +78,7 @@ Now, tell your mobile app to talk to the Render Cloud instead of your laptop.
      - *Note: Ensure it starts with `https://`*
    - Click **Save**.
 3. **Login**:
-   - Use `Admin` / `Admin@321`.
+   - Use `Admin` / `Dhanush@28`.
 
 ---
 

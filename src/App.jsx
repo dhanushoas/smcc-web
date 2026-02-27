@@ -6,6 +6,7 @@ import LiveScoreStrip from './components/LiveScoreStrip';
 import Home from './pages/Home';
 import Profile from './pages/Profile';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminLogin from './pages/AdminLogin';
 import FullScorecard from './pages/FullScorecard';
 import GoogleAuth from './pages/GoogleAuth';
 
@@ -33,7 +34,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/profile" element={<Profile />} />
-              <Route path="/login" element={<Profile />} />
+              <Route path="/login" element={<AdminLogin />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/match/:id" element={<FullScorecard />} />
               <Route path="/google-auth" element={<GoogleAuth />} />

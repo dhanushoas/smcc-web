@@ -124,7 +124,7 @@ const FullScorecard = () => {
                 if (match.manOfTheMatch) {
                     doc.setFontSize(10);
                     doc.setTextColor(100);
-                    doc.text(`POTM: ${match.manOfTheMatch.toUpperCase()}`, 14, 42);
+                    doc.text(`MOM: ${match.manOfTheMatch.toUpperCase()}`, 14, 42);
                     initialTableY = 52;
                 } else {
                     initialTableY = 46;

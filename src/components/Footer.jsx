@@ -51,9 +51,6 @@ const Footer = () => {
                                 <h6 className="fw-black text-uppercase small letter-spacing-2 mb-4 text-primary">Community</h6>
                                 <ul className="list-unstyled d-grid gap-2 small">
                                     <li><Link to="/improvements" className="text-muted text-decoration-none hover-text-primary transition-all">Improvements</Link></li>
-                                    <li><Link to="/profile" className="text-muted text-decoration-none hover-text-primary transition-all fw-black text-primary">
-                                        <i className="bi bi-shield-lock-fill me-1"></i> Update
-                                    </Link></li>
                                     <li><Link to="/join" className="text-muted text-decoration-none hover-text-primary transition-all">Join Council</Link></li>
                                     <li><Link to="/sponsorship" className="text-muted text-decoration-none hover-text-primary transition-all">Sponsorship</Link></li>
                                 </ul>

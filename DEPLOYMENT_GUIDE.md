@@ -52,7 +52,7 @@ To connect your mobile app to the cloud backend:
    - Click **Save**.
 3. **Login**:
    - Username: `Admin`
-   - Password: `Admin@321` (or whatever you set in your DB).
+   - Password: `Dhanush@28` (or whatever you set in your DB).
 
 ## Summary
 - **Database**: Aiven (Stores Data)

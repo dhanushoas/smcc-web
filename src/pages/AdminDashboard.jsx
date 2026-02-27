@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Container, Row, Col, Card, Button, Form, Table, Badge, ListGroup, Modal, Spinner, Alert } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Form, Table, Badge, ListGroup, Modal, Spinner, Alert, Dropdown, ButtonGroup } from 'react-bootstrap';
 import { Toaster, toast } from 'react-hot-toast';
 import { io } from 'socket.io-client';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -54,7 +54,6 @@ const AdminDashboard = () => {
         type: 'caught',
         fielder: '',
         runs: 0,
-        crossed: false,
         whomOut: 'striker',
         ballType: 'normal'
     });
@@ -78,9 +77,48 @@ const AdminDashboard = () => {
     const [customPauseReason, setCustomPauseReason] = useState('');
     const pauseOptions = ['Rain', 'Strong Wind', 'Floodlights Not Working', 'Power Failure', 'Ground Issue', 'Player Injury', 'Technical Issue', 'Other'];
 
+    const [showDlsModal, setShowDlsModal] = useState(false);
+    const [dlsData, setDlsData] = useState({ target: '', totalOvers: '' });
+
     const handleTimeInput = (val, callback) => {
-        let cleaned = val.toUpperCase().replace(/[^0-9:\sAPM]/g, '');
-        callback(cleaned);
+        // Strip everything except digits
+        const digits = val.replace(/[^0-9]/g, '');
+
+        // Build HH:MM string from digits only
+        let formatted = '';
+        if (digits.length === 0) {
+            formatted = '';
+        } else if (digits.length <= 2) {
+            formatted = digits;
+        } else {
+            // Clamp hours to 01-12
+            let hour = digits.substring(0, 2);
+            if (parseInt(hour) > 12) hour = '12';
+            if (parseInt(hour) === 0) hour = '01';
+            // Clamp minutes to 00-59
+            let min = digits.substring(2, 4);
+            if (parseInt(min) > 59) min = '59';
+            formatted = `${hour}:${min}`;
+        }
+
+        // Extract existing AM/PM part to preserve it, then use 'AM' default
+        const ampmMatch = val.match(/(AM|PM)/i);
+        const ampm = ampmMatch ? ampmMatch[0].toUpperCase() : 'AM';
+
+        // Only append AM/PM if time is complete (HH:MM)
+        if (formatted.length === 5) {
+            callback(`${formatted} ${ampm}`);
+        } else {
+            callback(formatted);
+        }
+    };
+
+    const toggleAmPm = (currentVal, callback) => {
+        if (currentVal.includes('AM')) {
+            callback(currentVal.replace('AM', 'PM'));
+        } else if (currentVal.includes('PM')) {
+            callback(currentVal.replace('PM', 'AM'));
+        }
     };
 
     const parseTime12to24 = (time12) => {
@@ -206,6 +244,59 @@ const AdminDashboard = () => {
             }
         }
         return "Match Completed";
+    };
+
+    const calculateSuggestedMOM = (matchData) => {
+        if (!matchData || !matchData.innings) return null;
+        const playerStats = {};
+
+        matchData.innings.forEach(inn => {
+            const team = inn.team;
+            (inn.batting || []).forEach(p => {
+                if (!p.player) return;
+                const name = p.player;
+                if (!playerStats[name]) playerStats[name] = { runs: 0, fours: 0, sixes: 0, wickets: 0, team };
+                playerStats[name].runs += (p.runs || 0);
+                playerStats[name].fours += (p.fours || 0);
+                playerStats[name].sixes += (p.sixes || 0);
+            });
+            (inn.bowling || []).forEach(p => {
+                if (!p.player) return;
+                const name = p.player;
+                if (!playerStats[name]) playerStats[name] = { runs: 0, fours: 0, sixes: 0, wickets: 0, team };
+                playerStats[name].wickets += (p.wickets || 0);
+            });
+        });
+
+        let winningTeam = null;
+        const innings = matchData.innings || [];
+        if (innings.length >= 2) {
+            let inn1, inn2;
+            if (innings.length >= 4) {
+                const lastIdx = innings.length - 1;
+                inn1 = innings[lastIdx - 1]; inn2 = innings[lastIdx];
+            } else {
+                inn1 = innings[0]; inn2 = innings[1];
+            }
+            if (inn1.runs > inn2.runs) winningTeam = inn1.team;
+            else if (inn2.runs > inn1.runs) winningTeam = inn2.team;
+        }
+
+        let bestPlayer = null;
+        let bestScore = -1;
+
+        Object.keys(playerStats).forEach(name => {
+            const stats = playerStats[name];
+            let score = (stats.runs * 1) + (stats.fours * 1) + (stats.sixes * 2) + (stats.wickets * 20);
+            if (stats.team === winningTeam) score *= 1.25;
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestPlayer = name;
+            }
+        });
+
+        return bestPlayer;
     };
 
     const getAvailableBatsmen = (teamType = 'batting') => {
@@ -386,7 +477,7 @@ const AdminDashboard = () => {
             doc.setFontSize(10);
             doc.setTextColor(0);
             doc.setFont(undefined, 'bold');
-            doc.text(`TOTAL: ${inn.runs}/${inn.wickets} in ${inn.overs} Overs | Boundaries: 4s: ${inn.fours || 0}, 6s: ${inn.sixes || 0}`, 14, currentY);
+            doc.text(`TOTAL: ${inn.runs}/${inn.wickets} in ${inn.overs} ${parseFloat(inn.overs) === 1 ? 'Over' : 'Overs'} | Boundaries: 4s: ${inn.fours || 0}, 6s: ${inn.sixes || 0}`, 14, currentY);
             doc.setFont(undefined, 'normal');
             currentY += 15;
         });
@@ -453,7 +544,27 @@ const AdminDashboard = () => {
     };
 
     const activeToken = localStorage.getItem('token');
-    const config = { headers: { 'x-auth-token': activeToken } };
+    const config = {
+        headers: {
+            'x-auth-token': activeToken,
+            'Authorization': `Bearer ${activeToken}`
+        }
+    };
+
+    // Verify token is still the active one on mount
+    const verifySession = async () => {
+        if (!activeToken) return;
+        try {
+            await axios.get(`${API_URL}/api/auth/verify`, config);
+        } catch (err) {
+            if (err.response?.status === 401) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('userId');
+                toast.error('Your session has ended. Please log in again.');
+                navigate('/login');
+            }
+        }
+    };
 
     const fetchMatches = async () => {
         try {
@@ -502,6 +613,37 @@ const AdminDashboard = () => {
             socket.off('matchDeleted');
         };
     }, [navigate, activeToken]); // Removed selectedMatch to prevent listener re-registration loop
+
+    // ── Force-logout listener (cross-platform session takeover) ───────────
+    useEffect(() => {
+        verifySession();
+
+        const handleForceLogout = ({ platform }) => {
+            if (platform === 'web' || platform === 'all') {
+                localStorage.removeItem('token');
+                localStorage.removeItem('userId');
+                toast.error('⚡ You have been logged out — admin session taken over on Mobile.', { duration: 6000 });
+                setTimeout(() => navigate('/login'), 2000);
+            }
+        };
+
+        const handleSessionExpired = () => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('userId');
+            toast.error('⏱ Admin session expired. Please log in again.', { duration: 6000 });
+            setTimeout(() => navigate('/login'), 2000);
+        };
+
+        socket.on('adminForceLogout', handleForceLogout);
+        socket.on('adminSessionExpired', handleSessionExpired);
+        socket.on('adminSessionEnded', handleSessionExpired);
+
+        return () => {
+            socket.off('adminForceLogout', handleForceLogout);
+            socket.off('adminSessionExpired', handleSessionExpired);
+            socket.off('adminSessionEnded', handleSessionExpired);
+        };
+    }, [navigate]);
 
     const syncLocalPlayers = (match) => {
         if (match.currentBatsmen && match.currentBatsmen.length >= 1) {
@@ -554,7 +696,7 @@ const AdminDashboard = () => {
 
     const handleUpdate = async (type, value, params = {}) => {
         // --- Prevent Editing if Match Completed ---
-        if (selectedMatch.status === 'completed') {
+        if (selectedMatch.status === 'completed' && type !== 'manual') {
             toast.error("Match is completed! No further edits allowed.");
             return;
         }
@@ -912,10 +1054,6 @@ const AdminDashboard = () => {
                                 else if (completedRuns === 2) currentInnings.twos = (currentInnings.twos || 0) + 1;
                                 else if (completedRuns === 3) currentInnings.threes = (currentInnings.threes || 0) + 1;
                                 else if (completedRuns === 0) currentInnings.dots = (currentInnings.dots || 0) + 1;
-
-                                if (wDetail.crossed) {
-                                    const temp = localStriker; localStriker = localNonStriker; localNonStriker = temp;
-                                }
                             } else {
                                 // Regular wickets (caught, bowled, lbw, stumped, hit wicket)
                                 // Stumped on a wide?
@@ -1082,7 +1220,9 @@ const AdminDashboard = () => {
                         } else {
                             // Decided
                             updatedMatch.status = 'completed';
-                            toast.success("Match Completed! Don't forget to set Player of the Match.", { icon: '🏆', duration: 5000 });
+                            const suggested = calculateSuggestedMOM(updatedMatch);
+                            if (suggested) updatedMatch.manOfTheMatch = suggested;
+                            toast.success(`Match Completed! ${suggested ? 'Suggested POTM: ' + suggested : ''}`, { icon: '🥇', duration: 7000 });
                         }
                     }
                 } else {
@@ -1622,10 +1762,7 @@ const AdminDashboard = () => {
                                 </Form.Group>
                                 {wicketDetails.ballType !== 'mankad' && (
                                     <>
-                                        <Form.Group className="mb-3 d-flex align-items-center justify-content-between">
-                                            <Form.Label className="fw-bold small text-uppercase text-muted m-0">Batters Crossed?</Form.Label>
-                                            <Form.Check type="switch" checked={!!wicketDetails.crossed} onChange={e => setWicketDetails({ ...wicketDetails, crossed: e.target.checked })} />
-                                        </Form.Group>
+
                                         <Form.Group className="mb-3">
                                             <Form.Label className="fw-bold small text-uppercase text-muted">Runs Completed</Form.Label>
                                             <Form.Select size="lg" className="rounded-3 border-0 shadow-sm" value={wicketDetails.runs} onChange={e => setWicketDetails({ ...wicketDetails, runs: parseInt(e.target.value) })}>
@@ -1647,14 +1784,55 @@ const AdminDashboard = () => {
                     </Modal.Footer>
                 </Modal>
 
+                <Modal show={showDlsModal} onHide={() => setShowDlsModal(false)} centered backdrop="static" contentClassName="border-0 shadow-lg rounded-4 overflow-hidden">
+                    <Modal.Header className="bg-primary text-white border-0 py-3 px-4">
+                        <Modal.Title className="fw-black">🌧️ DLS ADJUSTMENTS</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body className="p-4 bg-light">
+                        <Form.Group className="mb-3">
+                            <Form.Label className="fw-bold small text-uppercase text-muted">Revised Target Score</Form.Label>
+                            <Form.Control
+                                type="number"
+                                size="lg"
+                                className="rounded-3 border-0 shadow-sm"
+                                value={dlsData.target}
+                                onChange={e => setDlsData({ ...dlsData, target: e.target.value })}
+                                placeholder="Enter new target"
+                            />
+                            <Form.Text className="text-muted small">The runs required to win the match.</Form.Text>
+                        </Form.Group>
+                        <Form.Group className="mb-3">
+                            <Form.Label className="fw-bold small text-uppercase text-muted">Revised Total Overs</Form.Label>
+                            <Form.Control
+                                type="number"
+                                size="lg"
+                                className="rounded-3 border-0 shadow-sm"
+                                value={dlsData.totalOvers}
+                                onChange={e => setDlsData({ ...dlsData, totalOvers: e.target.value })}
+                                placeholder="Enter new total overs"
+                            />
+                            <Form.Text className="text-muted small">The updated total overs for the match.</Form.Text>
+                        </Form.Group>
+                    </Modal.Body>
+                    <Modal.Footer className="border-0 bg-light pb-4 px-4 d-flex gap-2">
+                        <Button variant="outline-secondary" size="lg" className="flex-grow-1 fw-bold rounded-pill" onClick={() => setShowDlsModal(false)}>CANCEL</Button>
+                        <Button variant="primary" size="lg" className="flex-grow-1 fw-black rounded-pill shadow" onClick={() => {
+                            if (!dlsData.target || !dlsData.totalOvers) return toast.error("Please fill all fields!");
+                            const updatedMatch = {
+                                ...selectedMatch,
+                                totalOvers: parseInt(dlsData.totalOvers),
+                                score: { ...selectedMatch.score, target: parseInt(dlsData.target) },
+                                isDLS: true
+                            };
+                            handleUpdate('manual', updatedMatch);
+                            setShowDlsModal(false);
+                            toast.success("DLS Adjustments Applied Successfully!");
+                        }}>APPLY DLS</Button>
+                    </Modal.Footer>
+                </Modal>
+
                 <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-5">
                     <div className="d-flex gap-3 align-items-center">
-                        <Button variant="outline-primary" className="rounded-pill px-3 shadow-sm" onClick={() => navigate('/')}>
-                            <i className="bi bi-arrow-left"></i> Home
-                        </Button>
-                        <Button variant="outline-secondary" className="rounded-pill shadow-sm" onClick={() => { toast.success('Syncing matches...'); fetchMatches(); }}>
-                            <i className="bi bi-arrow-clockwise"></i> Sync
-                        </Button>
                         <h2 className="fw-black premium-gradient-text m-0">Admin Dashboard</h2>
                     </div>
                     <Button variant="primary" className="rounded-pill shadow-sm px-4 py-2 fw-bold" onClick={() => { setIsCreating(true); setIsEditingMode(false); setSelectedMatch(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
@@ -1760,7 +1938,24 @@ const AdminDashboard = () => {
                                                 <Col md={6}>
                                                     <Form.Group>
                                                         <Form.Label className="small fw-bold">Time (Local)</Form.Label>
-                                                        <Form.Control type="text" placeholder="hh:mm AM" value={createForm.time} onChange={e => handleTimeInput(e.target.value, (val) => setCreateForm({ ...createForm, time: val }))} />
+                                                        <div className="d-flex gap-2">
+                                                            <Form.Control
+                                                                type="text"
+                                                                placeholder="hh:mm"
+                                                                value={createForm.time.replace(/\s?(AM|PM)/i, '').trim()}
+                                                                maxLength={5}
+                                                                onChange={e => handleTimeInput(e.target.value + ' ' + (createForm.time.match(/(AM|PM)/i)?.[0] || 'AM'), (val) => setCreateForm({ ...createForm, time: val }))}
+                                                            />
+                                                            <Button
+                                                                variant={createForm.time.includes('PM') ? 'warning' : 'outline-secondary'}
+                                                                className="fw-bold px-3"
+                                                                style={{ minWidth: '64px' }}
+                                                                type="button"
+                                                                onClick={() => toggleAmPm(createForm.time || '12:00 AM', (val) => setCreateForm({ ...createForm, time: val }))}
+                                                            >
+                                                                {createForm.time.includes('PM') ? 'PM' : 'AM'}
+                                                            </Button>
+                                                        </div>
                                                     </Form.Group>
                                                 </Col>
                                             </Row>
@@ -1799,16 +1994,16 @@ const AdminDashboard = () => {
                                                 const dLimit = selectedMatch.innings.length > 2 ? 1 : selectedMatch.totalOvers;
 
                                                 return (
-                                                    <>
-                                                        <div className="display-3 fw-bold text-primary">{dRuns}/{dWickets}</div>
-                                                        <div className="lead fw-bold">{dOvers} / {dLimit} {selectedMatch.innings.length > 2 ? 'Over (Super Over)' : 'Overs'}</div>
-                                                    </>
+                                                    <div className="py-2">
+                                                        <div className="display-3 fw-bold text-primary mb-2">{dRuns}/{dWickets}</div>
+                                                        <div className="lead fw-bold mb-3">{dOvers} / {dLimit} {selectedMatch.innings.length > 2 ? 'Over (Super Over)' : 'Overs'}</div>
+                                                    </div>
                                                 );
                                             })()}
 
                                             {/* Dynamic Previous Innings Display */}
                                             {selectedMatch.innings && selectedMatch.innings.length > 1 && (
-                                                <div className="mt-2 d-flex flex-wrap justify-content-center gap-2">
+                                                <div className="mt-4 mb-2 d-flex flex-wrap justify-content-center gap-2">
                                                     {selectedMatch.innings.map((inn, i) => ({ ...inn, originalIdx: i }))
                                                         .filter(inn => {
                                                             const isCurrent = inn.team === selectedMatch.score?.battingTeam;
@@ -1830,7 +2025,7 @@ const AdminDashboard = () => {
 
                                             {/* Innings Break Announcement */}
                                             {selectedMatch.status === 'live' && selectedMatch.score.target && (!selectedMatch.currentBatsmen || selectedMatch.currentBatsmen.length === 0) && (
-                                                <Alert variant="warning" className="fw-black py-2 mb-3 border-0 rounded-pill shadow-sm animate-bounce text-center">
+                                                <Alert variant="warning" className="fw-black py-3 my-4 border-0 rounded-pill shadow-sm animate-bounce text-center">
                                                     ☕ {t('innings_break')}
                                                 </Alert>
                                             )}
@@ -1847,7 +2042,7 @@ const AdminDashboard = () => {
 
                                                 if (winStr && winStr !== 'Match Completed' && isFinished) {
                                                     return (
-                                                        <div className="alert alert-success fw-black text-center py-2 mb-3 border-0 rounded-pill shadow-sm">
+                                                        <div className="alert alert-success fw-black text-center py-3 my-5 border-0 rounded-4 shadow-sm">
                                                             🏆 {winStr.toUpperCase()}
                                                         </div>
                                                     );
@@ -1855,10 +2050,10 @@ const AdminDashboard = () => {
                                                 return null;
                                             })()}
 
-                                            <div className="mt-3">
-                                                <Badge bg="white" text="dark" className="border px-3 py-2 me-2">CRR: {crr}</Badge>
-                                                {rrr && (selectedMatch.score.runs > 0 || selectedMatch.score.overs > 0) && <Badge bg="info" text="white" className="px-3 py-2 me-2">RRR: {rrr}</Badge>}
-                                                {selectedMatch.score.target && <Badge bg="warning" text="dark" className="px-3 py-2 d-inline-flex align-items-center gap-2">
+                                            <div className="mt-5 d-flex flex-wrap justify-content-center gap-3">
+                                                <Badge bg="white" text="dark" className="border px-3 py-2 shadow-sm">CRR: {crr}</Badge>
+                                                {rrr && (selectedMatch.score.runs > 0 || selectedMatch.score.overs > 0) && <Badge bg="info" text="white" className="px-3 py-2 shadow-sm">RRR: {rrr}</Badge>}
+                                                {selectedMatch.score.target && <Badge bg="warning" text="dark" className="px-3 py-2 d-inline-flex align-items-center gap-2 shadow-sm">
                                                     <i className="bi bi-flag-fill"></i>
                                                     TARGET: {selectedMatch.score.target}
                                                 </Badge>}
@@ -1866,6 +2061,15 @@ const AdminDashboard = () => {
                                         </div>
                                         <div className="d-flex gap-2 mb-4 justify-content-center flex-wrap">
                                             <Button variant="outline-dark" size="lg" className="px-3 fw-bold" onClick={() => setShowSquadModal(true)}>👥 SQUADS</Button>
+                                            {selectedMatch.status === 'live' && (
+                                                <Button variant="outline-primary" size="lg" className="px-3 fw-bold" onClick={() => {
+                                                    setDlsData({
+                                                        target: selectedMatch.score?.target || '',
+                                                        totalOvers: selectedMatch.totalOvers || ''
+                                                    });
+                                                    setShowDlsModal(true);
+                                                }}>🌧️ DLS</Button>
+                                            )}
                                             {(!selectedMatch.toss?.winner && (selectedMatch.status === 'upcoming' || selectedMatch.status === 'live')) && <Button variant="warning" size="lg" className="px-5 fw-bold" onClick={() => {
                                                 // Allow 15 min buffer
                                                 const now = new Date();
@@ -2038,13 +2242,56 @@ const AdminDashboard = () => {
                                                 );
                                             })()}
                                             {selectedMatch.status === 'completed' && (
-                                                <div className="text-center w-100 mb-3">
-                                                    <Alert variant="success" className="py-3 shadow-sm border-0 rounded-4">
-                                                        <h4 className="fw-black mb-1">{calculateWinner(selectedMatch)?.toUpperCase()}</h4>
-                                                    </Alert>
-                                                    <div className="d-flex gap-2 justify-content-center">
-                                                        <Button variant="outline-primary" size="lg" className="px-4 fw-bold" onClick={handleDownloadPDF}>📥 DOWNLOAD PDF</Button>
-                                                        <Button variant="danger" size="lg" className="px-4 fw-bold" onClick={(e) => handleDelete(e, selectedMatch._id || selectedMatch.id)}>DELETE MATCH</Button>
+                                                <div className="text-center w-100 my-4 my-md-5">
+                                                    <div className="mb-5 px-4 mx-auto" style={{ width: 'fit-content' }}>
+                                                        <div className="bg-primary bg-opacity-10 py-2 px-3 rounded-pill d-inline-block mb-3 border border-primary border-opacity-10">
+                                                            <Form.Label className="x-small fw-black text-uppercase text-primary m-0">🥇 Man of the Match</Form.Label>
+                                                        </div>
+                                                        <Dropdown as={ButtonGroup} className="d-block shadow-sm rounded-4 overflow-hidden border-2 border-primary border-opacity-10">
+                                                            <Dropdown.Toggle
+                                                                variant="white"
+                                                                size="lg"
+                                                                className="w-100 fw-black py-3 px-5 border-0"
+                                                                style={{ fontSize: '1.25rem', minWidth: '320px', letterSpacing: '0.01em' }}
+                                                            >
+                                                                {selectedMatch.manOfTheMatch ? selectedMatch.manOfTheMatch.toUpperCase() : '-- CHOOSE PLAYER --'}
+                                                            </Dropdown.Toggle>
+
+                                                            <Dropdown.Menu className="border-0 shadow-lg rounded-4 p-2" style={{ maxHeight: '400px', overflowY: 'auto', minWidth: '100%' }}>
+                                                                <Dropdown.Header className="fw-black text-primary text-uppercase x-small py-2">{selectedMatch.teamA}</Dropdown.Header>
+                                                                {squadA.filter(p => p).map(p => (
+                                                                    <Dropdown.Item
+                                                                        key={`A_${p}`}
+                                                                        onClick={() => handleUpdate('manual', { ...selectedMatch, manOfTheMatch: p })}
+                                                                        active={selectedMatch.manOfTheMatch === p}
+                                                                        className="rounded-3 fw-bold py-2 mb-1"
+                                                                    >
+                                                                        {p}
+                                                                    </Dropdown.Item>
+                                                                ))}
+                                                                <Dropdown.Divider />
+                                                                <Dropdown.Header className="fw-black text-primary text-uppercase x-small py-2">{selectedMatch.teamB}</Dropdown.Header>
+                                                                {squadB.filter(p => p).map(p => (
+                                                                    <Dropdown.Item
+                                                                        key={`B_${p}`}
+                                                                        onClick={() => handleUpdate('manual', { ...selectedMatch, manOfTheMatch: p })}
+                                                                        active={selectedMatch.manOfTheMatch === p}
+                                                                        className="rounded-3 fw-bold py-2 mb-1"
+                                                                    >
+                                                                        {p}
+                                                                    </Dropdown.Item>
+                                                                ))}
+                                                            </Dropdown.Menu>
+                                                        </Dropdown>
+                                                    </div>
+                                                    <hr className="my-5 opacity-10" />
+                                                    <div className="d-flex flex-column flex-sm-row gap-3 justify-content-center px-4">
+                                                        <Button variant="outline-primary" size="lg" className="px-5 py-3 fw-bold rounded-pill shadow-sm" onClick={handleDownloadPDF}>
+                                                            <i className="bi bi-file-earmark-pdf-fill me-2"></i>DOWNLOAD PDF
+                                                        </Button>
+                                                        <Button variant="danger" size="lg" className="px-5 py-3 fw-bold rounded-pill shadow-sm" onClick={(e) => handleDelete(e, selectedMatch._id || selectedMatch.id)}>
+                                                            <i className="bi bi-trash3-fill me-2"></i>DELETE MATCH
+                                                        </Button>
                                                     </div>
                                                 </div>
                                             )}
@@ -2324,7 +2571,26 @@ const AdminDashboard = () => {
                                                             </Col>
                                                             <Col md={4}>
                                                                 <Form.Label className="x-small fw-black text-uppercase text-muted">Time (12-hour)</Form.Label>
-                                                                <Form.Control size="sm" type="text" placeholder="hh:mm AM" value={editTime} onChange={e => handleTimeInput(e.target.value, setEditTime)} />
+                                                                <div className="d-flex gap-2">
+                                                                    <Form.Control
+                                                                        size="sm"
+                                                                        type="text"
+                                                                        placeholder="hh:mm"
+                                                                        value={editTime.replace(/\s?(AM|PM)/i, '').trim()}
+                                                                        maxLength={5}
+                                                                        onChange={e => handleTimeInput(e.target.value + ' ' + (editTime.match(/(AM|PM)/i)?.[0] || 'AM'), setEditTime)}
+                                                                    />
+                                                                    <Button
+                                                                        variant={editTime.includes('PM') ? 'warning' : 'outline-secondary'}
+                                                                        size="sm"
+                                                                        className="fw-bold px-2"
+                                                                        style={{ minWidth: '52px' }}
+                                                                        type="button"
+                                                                        onClick={() => toggleAmPm(editTime || '12:00 AM', setEditTime)}
+                                                                    >
+                                                                        {editTime.includes('PM') ? 'PM' : 'AM'}
+                                                                    </Button>
+                                                                </div>
                                                             </Col>
                                                             <Col md={4} className="d-flex align-items-end">
                                                                 <Button variant="primary" size="sm" className="w-100 fw-bold" onClick={handleSaveDateTime}>SAVE DATE & TIME</Button>

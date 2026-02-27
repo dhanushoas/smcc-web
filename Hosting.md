@@ -60,6 +60,6 @@ Connect your Android app to the cloud.
    - Click **Save**.
 3. **Login**:
    - Username: `Admin`
-   - Password: `Admin@321`
+   - Password: `Dhanush@28`
 
 ✅ **Success!** Your app now works on 4G, 5G, Wi-Fi, and anywhere in the world.
