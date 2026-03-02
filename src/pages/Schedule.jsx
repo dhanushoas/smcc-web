@@ -84,7 +84,7 @@ const Schedule = () => {
                                             </div>
                                         </Card.Body>
                                         <div className="bg-dark text-white p-2 text-center x-small fw-black text-uppercase letter-spacing-1">
-                                            {match.totalOvers} OVERS FORMAT
+                                            {pluralize(match.totalOvers || 20, 'Over').toUpperCase()} FORMAT
                                         </div>
                                     </Card>
                                 </motion.div>

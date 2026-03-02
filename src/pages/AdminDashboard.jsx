@@ -6,8 +6,8 @@ import { Toaster, toast } from 'react-hot-toast';
 import { io } from 'socket.io-client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { jsPDF } from 'jspdf';
-import { toCamelCase, formatTime } from '../utils/formatters';
-import 'jspdf-autotable';
+import { toCamelCase, formatTime, pluralize } from '../utils/formatters';
+import autoTable from 'jspdf-autotable';
 import API_URL from '../utils/api';
 import { useApp } from '../AppContext';
 
@@ -55,7 +55,8 @@ const AdminDashboard = () => {
         fielder: '',
         runs: 0,
         whomOut: 'striker',
-        ballType: 'normal'
+        ballType: 'normal',
+        crossed: false
     });
 
     const [modalData, setModalData] = useState({
@@ -79,6 +80,15 @@ const AdminDashboard = () => {
 
     const [showDlsModal, setShowDlsModal] = useState(false);
     const [dlsData, setDlsData] = useState({ target: '', totalOvers: '' });
+
+    const [showOverthrowModal, setShowOverthrowModal] = useState(false);
+    const [overthrowData, setOverthrowData] = useState({
+        ballType: 'normal',
+        runsCompleted: 0,
+        crossedOnThrow: false,
+        resultType: 'boundary',
+        manualRuns: 0
+    });
 
     const handleTimeInput = (val, callback) => {
         // Strip everything except digits
@@ -235,10 +245,10 @@ const AdminDashboard = () => {
 
             if (inn1.runs > inn2.runs) {
                 const diff = inn1.runs - inn2.runs;
-                return `${inn1.team.toUpperCase()} WON BY ${diff} ${diff === 1 ? 'RUN' : 'RUNS'}`;
+                return `${inn1.team} won the match by ${pluralize(diff, 'Run')}.`;
             } else if (inn2.runs > inn1.runs) {
                 const wicketsRemaining = 10 - inn2.wickets;
-                return `${inn2.team.toUpperCase()} WON BY ${wicketsRemaining} ${wicketsRemaining === 1 ? 'WICKET' : 'WICKETS'}`;
+                return `${inn2.team} won the match by ${pluralize(wicketsRemaining, 'Wicket')}.`;
             } else if (inn2.runs === inn1.runs && inn1.runs > 0) {
                 return "MATCH DRAWN";
             }
@@ -326,7 +336,7 @@ const AdminDashboard = () => {
         });
     };
 
-    const handleDownloadPDF = () => {
+    const handleDownloadPDF = async () => {
         if (!selectedMatch) return;
         if (!['completed', 'abandoned', 'cancelled'].includes(selectedMatch.status)) {
             toast.error("PDF Scorecard is only available after match completion!");
@@ -335,49 +345,95 @@ const AdminDashboard = () => {
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.getWidth();
 
-        let currentY = 20;
+        let currentY = 15;
 
+        // Embed SMCC logo
+        try {
+            const logoImg = await new Promise((resolve, reject) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => {
+                    const size = Math.min(img.naturalWidth, img.naturalHeight);
+                    const canvas = document.createElement('canvas');
+                    canvas.width = size;
+                    canvas.height = size;
+                    const ctx = canvas.getContext('2d');
+                    // White circular background
+                    ctx.fillStyle = 'white';
+                    ctx.beginPath();
+                    ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    // Clip image to circle
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+                    ctx.clip();
+                    ctx.drawImage(img, 0, 0, size, size);
+                    ctx.restore();
+                    resolve(canvas.toDataURL('image/png'));
+                };
+                img.onerror = reject;
+                img.src = '/logo.png';
+            });
+            const logoSize = 14;
+            doc.addImage(logoImg, 'PNG', pageWidth / 2 - logoSize / 2, currentY, logoSize, logoSize);
+            currentY += logoSize + 10;
+        } catch (e) {
+            // Logo not available, skip
+            currentY += 4;
+        }
+
+        // Result block FIRST (most prominent)
         const result = calculateWinner(selectedMatch);
         if (result && selectedMatch.status === 'completed') {
-            doc.setFontSize(16);
+            doc.setFontSize(13);
             doc.setTextColor(0, 146, 112);
             doc.setFont(undefined, 'bold');
             doc.text(`RESULT: ${result.toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
+            currentY += 5; // 8px after result
+
             if (selectedMatch.manOfTheMatch) {
-                currentY += 8;
-                doc.setFontSize(12);
-                doc.setTextColor(100);
-                doc.text(`POTM: ${selectedMatch.manOfTheMatch.toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
+                doc.setFontSize(9);
+                doc.setTextColor(120);
+                doc.setFont(undefined, 'normal');
+                doc.text(`PLAYER OF THE MATCH: ${selectedMatch.manOfTheMatch.toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
+                currentY += 6; // 16px after MOM
+            } else {
+                currentY += 4;
             }
-            currentY += 15;
             doc.setFont(undefined, 'normal');
         }
 
-        // Header
-        doc.setFontSize(22);
+        // SMCC header title
+        doc.setFontSize(16);
         doc.setTextColor(30, 60, 114);
         doc.setFont(undefined, 'bold');
-        doc.text("SMCC CRICKET SCORECARD", pageWidth / 2, currentY, { align: 'center' });
+        doc.text('SMCC CRICKET SCORECARD', pageWidth / 2, currentY, { align: 'center' });
         doc.setFont(undefined, 'normal');
-        currentY += 10;
+        currentY += 5; // 8px after main title
 
-        doc.setFontSize(14);
-        doc.setTextColor(100);
+        // Match title
+        doc.setFontSize(12);
+        doc.setTextColor(50);
         doc.setFont(undefined, 'bold');
         doc.text(`${selectedMatch.teamA} VS ${selectedMatch.teamB}`, pageWidth / 2, currentY, { align: 'center' });
         doc.setFont(undefined, 'normal');
-        currentY += 8;
+        currentY += 5; // 8px after match title
 
-        doc.setFontSize(10);
-        doc.text(`SERIES: ${(selectedMatch.title || 'SMCC LIVE').toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
-        currentY += 6;
-        doc.text(`VENUE: ${(selectedMatch.venue || 'TBD').toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
-        currentY += 6;
-        doc.text(`DATE & TIME: ${new Date(selectedMatch.date).toLocaleDateString().toUpperCase()} ${formatTime(selectedMatch.date).toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
-        currentY += 6;
-        doc.text(`EXPORTED ON: ${new Date().toLocaleString().toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
+        // Meta info
+        doc.setFontSize(8);
+        doc.setTextColor(120);
+        doc.text(`SERIES: ${(selectedMatch.title || 'SMCC LIVE').toUpperCase()} | VENUE: ${(selectedMatch.venue || 'TBD').toUpperCase()} | DATE: ${new Date(selectedMatch.date).toLocaleDateString().toUpperCase()} ${formatTime(selectedMatch.date).toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
+        currentY += 4;
+        doc.text(`EXPORTED: ${new Date().toLocaleString().toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
+        currentY += 6; // 16px before divider
 
-        currentY += 15;
+        // Divider
+        doc.setDrawColor(200);
+        doc.line(14, currentY, pageWidth - 14, currentY);
+        currentY += 7;
+
+        doc.setTextColor(0);
 
         (selectedMatch.innings || []).forEach((inn, idx) => {
             if (idx >= 2 && inn.runs === 0 && inn.wickets === 0 && (!inn.batting || inn.batting.length === 0)) {
@@ -395,31 +451,31 @@ const AdminDashboard = () => {
             const bowlingInnIdx = idx % 2 === 0 ? idx + 1 : idx - 1;
             const bowlingInn = selectedMatch.innings[bowlingInnIdx];
 
-            doc.setFontSize(14);
+            doc.setFontSize(13);
             doc.setTextColor(30, 60, 114);
             doc.setFont(undefined, 'bold');
             const getOrdinal = (n) => { const s = ["th", "st", "nd", "rd"]; const v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
             const titleStr = `${inn.team} ${getOrdinal(idx + 1).toUpperCase()} INNINGS${idx >= 2 ? ' (SUPER OVER)' : ''}`;
             doc.text(`${titleStr.toUpperCase()}: ${inn.runs}/${inn.wickets} (${inn.overs} OV)`, 14, currentY);
             doc.setFont(undefined, 'normal');
-            currentY += 8;
+            currentY += 7;
 
             // Batting Table
             const battingData = (inn.batting || []).map(b => [b.player.toUpperCase(), b.status.toUpperCase(), b.runs, b.balls, b.fours, b.sixes, b.strikeRate]);
             if (battingData.length > 0) {
-                doc.autoTable({
+                autoTable(doc, {
                     startY: currentY,
                     head: [['Batter', 'Status', 'R', 'B', '4s', '6s', 'SR']],
                     body: battingData,
                     theme: 'striped',
                     headStyles: { fillColor: [30, 60, 114] }
                 });
-                currentY = doc.lastAutoTable.finalY + 10;
+                currentY = doc.lastAutoTable.finalY + 8;
             }
 
             // Bowling Table
             if (bowlingInn && bowlingInn.bowling && bowlingInn.bowling.length > 0) {
-                doc.autoTable({
+                autoTable(doc, {
                     startY: currentY,
                     head: [['Bowler', 'O', 'M', 'R', 'W', 'Eco']],
                     body: bowlingInn.bowling.map(b => [b.player.toUpperCase(), b.overs, b.maidens, b.runs, b.wickets, b.economy]),
@@ -431,29 +487,29 @@ const AdminDashboard = () => {
 
             // Extras
             const ex = inn.extras || { total: 0, wides: 0, noBalls: 0, byes: 0, legByes: 0 };
-            doc.setFontSize(10);
+            doc.setFontSize(9);
             doc.setTextColor(50);
             doc.setFont(undefined, 'bold');
             doc.text(`EXTRAS: `, 14, currentY + 3);
             doc.setFont(undefined, 'normal');
             doc.text(`${ex.total} (W ${ex.wides}, NB ${ex.noBalls}, B ${ex.byes}, LB ${ex.legByes})`, 33, currentY + 3);
-            currentY += 13;
+            currentY += 10;
 
             if (inn.fallOfWickets && inn.fallOfWickets.length > 0) {
-                doc.setFontSize(10);
+                doc.setFontSize(9);
                 doc.setTextColor(150, 0, 0);
                 doc.setFont(undefined, 'bold');
                 doc.text("FALL OF WICKETS", 14, currentY);
                 doc.setFont(undefined, 'normal');
                 currentY += 4;
-                doc.autoTable({
+                autoTable(doc, {
                     startY: currentY,
                     head: [['Wkt', 'Score', 'Over', 'Player']],
                     body: inn.fallOfWickets.map(f => [f.wicket, f.runs, f.overs, f.player.toUpperCase()]),
                     theme: 'plain',
                     styles: { fontSize: 9 }
                 });
-                currentY = doc.lastAutoTable.finalY + 10;
+                currentY = doc.lastAutoTable.finalY + 8;
             }
 
             // Did Not Bat
@@ -469,17 +525,17 @@ const AdminDashboard = () => {
                     doc.setFont(undefined, 'normal');
                     const textLines = doc.splitTextToSize(`${yetToBat.map(p => p.toUpperCase()).join(', ')}`, 150);
                     doc.text(textLines, 38, currentY + 2);
-                    currentY += 10 + (textLines.length * 4);
+                    currentY += 8 + (textLines.length * 4);
                 }
             }
 
-            // Team Summary info
-            doc.setFontSize(10);
+            // Team Summary
+            doc.setFontSize(9);
             doc.setTextColor(0);
             doc.setFont(undefined, 'bold');
-            doc.text(`TOTAL: ${inn.runs}/${inn.wickets} in ${inn.overs} ${parseFloat(inn.overs) === 1 ? 'Over' : 'Overs'} | Boundaries: 4s: ${inn.fours || 0}, 6s: ${inn.sixes || 0}`, 14, currentY);
+            doc.text(`TOTAL: ${inn.runs}/${inn.wickets} in ${inn.overs} ${parseFloat(inn.overs) === 1 ? 'Over' : 'Overs'} | 4s: ${inn.fours || 0}, 6s: ${inn.sixes || 0}`, 14, currentY);
             doc.setFont(undefined, 'normal');
-            currentY += 15;
+            currentY += 12;
         });
 
         doc.save(`${selectedMatch.teamA}_vs_${selectedMatch.teamB}_Scorecard.pdf`);
@@ -710,9 +766,10 @@ const AdminDashboard = () => {
         let localStriker = striker;
         let localNonStriker = nonStriker;
         let localBowler = bowler;
+        let ballCounts = false;
 
         // --- History Logging (Optimized to use ONE clone) ---
-        if (['runs', 'extra', 'wicket', 'swap_strike'].includes(type) && type !== 'init') {
+        if (['runs', 'extra', 'wicket', 'swap_strike', 'overthrow'].includes(type) && type !== 'init') {
             if (!updatedMatch.history) updatedMatch.history = [];
             // Create snapshot from the ALREADY cloned updatedMatch (before modification)
             const { history, ...snapshot } = updatedMatch;
@@ -896,7 +953,7 @@ const AdminDashboard = () => {
                     return;
                 }
 
-                let ballCounts = true;
+                ballCounts = true;
 
                 if (type === 'runs') {
                     updatedMatch.score.thisOver.push(value);
@@ -927,30 +984,76 @@ const AdminDashboard = () => {
                     ballCounts = false;
                 } else if (type === 'extra') {
                     const amount = params?.amount || 1;
+                    const isBat = params?.isBat || false; // New flag for NB
                     currentInnings.runs += amount;
                     if (value === 'w') {
-                        updatedMatch.score.thisOver.push('wd');
-                        currentInnings.extras.wides += amount;
+                        // Wide Ball: 1 penalty + runs ran = total Wides
+                        updatedMatch.score.thisOver.push('WD' + amount);
+                        currentInnings.extras.wides = (currentInnings.extras.wides || 0) + amount;
+                        currentInnings.extras.total = (currentInnings.extras.total || 0) + amount;
                         currentBowling.bowling[bIdx].runs += amount;
-                        currentBowling.bowling[bIdx].wides = (currentBowling.bowling[bIdx].wides || 0) + amount;
+                        currentBowling.bowling[bIdx].wides = (currentBowling.bowling[bIdx].wides || 0) + 1;
                         ballCounts = false;
+
+                        // Strike Rotation: Swap if runs ran (amount - 1) is odd
+                        const runsRan = amount - 1;
+                        if (runsRan % 2 !== 0) {
+                            const temp = localStriker; localStriker = localNonStriker; localNonStriker = temp;
+                        }
                     }
                     else if (value === 'nb') {
-                        updatedMatch.score.thisOver.push('nb');
-                        currentInnings.extras.noBalls += amount;
+                        // No Ball: 1 penalty (Extras) + (Runs Ran or Bat Runs)
+                        updatedMatch.score.thisOver.push('NB' + amount);
+                        const penalty = 1;
+                        const additionalRuns = Math.max(0, amount - penalty);
+                        currentInnings.extras.noBalls = (currentInnings.extras.noBalls || 0) + penalty;
+
+                        if (isBat) {
+                            // Hit by bat: 1 Extra + additionalRuns to Batter
+                            if (additionalRuns > 0 && sIdx !== -1) {
+                                currentInnings.batting[sIdx].runs += additionalRuns;
+                                if (additionalRuns === 4) currentInnings.batting[sIdx].fours += 1;
+                                if (additionalRuns === 6) currentInnings.batting[sIdx].sixes += 1;
+                            }
+                            currentInnings.extras.total = (currentInnings.extras.total || 0) + penalty;
+                        } else {
+                            // Not hit by bat: All runs are Extras
+                            currentInnings.extras.noBalls = (currentInnings.extras.noBalls || 0) + additionalRuns; // Actually No Ball Byes/Leg Byes are often just recorded under NB extras in simple scoreboards
+                            currentInnings.extras.total = (currentInnings.extras.total || 0) + amount;
+                        }
+
                         currentBowling.bowling[bIdx].runs += amount;
-                        currentBowling.bowling[bIdx].noBalls = (currentBowling.bowling[bIdx].noBalls || 0) + amount;
+                        currentBowling.bowling[bIdx].noBalls = (currentBowling.bowling[bIdx].noBalls || 0) + 1;
                         ballCounts = false;
+                        updatedMatch.score.freeHit = true;
+
+                        // Strike Rotation: Swap if runs ran (additionalRuns) is odd
+                        if (additionalRuns % 2 !== 0) {
+                            const temp = localStriker; localStriker = localNonStriker; localNonStriker = temp;
+                        }
                     }
                     else if (value === 'b') {
-                        updatedMatch.score.thisOver.push(0);
+                        updatedMatch.score.thisOver.push('B' + amount);
                         currentInnings.extras.byes = (currentInnings.extras.byes || 0) + amount;
+                        currentInnings.extras.total = (currentInnings.extras.total || 0) + amount;
+                        currentInnings.batting[sIdx].balls += 1;
+
+                        // Strike Rotation: Swap if odd
+                        if (amount % 2 !== 0) {
+                            const temp = localStriker; localStriker = localNonStriker; localNonStriker = temp;
+                        }
                     }
                     else if (value === 'lb') {
-                        updatedMatch.score.thisOver.push(0);
+                        updatedMatch.score.thisOver.push('LB' + amount);
                         currentInnings.extras.legByes = (currentInnings.extras.legByes || 0) + amount;
+                        currentInnings.extras.total = (currentInnings.extras.total || 0) + amount;
+                        currentInnings.batting[sIdx].balls += 1;
+
+                        // Strike Rotation: Swap if odd
+                        if (amount % 2 !== 0) {
+                            const temp = localStriker; localStriker = localNonStriker; localNonStriker = temp;
+                        }
                     }
-                    currentInnings.extras.total += amount;
                 } else if (type === 'run_out_striker' || type === 'run_out_nonstriker') {
                     const isStrikerOut = type === 'run_out_striker';
                     const outPlayer = isStrikerOut ? localStriker : localNonStriker;
@@ -1025,27 +1128,30 @@ const AdminDashboard = () => {
 
                             if (wDetail.type === 'run out') {
                                 const completedRuns = parseInt(wDetail.runs || 0);
+                                updatedMatch.score.thisOver[updatedMatch.score.thisOver.length - 1] = 'W' + (completedRuns > 0 ? completedRuns : '');
                                 currentInnings.runs += completedRuns;
                                 currentBowling.bowling[bIdx].runs += completedRuns;
                                 currentInnings.batting[sIdx].runs += completedRuns;
 
                                 if (wDetail.ballType === 'wide') {
                                     currentInnings.runs += 1;
-                                    currentInnings.extras.wides += 1;
-                                    currentInnings.extras.total += 1;
+                                    currentInnings.extras.wides = (currentInnings.extras.wides || 0) + 1;
+                                    currentInnings.extras.total = (currentInnings.extras.total || 0) + 1;
                                     currentBowling.bowling[bIdx].runs += 1;
+                                    currentBowling.bowling[bIdx].wides = (currentBowling.bowling[bIdx].wides || 0) + 1;
                                     ballCounts = false;
                                 } else if (wDetail.ballType === 'no-ball') {
                                     currentInnings.runs += 1;
-                                    currentInnings.extras.noBalls += 1;
-                                    currentInnings.extras.total += 1;
+                                    currentInnings.extras.noBalls = (currentInnings.extras.noBalls || 0) + 1;
+                                    currentInnings.extras.total = (currentInnings.extras.total || 0) + 1;
                                     currentBowling.bowling[bIdx].runs += 1;
+                                    currentBowling.bowling[bIdx].noBalls = (currentBowling.bowling[bIdx].noBalls || 0) + 1;
                                     ballCounts = false;
                                 } else if (wDetail.ballType === 'mankad') {
                                     ballCounts = false;
                                 }
 
-                                if (!isMankad) {
+                                if (!isMankad && wDetail.ballType !== 'wide') {
                                     currentInnings.batting[sIdx].balls += 1;
                                 }
 
@@ -1059,12 +1165,15 @@ const AdminDashboard = () => {
                                 // Stumped on a wide?
                                 if (wDetail.type === 'stumped' && wDetail.ballType === 'wide') {
                                     currentInnings.runs += 1;
-                                    currentInnings.extras.wides += 1;
-                                    currentInnings.extras.total += 1;
+                                    currentInnings.extras.wides = (currentInnings.extras.wides || 0) + 1;
+                                    currentInnings.extras.total = (currentInnings.extras.total || 0) + 1;
                                     currentBowling.bowling[bIdx].runs += 1;
+                                    currentBowling.bowling[bIdx].wides = (currentBowling.bowling[bIdx].wides || 0) + 1;
                                     ballCounts = false;
                                 } else {
-                                    currentInnings.batting[sIdx].balls += 1;
+                                    if (wDetail.ballType !== 'wide') {
+                                        currentInnings.batting[sIdx].balls += 1;
+                                    }
                                 }
                             }
 
@@ -1099,7 +1208,18 @@ const AdminDashboard = () => {
                         currentInnings.batting[outIdx].balls += 1;
                     }
 
-                    if (isStrikerReplacement) localStriker = newName;
+                    let finalIsStrikerReplacement = isStrikerReplacement;
+                    if (type === 'wicket_with_replacement') {
+                        const wDetailForStrike = params?.wicketDetails || { type: 'caught' };
+                        if (wDetailForStrike.type === 'run out' && wDetailForStrike.crossed) {
+                            const temp = localStriker; localStriker = localNonStriker; localNonStriker = temp;
+                            finalIsStrikerReplacement = !isStrikerReplacement;
+                        } else if (wDetailForStrike.type !== 'run out') {
+                            finalIsStrikerReplacement = true;
+                        }
+                    }
+
+                    if (finalIsStrikerReplacement) localStriker = newName;
                     else localNonStriker = newName;
 
                     if (!currentInnings.batting.find(p => p.player === newName)) {
@@ -1130,6 +1250,81 @@ const AdminDashboard = () => {
                     localBowler = value;
                     if (!currentBowling.bowling.find(p => p.player === value)) {
                         currentBowling.bowling.push({ player: value, overs: 0, maidens: 0, runs: 0, wickets: 0, economy: 0, wides: 0, noBalls: 0 });
+                    }
+                } else if (type === 'overthrow') {
+                    const { ballType, runsCompleted, crossedOnThrow, resultType, manualRuns } = value;
+                    const overtimeRuns = resultType === 'boundary' ? 4 : manualRuns;
+                    const totalRuns = (runsCompleted + (crossedOnThrow ? 1 : 0)) + overtimeRuns;
+
+                    // Normal balls and bye/lb count toward the over
+                    if (ballType === 'normal' || ballType === 'b' || ballType === 'lb') {
+                        ballCounts = true;
+                    }
+
+                    if (ballType === 'normal' || ballType === 'nb') {
+                        // Batter scores the runs (Total runs if hit by bat)
+                        const batterRuns = totalRuns;
+                        currentInnings.batting[sIdx].runs += batterRuns;
+                        if (batterRuns >= 4 && resultType === 'boundary') currentInnings.batting[sIdx].fours += 1;
+                        if (batterRuns === 6) currentInnings.batting[sIdx].sixes += 1;
+
+                        currentInnings.runs += batterRuns;
+                        currentBowling.bowling[bIdx].runs += batterRuns;
+
+                        if (ballType === 'nb') {
+                            currentInnings.runs += 1; // NB penalty
+                            currentInnings.extras.noBalls = (currentInnings.extras.noBalls || 0) + 1;
+                            currentInnings.extras.total = (currentInnings.extras.total || 0) + 1;
+                            currentBowling.bowling[bIdx].runs += 1;
+                            currentBowling.bowling[bIdx].noBalls = (currentBowling.bowling[bIdx].noBalls || 0) + 1;
+                            ballCounts = false;
+                            updatedMatch.score.freeHit = true;
+                            updatedMatch.score.thisOver.push('NB' + (batterRuns + 1));
+                        } else {
+                            updatedMatch.score.thisOver.push(batterRuns);
+                            currentInnings.batting[sIdx].balls += 1;
+                        }
+
+                        // Team breakdown
+                        if (batterRuns === 1) currentInnings.ones = (currentInnings.ones || 0) + 1;
+                        else if (batterRuns === 2) currentInnings.twos = (currentInnings.twos || 0) + 1;
+                        else if (batterRuns === 3) currentInnings.threes = (currentInnings.threes || 0) + 1;
+                        else if (batterRuns === 4) currentInnings.fours = (currentInnings.fours || 0) + 1;
+                        else if (batterRuns === 6) currentInnings.sixes = (currentInnings.sixes || 0) + 1;
+                    } else if (ballType === 'nb_extra') {
+                        // No ball but not hit by bat (e.g. thigh pad + overthrow)
+                        const nbPenalty = 1;
+                        currentInnings.runs += (totalRuns + nbPenalty);
+                        currentInnings.extras.noBalls = (currentInnings.extras.noBalls || 0) + (totalRuns + nbPenalty);
+                        currentInnings.extras.total = (currentInnings.extras.total || 0) + (totalRuns + nbPenalty);
+                        currentBowling.bowling[bIdx].runs += (totalRuns + nbPenalty);
+                        currentBowling.bowling[bIdx].noBalls = (currentBowling.bowling[bIdx].noBalls || 0) + 1;
+                        ballCounts = false;
+                        updatedMatch.score.freeHit = true;
+                        updatedMatch.score.thisOver.push('NB' + (totalRuns + nbPenalty));
+                    } else if (ballType === 'w') {
+                        // Wide + Runs
+                        const widePenalty = 1;
+                        currentInnings.runs += (totalRuns + widePenalty);
+                        currentInnings.extras.wides = (currentInnings.extras.wides || 0) + (totalRuns + widePenalty);
+                        currentInnings.extras.total = (currentInnings.extras.total || 0) + (totalRuns + widePenalty);
+                        currentBowling.bowling[bIdx].runs += (totalRuns + widePenalty);
+                        currentBowling.bowling[bIdx].wides = (currentBowling.bowling[bIdx].wides || 0) + 1;
+                        ballCounts = false;
+                        updatedMatch.score.thisOver.push('WD' + (totalRuns + widePenalty));
+                    } else if (ballType === 'b' || ballType === 'lb') {
+                        // Bye/Leg Bye + Runs
+                        currentInnings.runs += totalRuns;
+                        if (ballType === 'b') currentInnings.extras.byes = (currentInnings.extras.byes || 0) + totalRuns;
+                        else currentInnings.extras.legByes = (currentInnings.extras.legByes || 0) + totalRuns;
+                        currentInnings.extras.total = (currentInnings.extras.total || 0) + totalRuns;
+                        currentInnings.batting[sIdx].balls += 1;
+                        updatedMatch.score.thisOver.push((ballType === 'b' ? 'B' : 'LB') + totalRuns);
+                    }
+
+                    // Strike Rotation: Total runs determine if they swap
+                    if (totalRuns % 2 !== 0) {
+                        const temp = localStriker; localStriker = localNonStriker; localNonStriker = temp;
                     }
                 }
 
@@ -1243,6 +1438,9 @@ const AdminDashboard = () => {
 
         // --- Optimistic Update ---
         // This ensures that history is available IMMEDIATELY for modals (e.g. Undo in Bowler Modal)
+        if (ballCounts) {
+            updatedMatch.score.freeHit = false;
+        }
         setSelectedMatch(updatedMatch);
         setScorecardData(updatedMatch.innings);
 
@@ -1660,11 +1858,25 @@ const AdminDashboard = () => {
                                 <option value="">Select Bowler</option>
                                 {(selectedMatch?.score?.battingTeam === selectedMatch?.teamA ? squadB : squadA).map((p, i) => <option key={i} value={p}>{p}</option>)}
                             </Form.Select>
+                            {selectedMatch?.score?.thisOver?.length > 0 && (() => {
+                                const overBalls = selectedMatch.score.thisOver;
+                                const legalBalls = overBalls.filter(b => !/WD|NB/i.test(b.toString())).length;
+                                const remaining = 6 - legalBalls;
+                                if (remaining > 0) {
+                                    return (
+                                        <Alert variant="warning" className="mt-3 border-0 rounded-3 small fw-bold">
+                                            <i className="bi bi-exclamation-triangle-fill me-2"></i>
+                                            A bowler has been replaced due to injury. There are {remaining} {pluralize(remaining, 'Ball')} remaining in this over.
+                                        </Alert>
+                                    );
+                                }
+                                return null;
+                            })()}
                         </Form.Group>
                     </Modal.Body>
                     <Modal.Footer className="border-0 bg-light pb-4 px-4 d-flex gap-2">
                         <Button variant="outline-danger" size="lg" className="flex-grow-1 fw-bold rounded-pill" onClick={() => { setShowBowlerModal(false); undoLastBall(); }}>CANCEL & UNDO</Button>
-                        <Button variant="primary" size="lg" className="flex-grow-2 fw-black rounded-pill shadow" onClick={() => { if (!modalData.nextB) return toast.error("Select a bowler"); handleUpdate('new_bowler', modalData.nextB); setShowBowlerModal(false); setModalData({ ...modalData, nextB: '' }); }}>START OVER</Button>
+                        <Button variant="primary" size="lg" className="flex-grow-2 fw-black rounded-pill shadow" onClick={() => { if (!modalData.nextB) return toast.error("Select a bowler"); handleUpdate('new_bowler', modalData.nextB); setShowBowlerModal(false); setModalData({ ...modalData, nextB: '' }); }}>{selectedMatch?.score?.thisOver?.length > 0 ? 'CONFIRM CHANGE' : 'START OVER'}</Button>
                     </Modal.Footer>
                 </Modal>
 
@@ -1707,22 +1919,43 @@ const AdminDashboard = () => {
                         <Form.Group className="mb-3">
                             <Form.Label className="fw-bold small text-uppercase text-muted">Wicket Type</Form.Label>
                             <Form.Select size="lg" className="rounded-3 border-0 shadow-sm" value={wicketDetails.type} onChange={e => setWicketDetails({ ...wicketDetails, type: e.target.value })}>
-                                <option value="caught">Caught</option>
-                                <option value="bowled">Bowled</option>
-                                <option value="lbw">LBW</option>
-                                <option value="run out">Run Out</option>
-                                <option value="stumped">Stumped</option>
-                                <option value="hit wicket">Hit Wicket</option>
+                                {wicketDetails.ballType === 'normal' && !selectedMatch?.score?.freeHit && (
+                                    <>
+                                        <option value="caught">Caught</option>
+                                        <option value="bowled">Bowled</option>
+                                        <option value="lbw">LBW</option>
+                                    </>
+                                )}
+                                {(wicketDetails.ballType === 'normal' || wicketDetails.ballType === 'no-ball' || wicketDetails.ballType === 'wide') && (
+                                    <option value="run out">Run Out</option>
+                                )}
+                                {(wicketDetails.ballType === 'normal' || wicketDetails.ballType === 'wide') && !selectedMatch?.score?.freeHit && (
+                                    <>
+                                        <option value="stumped">Stumped</option>
+                                        <option value="hit wicket">Hit Wicket</option>
+                                    </>
+                                )}
                                 <option value="retired hurt">Retired Hurt</option>
                             </Form.Select>
                         </Form.Group>
                         {(wicketDetails.type === 'caught' || wicketDetails.type === 'run out' || wicketDetails.type === 'stumped') && (
                             <Form.Group className="mb-3">
                                 <Form.Label className="fw-bold small text-uppercase text-muted">Fielder Name</Form.Label>
-                                <Form.Select size="lg" className="rounded-3 border-0 shadow-sm" value={wicketDetails.fielder} onChange={e => setWicketDetails({ ...wicketDetails, fielder: e.target.value })}>
-                                    <option value="">Select Fielder</option>
-                                    {(selectedMatch?.score?.battingTeam === selectedMatch?.teamA ? squadB : squadA).map((p, i) => <option key={i} value={p}>{p}</option>)}
-                                </Form.Select>
+                                <Form.Control size="lg" className="rounded-3 border-0 shadow-sm" type="text" placeholder="Fielder/Keeper Name" value={wicketDetails.fielder} onChange={e => setWicketDetails({ ...wicketDetails, fielder: e.target.value })} />
+                            </Form.Group>
+                        )}
+
+                        {wicketDetails.type === 'run out' && (
+                            <Form.Group className="mb-3">
+                                <Form.Check
+                                    type="switch"
+                                    id="batters-crossed-switch"
+                                    label="Batters Crossed?"
+                                    className="fw-bold text-muted"
+                                    checked={wicketDetails.crossed}
+                                    onChange={e => setWicketDetails({ ...wicketDetails, crossed: e.target.checked })}
+                                />
+                                <small className="text-muted d-block mt-1">If they crossed before the wicket fell, the survivor stays at the new end.</small>
                             </Form.Group>
                         )}
                         {(wicketDetails.type === 'run out' || wicketDetails.type === 'stumped') && (
@@ -1983,23 +2216,7 @@ const AdminDashboard = () => {
                                     </Card.Header>
                                     <Card.Body className="p-4">
                                         <div className="text-center mb-4 bg-light rounded-4 p-4 border">
-                                            {(() => {
-                                                const lastInn = selectedMatch.innings && selectedMatch.innings.length > 0 ? selectedMatch.innings[selectedMatch.innings.length - 1] : null;
-                                                // Ideally, use the LIVE score object, but if completed, fallback to the last innings data to ensure accuracy
-                                                const dRuns = (selectedMatch.status === 'completed' && lastInn) ? lastInn.runs : selectedMatch.score.runs;
-                                                const dWickets = (selectedMatch.status === 'completed' && lastInn) ? lastInn.wickets : selectedMatch.score.wickets;
-                                                const dOvers = (selectedMatch.status === 'completed' && lastInn) ? lastInn.overs : selectedMatch.score.overs;
 
-                                                // Determine limit for display
-                                                const dLimit = selectedMatch.innings.length > 2 ? 1 : selectedMatch.totalOvers;
-
-                                                return (
-                                                    <div className="py-2">
-                                                        <div className="display-3 fw-bold text-primary mb-2">{dRuns}/{dWickets}</div>
-                                                        <div className="lead fw-bold mb-3">{dOvers} / {dLimit} {selectedMatch.innings.length > 2 ? 'Over (Super Over)' : 'Overs'}</div>
-                                                    </div>
-                                                );
-                                            })()}
 
                                             {/* Dynamic Previous Innings Display */}
                                             {selectedMatch.innings && selectedMatch.innings.length > 1 && (
@@ -2040,25 +2257,123 @@ const AdminDashboard = () => {
                                                     )
                                                 );
 
-                                                if (winStr && winStr !== 'Match Completed' && isFinished) {
-                                                    return (
-                                                        <div className="alert alert-success fw-black text-center py-3 my-5 border-0 rounded-4 shadow-sm">
-                                                            🏆 {winStr.toUpperCase()}
-                                                        </div>
-                                                    );
-                                                }
-                                                return null;
-                                            })()}
+                                                const isLive = selectedMatch.status === 'live';
+                                                const target = selectedMatch.score?.target;
+                                                const isSuperOver = selectedMatch.innings.length > 2;
 
-                                            <div className="mt-5 d-flex flex-wrap justify-content-center gap-3">
-                                                <Badge bg="white" text="dark" className="border px-3 py-2 shadow-sm">CRR: {crr}</Badge>
-                                                {rrr && (selectedMatch.score.runs > 0 || selectedMatch.score.overs > 0) && <Badge bg="info" text="white" className="px-3 py-2 shadow-sm">RRR: {rrr}</Badge>}
-                                                {selectedMatch.score.target && <Badge bg="warning" text="dark" className="px-3 py-2 d-inline-flex align-items-center gap-2 shadow-sm">
-                                                    <i className="bi bi-flag-fill"></i>
-                                                    TARGET: {selectedMatch.score.target}
-                                                </Badge>}
-                                            </div>
+                                                const dRuns = selectedMatch.score?.runs ?? 0;
+                                                const dWickets = selectedMatch.score?.wickets ?? 0;
+                                                const dOvers = selectedMatch.score?.overs ?? 0;
+                                                const dLimit = isSuperOver ? 1 : (selectedMatch.totalOvers || 0);
+
+                                                const crr = dOvers > 0 ? (dRuns / parseFloat(dOvers)).toFixed(2) : '0.00';
+                                                const ballsRemaining = target && dLimit > 0
+                                                    ? Math.max(0, (dLimit * 6) - Math.round((parseFloat(dOvers) % 1 * 10) + Math.floor(parseFloat(dOvers)) * 6))
+                                                    : 0;
+                                                const runsNeeded = target ? Math.max(0, target - dRuns) : 0;
+                                                const rrr = target && ballsRemaining > 0
+                                                    ? ((runsNeeded / ballsRemaining) * 6).toFixed(2)
+                                                    : null;
+
+                                                return (
+                                                    <div className="clean-display-structure py-4 px-3">
+                                                        {/* 1. Main Score Block */}
+                                                        <div className="mb-4">
+                                                            <div className="display-2 fw-black text-primary mb-1">
+                                                                {dRuns} / {dWickets}
+                                                            </div>
+                                                            <div className="h4 fw-bold text-muted mb-0">
+                                                                {isFinished ? 'Completed in ' : ''}
+                                                                {pluralize(dOvers, 'Over')}
+                                                                <span className="mx-2 opacity-50">/</span>
+                                                                {pluralize(dLimit, 'Over')}
+                                                                {isSuperOver && <small className="ms-2 text-uppercase text-danger fw-black" style={{ fontSize: '0.6em' }}>(Super Over)</small>}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* 2. Target Block (Live & 2nd Innings) */}
+                                                        {isLive && target && (
+                                                            <div className="mb-4">
+                                                                <Badge bg="danger" className="px-4 py-3 rounded-pill shadow-sm border border-white border-opacity-25 w-100" style={{ fontSize: '1.25rem' }}>
+                                                                    <i className="bi bi-bullseye me-2"></i>
+                                                                    TARGET: {pluralize(target, 'Run')} Required from {pluralize(isSuperOver ? 1 : selectedMatch.totalOvers, 'Over')}
+                                                                </Badge>
+                                                            </div>
+                                                        )}
+
+                                                        {/* 3. Run Rate Block (Live) */}
+                                                        {isLive && (
+                                                            <div className="d-flex flex-wrap justify-content-center gap-3 mb-4">
+                                                                <div className="bg-white border rounded-pill px-3 py-2 shadow-sm d-flex align-items-center gap-2">
+                                                                    <span className="x-small fw-black text-muted text-uppercase">Current RR:</span>
+                                                                    <span className="fw-black text-primary">{crr}</span>
+                                                                </div>
+                                                                {rrr && (dRuns > 0 || dOvers > 0) && (
+                                                                    <div className="bg-info bg-opacity-10 border border-info border-opacity-25 rounded-pill px-3 py-2 shadow-sm d-flex align-items-center gap-2">
+                                                                        <span className="x-small fw-black text-info text-uppercase">Required RR:</span>
+                                                                        <span className="fw-black text-info">{rrr}</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        )}
+
+                                                        {/* 4. Result Block (Finished) */}
+                                                        {isFinished && winStr && winStr !== 'Match Completed' && (
+                                                            <div className="alert alert-success fw-black text-center py-3 mb-4 border-0 rounded-4 shadow-sm animate-fade-in" style={{ fontSize: '1.25rem' }}>
+                                                                🏆 {winStr.toUpperCase()}
+                                                            </div>
+                                                        )}
+
+                                                        {/* 5. Award Block (Man of the Match) */}
+                                                        {selectedMatch.status === 'completed' && (
+                                                            <div className="mt-2 pt-4 border-top">
+                                                                <div className="bg-primary bg-opacity-10 py-2 px-3 rounded-pill d-inline-block mb-3 border border-primary border-opacity-10">
+                                                                    <Form.Label className="x-small fw-black text-uppercase text-primary m-0">🏆 Player of the Match</Form.Label>
+                                                                </div>
+
+                                                                <Dropdown as={ButtonGroup} className="d-block shadow-sm rounded-4 overflow-hidden border-2 border-primary border-opacity-10">
+                                                                    <Dropdown.Toggle
+                                                                        variant="white"
+                                                                        size="lg"
+                                                                        className="w-100 fw-black py-3 px-5 border-0"
+                                                                        style={{ fontSize: '1.25rem', minWidth: '320px', letterSpacing: '0.01em' }}
+                                                                    >
+                                                                        {selectedMatch.manOfTheMatch ? selectedMatch.manOfTheMatch.toUpperCase() : '-- CHOOSE PLAYER --'}
+                                                                    </Dropdown.Toggle>
+
+                                                                    <Dropdown.Menu className="border-0 shadow-lg rounded-4 p-2" style={{ maxHeight: '400px', overflowY: 'auto', minWidth: '100%' }}>
+                                                                        <Dropdown.Header className="fw-black text-primary text-uppercase x-small py-2">{selectedMatch.teamA}</Dropdown.Header>
+                                                                        {squadA.filter(p => p).map(p => (
+                                                                            <Dropdown.Item
+                                                                                key={`A_${p}`}
+                                                                                onClick={() => handleUpdate('manual', { ...selectedMatch, manOfTheMatch: p })}
+                                                                                active={selectedMatch.manOfTheMatch === p}
+                                                                                className="rounded-3 fw-bold py-2 mb-1"
+                                                                            >
+                                                                                {p}
+                                                                            </Dropdown.Item>
+                                                                        ))}
+                                                                        <Dropdown.Divider />
+                                                                        <Dropdown.Header className="fw-black text-primary text-uppercase x-small py-2">{selectedMatch.teamB}</Dropdown.Header>
+                                                                        {squadB.filter(p => p).map(p => (
+                                                                            <Dropdown.Item
+                                                                                key={`B_${p}`}
+                                                                                onClick={() => handleUpdate('manual', { ...selectedMatch, manOfTheMatch: p })}
+                                                                                active={selectedMatch.manOfTheMatch === p}
+                                                                                className="rounded-3 fw-bold py-2 mb-1"
+                                                                            >
+                                                                                {p}
+                                                                            </Dropdown.Item>
+                                                                        ))}
+                                                                    </Dropdown.Menu>
+                                                                </Dropdown>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })()}
                                         </div>
+
                                         <div className="d-flex gap-2 mb-4 justify-content-center flex-wrap">
                                             <Button variant="outline-dark" size="lg" className="px-3 fw-bold" onClick={() => setShowSquadModal(true)}>👥 SQUADS</Button>
                                             {selectedMatch.status === 'live' && (
@@ -2070,6 +2385,13 @@ const AdminDashboard = () => {
                                                     setShowDlsModal(true);
                                                 }}>🌧️ DLS</Button>
                                             )}
+                                            <Button variant="outline-secondary" size="lg" className="px-3 fw-bold" onClick={() => handleUpdate('undo')}>
+                                                <i className="bi bi-arrow-counterclockwise me-2"></i> Reverse Last Action
+                                            </Button>
+                                            <Button variant="outline-warning" size="lg" className="px-3 fw-bold" onClick={() => handleUpdate('pause')}>
+                                                <i className={`bi bi-${selectedMatch.score.isPaused ? 'play-fill' : 'pause-fill'} me-2`}></i>
+                                                {selectedMatch.score.isPaused ? 'Resume Match' : 'Temporarily Pause Match'}
+                                            </Button>
                                             {(!selectedMatch.toss?.winner && (selectedMatch.status === 'upcoming' || selectedMatch.status === 'live')) && <Button variant="warning" size="lg" className="px-5 fw-bold" onClick={() => {
                                                 // Allow 15 min buffer
                                                 const now = new Date();
@@ -2121,7 +2443,6 @@ const AdminDashboard = () => {
 
                                             {/* Helper to check if current innings is done */}
                                             {(() => {
-                                                // Determine active side strictly: Target score exists => chasing team (Index 1 or 3, etc)
                                                 let currentInnIdx;
                                                 if (selectedMatch.innings.length > 2) {
                                                     const pairStart = selectedMatch.innings.length - 2;
@@ -2130,9 +2451,8 @@ const AdminDashboard = () => {
                                                     currentInnIdx = selectedMatch.score?.target ? 1 : 0;
                                                 }
                                                 const currentInn = selectedMatch.innings[currentInnIdx];
-
                                                 const limit = selectedMatch.innings.length > 2 ? 1 : selectedMatch.totalOvers;
-                                                // Check strict completion: Overs reached, 10 wkts, or (Super Over & 2 wkts)
+
                                                 const isComplete = currentInn && (
                                                     currentInn.overs >= limit ||
                                                     currentInn.wickets >= 10 ||
@@ -2144,13 +2464,10 @@ const AdminDashboard = () => {
                                                         {selectedMatch.status === 'live' && ((!selectedMatch.currentBatsmen || selectedMatch.currentBatsmen.length === 0) || isComplete) && (
                                                             (() => {
                                                                 const targetIdx = isComplete ? selectedMatch.innings.length : currentInnIdx;
-
-                                                                // Check for Super Over Tie to offer Draw
-                                                                // If we are about to start Super Over 2 (Index 4) or higher...
                                                                 let isTie = false;
                                                                 if (targetIdx >= 4 && targetIdx % 2 === 0) {
-                                                                    const prevInn2 = selectedMatch.innings[targetIdx - 1]; // SO 2nd Inn
-                                                                    const prevInn1 = selectedMatch.innings[targetIdx - 2]; // SO 1st Inn
+                                                                    const prevInn2 = selectedMatch.innings[targetIdx - 1];
+                                                                    const prevInn1 = selectedMatch.innings[targetIdx - 2];
                                                                     if (prevInn1.runs === prevInn2.runs) isTie = true;
                                                                 }
 
@@ -2160,9 +2477,7 @@ const AdminDashboard = () => {
                                                                             if (window.confirm("Super Over ended in a TIE. End match as DRAW?")) {
                                                                                 handleUpdate('manual', { ...selectedMatch, status: 'completed' });
                                                                             }
-                                                                        }}>
-                                                                            End Match (Tie/Draw)
-                                                                        </Button>
+                                                                        }}>End Match (Tie/Draw)</Button>
                                                                     );
                                                                 }
 
@@ -2187,10 +2502,8 @@ const AdminDashboard = () => {
                                                                             const tIdx = targetIdx;
                                                                             const team1 = selectedMatch.innings[0]?.team || selectedMatch.teamA;
                                                                             const team2 = (team1 === selectedMatch.teamA ? selectedMatch.teamB : selectedMatch.teamA);
-
                                                                             if (tIdx === 0) return `Start 1st Innings (${team1})`;
                                                                             if (tIdx === 1) return `Start 2nd Innings (${team2})`;
-
                                                                             const soBattingTeam = selectedMatch.innings[tIdx]?.team || (tIdx % 2 === 0 ? team1 : team2);
                                                                             return `Start Super Over - ${tIdx % 2 === 0 ? '1st' : '2nd'} Innings (${soBattingTeam})`;
                                                                         })()}
@@ -2199,44 +2512,95 @@ const AdminDashboard = () => {
                                                             })()
                                                         )}
 
-                                                        {/* SCORING BUTTONS - Only shown when players are on field AND innings NOT complete */}
+                                                        {/* SCORING BUTTONS */}
                                                         {selectedMatch.status === 'live' && selectedMatch.currentBatsmen?.length > 0 && selectedMatch.currentBowler && !isComplete && (
-                                                            <>
+                                                            <div className="d-flex flex-wrap gap-2 justify-content-center">
                                                                 {[0, 1, 2, 3, 4, 6].map(r => (
                                                                     <Button key={r} disabled={isUpdating} variant="outline-primary" size="lg" className="px-3 fw-bold" onClick={() => {
-                                                                        // ... (Keep existing robust check as backup)
-                                                                        if (currentInn && currentInn.overs >= limit) {
-                                                                            toast.error(`Over limit reached! Limit is ${limit} over(s).`);
-                                                                            return;
-                                                                        }
+                                                                        if (currentInn && currentInn.overs >= limit) return toast.error(`Over limit reached!`);
                                                                         handleUpdate('runs', r);
-                                                                    }}>{r}</Button>
+                                                                    }}>{r} {r === 1 ? 'Run' : 'Runs'}</Button>
                                                                 ))}
                                                                 <Button variant="danger" size="lg" className="px-3 fw-bold" disabled={isUpdating} onClick={() => {
-                                                                    if (currentInn && currentInn.overs >= limit) {
-                                                                        toast.error(`Over limit reached! Limit is ${limit} over(s).`);
-                                                                        return;
-                                                                    }
-                                                                    setWicketDetails({ type: 'caught', fielder: '', ballType: 'normal' }); setShowWicketModal(true);
-                                                                }}>OUT</Button>
-                                                                <Button variant="dark" size="lg" className="px-3 fw-bold ms-2" disabled={isUpdating || !selectedMatch.history || selectedMatch.history.length === 0} onClick={undoLastBall}>UNDO</Button>
-                                                                <Button variant="outline-success" size="lg" className="px-3 fw-bold" onClick={() => setShowBowlerModal(true)}>⚾ CHANGE BOWLER</Button>
-                                                                <Button variant="info" size="lg" className="px-3 fw-bold text-white" onClick={() => { setBatsmanModalType('retired'); setShowBatsmanModal(true); }}>RETIRE</Button>
-                                                                <Button variant="warning" size="lg" className="px-2 fw-bold" disabled={isUpdating} onClick={() => {
-                                                                    if (currentInn && currentInn.overs >= limit) {
-                                                                        toast.error(`Over limit reached! Limit is ${limit} over(s).`);
-                                                                        return;
-                                                                    }
-                                                                    handleUpdate('extra', 'w');
-                                                                }}>WD</Button>
-                                                                <Button variant="warning" size="lg" className="px-2 fw-bold" disabled={isUpdating} onClick={() => {
-                                                                    if (currentInn && currentInn.overs >= limit) {
-                                                                        toast.error(`Over limit reached! Limit is ${limit} over(s).`);
-                                                                        return;
-                                                                    }
-                                                                    handleUpdate('extra', 'nb');
-                                                                }}>NB</Button>
-                                                            </>
+                                                                    setWicketDetails(prev => ({ ...prev, type: 'caught', fielder: '', runs: 0, whomOut: 'striker' }));
+                                                                    setShowWicketModal(true);
+                                                                }}>Wicket</Button>
+
+                                                                <Button variant="outline-dark" size="lg" className="px-3 fw-bold" disabled={isUpdating} onClick={() => {
+                                                                    if (currentInn && currentInn.overs >= limit) return toast.error(`Over limit reached!`);
+                                                                    setOverthrowData({ ballType: 'normal', runsCompleted: 0, crossedOnThrow: false, resultType: 'boundary', manualRuns: 0 });
+                                                                    setShowOverthrowModal(true);
+                                                                }}>⚡ Overthrow</Button>
+
+                                                                <div className="w-100 mt-2 d-flex flex-wrap gap-2 justify-content-center">
+                                                                    <Dropdown as={ButtonGroup}>
+                                                                        <Button variant="outline-warning" size="lg" className="px-3 fw-bold" disabled={isUpdating} onClick={() => {
+                                                                            if (currentInn && currentInn.overs >= limit) return toast.error(`Over limit reached!`);
+                                                                            handleUpdate('extra', 'w', { amount: 1 });
+                                                                        }}>Wide Ball</Button>
+                                                                        <Dropdown.Toggle split variant="outline-warning" id="dropdown-wide" disabled={isUpdating} />
+                                                                        <Dropdown.Menu className="border-0 shadow-lg p-2">
+                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'w', { amount: 2 })}>Wide + 1 (2 Runs)</Dropdown.Item>
+                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'w', { amount: 3 })}>Wide + 2 (3 Runs)</Dropdown.Item>
+                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'w', { amount: 5 })}>Wide + 4 (5 Runs)</Dropdown.Item>
+                                                                        </Dropdown.Menu>
+                                                                    </Dropdown>
+
+                                                                    <Dropdown as={ButtonGroup}>
+                                                                        <Button variant="outline-warning" size="lg" className="px-3 fw-bold" disabled={isUpdating} onClick={() => {
+                                                                            if (currentInn && currentInn.overs >= limit) return toast.error(`Over limit reached!`);
+                                                                            handleUpdate('extra', 'nb', { amount: 1, isBat: false });
+                                                                        }}>No Ball</Button>
+                                                                        <Dropdown.Toggle split variant="outline-warning" id="dropdown-noball" disabled={isUpdating} />
+                                                                        <Dropdown.Menu className="border-0 shadow-lg p-3" style={{ minWidth: '250px' }}>
+                                                                            <div className="fw-bold small text-muted mb-2 text-uppercase">Hit by Bat (Striker)</div>
+                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'nb', { amount: 2, isBat: true })}>No Ball + 1 Run (2)</Dropdown.Item>
+                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'nb', { amount: 3, isBat: true })}>No Ball + 2 Runs (3)</Dropdown.Item>
+                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'nb', { amount: 5, isBat: true })}>No Ball + 4 Runs (5)</Dropdown.Item>
+                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'nb', { amount: 7, isBat: true })}>No Ball + 6 Runs (7)</Dropdown.Item>
+                                                                            <Dropdown.Divider />
+                                                                            <div className="fw-bold small text-muted mb-2 text-uppercase">Not Hit (Byes/Leg Byes)</div>
+                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'nb', { amount: 2, isBat: false })}>No Ball + 1 Extra (2)</Dropdown.Item>
+                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'nb', { amount: 5, isBat: false })}>No Ball + 4 Extras (5)</Dropdown.Item>
+                                                                        </Dropdown.Menu>
+                                                                    </Dropdown>
+
+                                                                    <Dropdown as={ButtonGroup}>
+                                                                        <Button variant="outline-warning" size="lg" className="px-3 fw-bold text-dark" disabled={isUpdating} onClick={() => {
+                                                                            if (currentInn && currentInn.overs >= limit) return toast.error(`Over limit reached!`);
+                                                                            handleUpdate('extra', 'lb', { amount: 1 });
+                                                                        }}>Leg Bye</Button>
+                                                                        <Dropdown.Toggle split variant="outline-warning" id="dropdown-legbye" disabled={isUpdating} className="text-dark" />
+                                                                        <Dropdown.Menu className="border-0 shadow-lg p-2">
+                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'lb', { amount: 1 })}>1 Leg Bye</Dropdown.Item>
+                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'lb', { amount: 2 })}>2 Leg Byes</Dropdown.Item>
+                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'lb', { amount: 4 })}>4 Leg Byes</Dropdown.Item>
+                                                                        </Dropdown.Menu>
+                                                                    </Dropdown>
+
+                                                                    <Dropdown as={ButtonGroup}>
+                                                                        <Button variant="outline-warning" size="lg" className="px-3 fw-bold text-dark" disabled={isUpdating} onClick={() => {
+                                                                            if (currentInn && currentInn.overs >= limit) return toast.error(`Over limit reached!`);
+                                                                            handleUpdate('extra', 'b', { amount: 1 });
+                                                                        }}>Bye</Button>
+                                                                        <Dropdown.Toggle split variant="outline-warning" id="dropdown-bye" disabled={isUpdating} className="text-dark" />
+                                                                        <Dropdown.Menu className="border-0 shadow-lg p-2">
+                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'b', { amount: 1 })}>1 Bye</Dropdown.Item>
+                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'b', { amount: 2 })}>2 Byes</Dropdown.Item>
+                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'b', { amount: 4 })}>4 Byes</Dropdown.Item>
+                                                                        </Dropdown.Menu>
+                                                                    </Dropdown>
+                                                                </div>
+
+                                                                <div className="w-100 mt-3 d-flex flex-wrap gap-2 justify-content-center">
+                                                                    <Button variant="outline-info" size="lg" className="px-3 fw-bold" disabled={isUpdating} onClick={() => handleUpdate('swap')}>Change Strike</Button>
+                                                                    <Button variant="outline-dark" size="lg" className="px-3 fw-bold" disabled={isUpdating} onClick={() => { setBatsmanModalType('retire'); setShowBatsmanModal(true); }}>Retire Batter</Button>
+                                                                    <Button variant="outline-success" size="lg" className="px-3 fw-bold" onClick={() => setShowBowlerModal(true)}>Replace Bowler Due to Injury</Button>
+                                                                    <Button variant={selectedMatch?.score?.freeHit ? "danger" : "outline-secondary"} size="lg" className="px-3 fw-bold" onClick={() => handleUpdate('manual', { ...selectedMatch, score: { ...selectedMatch.score, freeHit: !selectedMatch.score.freeHit } })}>
+                                                                        {selectedMatch?.score?.freeHit ? '🚀 FREE HIT ON' : '🚀 FREE HIT OFF'}
+                                                                    </Button>
+                                                                </div>
+                                                            </div>
                                                         )}
                                                     </>
                                                 );
@@ -2295,194 +2659,217 @@ const AdminDashboard = () => {
                                                     </div>
                                                 </div>
                                             )}
-                                        </div>
-                                        {selectedMatch.status === 'live' && (
-                                            <Row className="g-3 mb-4">
-                                                <Col md={6}>
-                                                    <Card className="border-0 bg-info bg-opacity-10 shadow-sm">
-                                                        <Card.Body className="py-3 px-4">
-                                                            <div className="d-flex justify-content-between align-items-center mb-2">
-                                                                <small className="text-info fw-bold text-uppercase d-block mb-1">Batting</small>
-                                                                <Button variant="link" size="sm" className="text-info p-0 text-decoration-none fw-bold" onClick={() => handleUpdate('swap_strike')}>
-                                                                    ⇄ SWAP STRIKE
-                                                                </Button>
-                                                            </div>
-                                                            <div className="d-flex justify-content-between">
-                                                                <div>
-                                                                    <div className="fw-bold fs-5">🏏 {striker || '...'}*</div>
-                                                                    <div className="text-secondary small">{nonStriker || '...'}</div>
+                                        </div >
+                                        {
+                                            selectedMatch.status === 'live' && (
+                                                <Row className="g-3 mb-4">
+                                                    <Col md={6}>
+                                                        <Card className="border-0 bg-info bg-opacity-10 shadow-sm">
+                                                            <Card.Body className="py-3 px-4">
+                                                                <div className="d-flex justify-content-between align-items-center mb-2">
+                                                                    <small className="text-info fw-bold text-uppercase d-block mb-1">Batting</small>
+                                                                    <Button variant="link" size="sm" className="text-info p-0 text-decoration-none fw-bold" onClick={() => handleUpdate('swap_strike')}>
+                                                                        ⇄ SWAP STRIKE
+                                                                    </Button>
                                                                 </div>
-                                                                <div className="text-end">
-                                                                    {selectedMatch.currentBatsmen?.map(b => (
-                                                                        <div key={b.name} className={`small fw-bold ${b.onStrike ? 'text-primary' : 'text-muted'}`}>
-                                                                            {b.runs}({b.balls})
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            </div>
-                                                        </Card.Body>
-                                                    </Card>
-                                                </Col>
-                                                <Col md={6}>
-                                                    <Card className="border-0 bg-success bg-opacity-10 shadow-sm">
-                                                        <Card.Body className="py-3 px-4">
-                                                            <small className="text-success fw-bold text-uppercase d-block mb-1">Bowling</small>
-                                                            <div className="d-flex justify-content-between align-items-center">
-                                                                <div className="fw-bold fs-5">⚾ {bowler || '...'}</div>
-                                                                <div className="text-end text-success fw-bold">
-                                                                    {(() => {
-                                                                        const battingIdx = selectedMatch.innings.length > 2 ? selectedMatch.innings.length - 1 : (selectedMatch.score.battingTeam === selectedMatch.teamB ? 1 : 0);
-                                                                        const bowlingIdx = battingIdx % 2 === 0 ? battingIdx + 1 : battingIdx - 1;
-                                                                        const bStats = selectedMatch.innings[bowlingIdx]?.bowling.find(p => p.player === bowler);
-                                                                        return bStats ? `${bStats.overs} ov | ${bStats.runs} r | ${bStats.wickets} w` : '0 ov';
-                                                                    })()}
-                                                                </div>
-                                                            </div>
-                                                            {selectedMatch.score.thisOver && selectedMatch.score.thisOver.length > 0 && (
-                                                                <div className="mt-3">
-                                                                    <div className="small fw-bold text-muted text-uppercase mb-2">This Over</div>
-                                                                    <div className="d-flex gap-2">
-                                                                        {selectedMatch.score.thisOver.map((ball, idx) => (
-                                                                            <div key={idx} className={`rounded-circle d-flex align-items-center justify-content-center fw-bold small ${['W', 'OUT'].includes(ball) ? 'bg-danger text-white' : (['4', '6'].includes(ball.toString()) ? 'bg-success text-white' : 'bg-white border')}`} style={{ width: '25px', height: '25px' }}>
-                                                                                {ball}
+                                                                <div className="d-flex justify-content-between">
+                                                                    <div>
+                                                                        <div className="fw-bold fs-5">🏏 {striker || '...'}*</div>
+                                                                        <div className="text-secondary small">{nonStriker || '...'}</div>
+                                                                    </div>
+                                                                    <div className="text-end">
+                                                                        {selectedMatch.currentBatsmen?.map(b => (
+                                                                            <div key={b.name} className={`small fw-bold ${b.onStrike ? 'text-primary' : 'text-muted'}`}>
+                                                                                {pluralize(b.runs, 'Run')} ({pluralize(b.balls, 'Ball')})
                                                                             </div>
                                                                         ))}
                                                                     </div>
                                                                 </div>
-                                                            )}
-                                                        </Card.Body>
-                                                    </Card>
-                                                </Col>
-                                            </Row>
-                                        )}
+                                                            </Card.Body>
+                                                        </Card>
+                                                    </Col>
+                                                    <Col md={6}>
+                                                        <Card className="border-0 bg-success bg-opacity-10 shadow-sm">
+                                                            <Card.Body className="py-3 px-4">
+                                                                <small className="text-success fw-bold text-uppercase d-block mb-1">Bowling</small>
+                                                                <div className="d-flex justify-content-between align-items-center">
+                                                                    <div className="fw-bold fs-5">⚾ {bowler || '...'}</div>
+                                                                    <div className="text-end text-success fw-bold">
+                                                                        {(() => {
+                                                                            const battingIdx = selectedMatch.innings.length > 2 ? selectedMatch.innings.length - 1 : (selectedMatch.score.battingTeam === selectedMatch.teamB ? 1 : 0);
+                                                                            const bowlingIdx = battingIdx % 2 === 0 ? battingIdx + 1 : battingIdx - 1;
+                                                                            const bStats = selectedMatch.innings[bowlingIdx]?.bowling.find(p => p.player === bowler);
+                                                                            if (!bStats) return `0 ${pluralize(0, 'Over')}`;
+                                                                            return `${pluralize(bStats.overs, 'Over')} | ${pluralize(bStats.runs, 'Run')} | ${pluralize(bStats.wickets, 'Wicket')}`;
+                                                                        })()}
+                                                                    </div>
+                                                                </div>
+                                                                {selectedMatch.score.thisOver && selectedMatch.score.thisOver.length > 0 && (
+                                                                    <div className="mt-3">
+                                                                        <div className="small fw-bold text-muted text-uppercase mb-2">This Over</div>
+                                                                        <div className="d-flex gap-2">
+                                                                            {selectedMatch.score.thisOver.map((ball, idx) => {
+                                                                                const bStr = ball.toString().toUpperCase();
+                                                                                const isWicket = bStr.startsWith('W') || bStr === 'OUT';
+                                                                                const isExtra = bStr.startsWith('WD') || bStr.startsWith('NB') || bStr.startsWith('LB') || bStr.startsWith('B');
+                                                                                const isBound = bStr === '4' || bStr === '6';
+
+                                                                                let bgClass = 'bg-white border';
+                                                                                if (isWicket) bgClass = 'bg-danger text-white';
+                                                                                else if (isBound) bgClass = 'bg-success text-white';
+                                                                                else if (isExtra) bgClass = 'bg-warning text-dark';
+
+                                                                                return (
+                                                                                    <div key={idx} className={`rounded-circle d-flex align-items-center justify-content-center fw-bold small ${bgClass}`} style={{ width: '25px', height: '25px', fontSize: '10px' }}>
+                                                                                        {ball}
+                                                                                    </div>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </Card.Body>
+                                                        </Card>
+                                                    </Col>
+                                                </Row>
+                                            )
+                                        }
 
                                         {/* Batting Summary Table */}
-                                        {selectedMatch.status === 'live' && (
-                                            <Card className="border-0 shadow-sm mt-0 mb-4 overflow-hidden">
-                                                <Card.Header className="bg-primary text-white py-2 small fw-bold text-uppercase d-flex justify-content-between align-items-center">
-                                                    <span><i className="bi bi-person-fill me-2"></i>Batting Summary: {selectedMatch.score.battingTeam}</span>
-                                                    <Badge bg="white" text="primary" className="x-small">CRR: {crr}</Badge>
-                                                </Card.Header>
-                                                <Table hover responsive size="sm" className="mb-0">
-                                                    <thead className="bg-light x-small text-uppercase">
-                                                        <tr>
-                                                            <th className="ps-3">Batter</th>
-                                                            <th className="text-center">Status</th>
-                                                            <th className="text-center">R</th>
-                                                            <th className="text-center">B</th>
-                                                            <th className="text-center">SR</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody className="small">
-                                                        {(() => {
-                                                            const bTeam = selectedMatch.score.battingTeam?.trim();
-                                                            const reversed = [...selectedMatch.innings].map((inn, i) => ({ ...inn, idx: i })).reverse();
-                                                            const currentInnings = reversed.find(inn => inn.team?.trim().toLowerCase() === bTeam?.toLowerCase());
+                                        {
+                                            selectedMatch.status === 'live' && (
+                                                <Card className="border-0 shadow-sm mt-0 mb-4 overflow-hidden">
+                                                    <Card.Header className="bg-primary text-white py-2 small fw-bold text-uppercase d-flex justify-content-between align-items-center">
+                                                        <span><i className="bi bi-person-fill me-2"></i>Batting Summary: {selectedMatch.score.battingTeam}</span>
+                                                        <Badge bg="white" text="primary" className="x-small">CRR: {crr}</Badge>
+                                                    </Card.Header>
+                                                    <Table hover responsive size="sm" className="mb-0">
+                                                        <thead className="bg-light x-small text-uppercase">
+                                                            <tr>
+                                                                <th className="ps-3">Batter</th>
+                                                                <th className="text-center">Status</th>
+                                                                <th className="text-center">R</th>
+                                                                <th className="text-center">B</th>
+                                                                <th className="text-center">SR</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="small">
+                                                            {(() => {
+                                                                const bTeam = selectedMatch.score.battingTeam?.trim();
+                                                                const reversed = [...selectedMatch.innings].map((inn, i) => ({ ...inn, idx: i })).reverse();
+                                                                const currentInnings = reversed.find(inn => inn.team?.trim().toLowerCase() === bTeam?.toLowerCase());
 
-                                                            if (!currentInnings || !currentInnings.batting || currentInnings.batting.length === 0) {
-                                                                return <tr><td colSpan={5} className="text-center py-2 text-muted">No batting data yet</td></tr>;
-                                                            }
-                                                            return currentInnings.batting.map((b, i) => (
-                                                                <tr key={i} className={b.onStrike ? 'bg-primary bg-opacity-10' : ''}>
-                                                                    <td className="ps-3 fw-bold">{toCamelCase(b.player)}{b.onStrike ? '*' : ''}</td>
-                                                                    <td className="text-center small text-muted text-truncate" style={{ maxWidth: '100px' }}>{b.status}</td>
-                                                                    <td className="text-center fw-bold">{b.runs}</td>
-                                                                    <td className="text-center">{b.balls}</td>
-                                                                    <td className="text-center text-muted">{b.strikeRate}</td>
-                                                                </tr>
-                                                            ));
-                                                        })()}
-                                                    </tbody>
-                                                </Table>
-                                            </Card>
-                                        )}
+                                                                if (!currentInnings || !currentInnings.batting || currentInnings.batting.length === 0) {
+                                                                    return <tr><td colSpan={5} className="text-center py-2 text-muted">No batting data yet</td></tr>;
+                                                                }
+                                                                return currentInnings.batting.map((b, i) => (
+                                                                    <tr key={i} className={b.onStrike ? 'bg-primary bg-opacity-10' : ''}>
+                                                                        <td className="ps-3 fw-bold">{toCamelCase(b.player)}{b.onStrike ? '*' : ''}</td>
+                                                                        <td className="text-center small text-muted text-truncate" style={{ maxWidth: '100px' }}>{b.status}</td>
+                                                                        <td className="text-center fw-bold">{b.runs}</td>
+                                                                        <td className="text-center">{b.balls}</td>
+                                                                        <td className="text-center text-muted">{b.strikeRate}</td>
+                                                                    </tr>
+                                                                ));
+                                                            })()}
+                                                        </tbody>
+                                                    </Table>
+                                                </Card>
+                                            )
+                                        }
 
                                         {/* Bowling Summary Table */}
-                                        {selectedMatch.status === 'live' && (
-                                            <Card className="border-0 shadow-sm mt-0 mb-4 overflow-hidden">
-                                                <Card.Header className="bg-dark text-white py-2 small fw-bold text-uppercase">
-                                                    <i className="bi bi-bullseye me-2"></i>Bowling Summary: {selectedMatch.innings[selectedMatch.score.battingTeam === selectedMatch.teamA ? (selectedMatch.innings.length > 2 ? 3 : 1) : (selectedMatch.innings.length > 2 ? 2 : 0)]?.team || 'N/A'}
-                                                </Card.Header>
-                                                <Table hover responsive size="sm" className="mb-0">
-                                                    <thead className="bg-light x-small text-uppercase">
-                                                        <tr>
-                                                            <th className="ps-3">Bowler</th>
-                                                            <th className="text-center">O</th>
-                                                            <th className="text-center">M</th>
-                                                            <th className="text-center">R</th>
-                                                            <th className="text-center">W</th>
-                                                            <th className="text-center">ECON</th>
-                                                            <th className="text-center">0s</th>
-                                                            <th className="text-center">WD</th>
-                                                            <th className="text-center">NB</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody className="small">
-                                                        {(() => {
-                                                            const bTeam = selectedMatch.score.battingTeam;
-                                                            if (!bTeam) return <tr><td colSpan={9} className="text-center py-2 text-muted">Initialize innings first</td></tr>;
+                                        {
+                                            selectedMatch.status === 'live' && (
+                                                <Card className="border-0 shadow-sm mt-0 mb-4 overflow-hidden">
+                                                    <Card.Header className="bg-dark text-white py-2 small fw-bold text-uppercase">
+                                                        <i className="bi bi-bullseye me-2"></i>Bowling Summary: {selectedMatch.innings[selectedMatch.score.battingTeam === selectedMatch.teamA ? (selectedMatch.innings.length > 2 ? 3 : 1) : (selectedMatch.innings.length > 2 ? 2 : 0)]?.team || 'N/A'}
+                                                    </Card.Header>
+                                                    <Table hover responsive size="sm" className="mb-0">
+                                                        <thead className="bg-light x-small text-uppercase">
+                                                            <tr>
+                                                                <th className="ps-3">Bowler</th>
+                                                                <th className="text-center">O</th>
+                                                                <th className="text-center">M</th>
+                                                                <th className="text-center">R</th>
+                                                                <th className="text-center">W</th>
+                                                                <th className="text-center">ECON</th>
+                                                                <th className="text-center">0s</th>
+                                                                <th className="text-center">WD</th>
+                                                                <th className="text-center">NB</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="small">
+                                                            {(() => {
+                                                                const bTeam = selectedMatch.score.battingTeam;
+                                                                if (!bTeam) return <tr><td colSpan={9} className="text-center py-2 text-muted">Initialize innings first</td></tr>;
 
-                                                            let battingIdx;
-                                                            if (selectedMatch.innings.length > 2) {
-                                                                battingIdx = selectedMatch.innings.length - 1;
-                                                            } else {
-                                                                battingIdx = (bTeam.trim().toLowerCase() === selectedMatch.teamB.trim().toLowerCase()) ? 1 : 0;
-                                                            }
+                                                                let battingIdx;
+                                                                if (selectedMatch.innings.length > 2) {
+                                                                    battingIdx = selectedMatch.innings.length - 1;
+                                                                } else {
+                                                                    battingIdx = (bTeam.trim().toLowerCase() === selectedMatch.teamB.trim().toLowerCase()) ? 1 : 0;
+                                                                }
 
-                                                            const bowlingIdx = battingIdx % 2 === 0 ? battingIdx + 1 : battingIdx - 1;
-                                                            const bowlingInnings = selectedMatch.innings[bowlingIdx];
-                                                            if (!bowlingInnings || !bowlingInnings.bowling || bowlingInnings.bowling.length === 0) {
-                                                                return <tr><td colSpan={9} className="text-center py-2 text-muted">No bowling data yet</td></tr>;
-                                                            }
-                                                            return bowlingInnings.bowling.map((b, i) => (
-                                                                <tr key={i}>
-                                                                    <td className="ps-3 fw-bold">{toCamelCase(b.player)}</td>
-                                                                    <td className="text-center">{b.overs}</td>
-                                                                    <td className="text-center">{b.maidens || 0}</td>
-                                                                    <td className="text-center">{b.runs}</td>
-                                                                    <td className="text-center fw-bold text-danger">{b.wickets}</td>
-                                                                    <td className="text-center text-muted">{b.economy}</td>
-                                                                    <td className="text-center">{b.dots || 0}</td>
-                                                                    <td className="text-center">{b.wides || 0}</td>
-                                                                    <td className="text-center">{b.noBalls || 0}</td>
-                                                                </tr>
-                                                            ));
-                                                        })()}
-                                                    </tbody>
-                                                </Table>
-                                            </Card>
-                                        )}
+                                                                const bowlingIdx = battingIdx % 2 === 0 ? battingIdx + 1 : battingIdx - 1;
+                                                                const bowlingInnings = selectedMatch.innings[bowlingIdx];
+                                                                if (!bowlingInnings || !bowlingInnings.bowling || bowlingInnings.bowling.length === 0) {
+                                                                    return <tr><td colSpan={9} className="text-center py-2 text-muted">No bowling data yet</td></tr>;
+                                                                }
+                                                                return bowlingInnings.bowling.map((b, i) => (
+                                                                    <tr key={i}>
+                                                                        <td className="ps-3 fw-bold">{toCamelCase(b.player)}</td>
+                                                                        <td className="text-center">{b.overs}</td>
+                                                                        <td className="text-center">{b.maidens || 0}</td>
+                                                                        <td className="text-center">{b.runs}</td>
+                                                                        <td className="text-center fw-bold text-danger">{b.wickets}</td>
+                                                                        <td className="text-center text-muted">{b.economy}</td>
+                                                                        <td className="text-center">{b.dots || 0}</td>
+                                                                        <td className="text-center">{b.wides || 0}</td>
+                                                                        <td className="text-center">{b.noBalls || 0}</td>
+                                                                    </tr>
+                                                                ));
+                                                            })()}
+                                                        </tbody>
+                                                    </Table>
+                                                </Card>
+                                            )
+                                        }
 
-                                        {selectedMatch.toss?.winner && (
-                                            <Alert variant="warning" className="text-center fw-bold">
-                                                🪙 Toss won by {selectedMatch.toss.winner} and elected to {selectedMatch.toss.decision} first.
-                                            </Alert>
-                                        )}
-                                        {selectedMatch.status === 'live' && (
-                                            <div className="d-flex flex-wrap gap-2 mb-4 justify-content-center">
-                                                <Button variant="outline-danger" className="fw-black px-4 rounded-pill shadow-sm" onClick={() => { setBatsmanModalType('retired'); setShowBatsmanModal(true); }}>
-                                                    <i className="bi bi-person-x-fill me-2"></i> RETIRE BATSMAN
-                                                </Button>
-                                                <Button variant="outline-success" className="fw-black px-4 rounded-pill shadow-sm" onClick={() => setShowBowlerModal(true)}>
-                                                    <i className="bi bi-arrow-repeat me-2"></i> CHANGE BOWLER
-                                                </Button>
-                                                <Button variant="outline-primary" className="fw-black px-4 rounded-pill shadow-sm" onClick={() => handleUpdate('swap_strike')}>
-                                                    <i className="bi bi-arrow-left-right me-2"></i> SWAP STRIKE
-                                                </Button>
-                                                <Button variant="outline-warning" className="fw-black px-4 rounded-pill shadow-sm" onClick={undoLastBall} disabled={!selectedMatch.history || selectedMatch.history.length === 0}>
-                                                    <i className="bi bi-arrow-counterclockwise me-2"></i> UNDO
-                                                </Button>
-                                                {selectedMatch.score?.isPaused ? (
-                                                    <Button variant="success" className="fw-black px-4 rounded-pill shadow-sm" onClick={() => handlePauseToggle()}>
-                                                        <i className="bi bi-play-fill me-2"></i> RESUME MATCH
+                                        {
+                                            selectedMatch.toss?.winner && (
+                                                <Alert variant="warning" className="text-center fw-bold">
+                                                    🪙 Toss won by {selectedMatch.toss.winner} and elected to {selectedMatch.toss.decision} first.
+                                                </Alert>
+                                            )
+                                        }
+                                        {
+                                            selectedMatch.status === 'live' && (
+                                                <div className="d-flex flex-wrap gap-2 mb-4 justify-content-center">
+                                                    <Button variant="outline-danger" className="fw-black px-4 rounded-pill shadow-sm" onClick={() => { setBatsmanModalType('retired'); setShowBatsmanModal(true); }}>
+                                                        <i className="bi bi-person-x-fill me-2"></i> RETIRE BATSMAN
                                                     </Button>
-                                                ) : (
-                                                    <Button variant="danger" className="fw-black px-4 rounded-pill shadow-sm" onClick={() => setShowPauseModal(true)}>
-                                                        <i className="bi bi-pause-fill me-2"></i> PAUSE MATCH
+                                                    <Button variant="outline-success" className="fw-black px-4 rounded-pill shadow-sm" onClick={() => setShowBowlerModal(true)}>
+                                                        <i className="bi bi-arrow-repeat me-2"></i> Replace Bowler Due to Injury
                                                     </Button>
-                                                )}
-                                            </div>
-                                        )}
+                                                    <Button variant="outline-primary" className="fw-black px-4 rounded-pill shadow-sm" onClick={() => handleUpdate('swap_strike')}>
+                                                        <i className="bi bi-arrow-left-right me-2"></i> SWAP STRIKE
+                                                    </Button>
+                                                    <Button variant="outline-warning" className="fw-black px-4 rounded-pill shadow-sm" onClick={undoLastBall} disabled={!selectedMatch.history || selectedMatch.history.length === 0}>
+                                                        <i className="bi bi-arrow-counterclockwise me-2"></i> UNDO
+                                                    </Button>
+                                                    {selectedMatch.score?.isPaused ? (
+                                                        <Button variant="success" className="fw-black px-4 rounded-pill shadow-sm" onClick={() => handlePauseToggle()}>
+                                                            <i className="bi bi-play-fill me-2"></i> RESUME MATCH
+                                                        </Button>
+                                                    ) : (
+                                                        <Button variant="danger" className="fw-black px-4 rounded-pill shadow-sm" onClick={() => setShowPauseModal(true)}>
+                                                            <i className="bi bi-pause-fill me-2"></i> PAUSE MATCH
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            )
+                                        }
 
                                         <details className="mt-4 border rounded-3 overflow-hidden">
                                             <summary className="btn btn-sm btn-light w-100 text-start fw-black py-3 px-4 border-0 rounded-0 d-flex justify-content-between align-items-center">
@@ -2620,11 +3007,11 @@ const AdminDashboard = () => {
                             }
                         </Col >
                     </Row >
-                </div>
+                </div >
             </Container >
 
             {/* Pause Modal */}
-            <Modal show={showPauseModal} onHide={() => { setShowPauseModal(false); setPauseReason(''); setCustomPauseReason(''); }} centered>
+            < Modal show={showPauseModal} onHide={() => { setShowPauseModal(false); setPauseReason(''); setCustomPauseReason(''); }} centered >
                 <Modal.Header closeButton className="bg-danger text-white">
                     <Modal.Title className="fw-black text-uppercase letter-spacing-2">Pause Match</Modal.Title>
                 </Modal.Header>
@@ -2644,10 +3031,10 @@ const AdminDashboard = () => {
                     )}
                     <Button variant="danger" className="w-100 fw-bold mt-2" onClick={() => handlePauseToggle()}>PAUSE MATCH</Button>
                 </Modal.Body>
-            </Modal>
+            </Modal >
 
             {/* Super Over Modal */}
-            <Modal show={showSuperOverModal} onHide={() => { }} centered backdrop="static">
+            < Modal show={showSuperOverModal} onHide={() => { }} centered backdrop="static" >
                 <Modal.Header className="bg-primary text-white">
                     <Modal.Title className="fw-black text-uppercase letter-spacing-2">Match Tied! Tie Break Needed</Modal.Title>
                 </Modal.Header>
@@ -2686,6 +3073,98 @@ const AdminDashboard = () => {
                     </Button>
                 </Modal.Footer>
             </Modal>
+
+            <Modal show={showOverthrowModal} onHide={() => setShowOverthrowModal(false)} centered>
+                <Modal.Header closeButton className="bg-primary text-white">
+                    <Modal.Title className="small fw-bold text-uppercase">Record Overthrow</Modal.Title>
+                </Modal.Header>
+                <Modal.Body className="p-4">
+                    <Form>
+                        <Form.Group className="mb-4">
+                            <Form.Label className="small fw-bold text-uppercase text-muted">Ball Type</Form.Label>
+                            <Form.Select
+                                className="rounded-3 border-0 shadow-sm"
+                                value={overthrowData.ballType}
+                                onChange={(e) => setOverthrowData({ ...overthrowData, ballType: e.target.value })}
+                            >
+                                <option value="normal">Normal Ball</option>
+                                <option value="w">Wide Ball</option>
+                                <option value="nb">No Ball (Hit by Bat)</option>
+                                <option value="nb_extra">No Ball (Extras only)</option>
+                                <option value="b">Bye</option>
+                                <option value="lb">Leg Bye</option>
+                            </Form.Select>
+                        </Form.Group>
+
+                        <Row className="mb-4">
+                            <Col xs={6}>
+                                <Form.Group>
+                                    <Form.Label className="small fw-bold text-uppercase text-muted">Runs Completed</Form.Label>
+                                    <Form.Control
+                                        type="number"
+                                        min="0"
+                                        className="rounded-3 border-0 shadow-sm"
+                                        value={overthrowData.runsCompleted}
+                                        onChange={(e) => setOverthrowData({ ...overthrowData, runsCompleted: parseInt(e.target.value) || 0 })}
+                                    />
+                                </Form.Group>
+                            </Col>
+                            <Col xs={6} className="d-flex align-items-end">
+                                <Form.Check
+                                    type="switch"
+                                    label="Crossed on Throw"
+                                    className="small fw-bold text-muted"
+                                    checked={overthrowData.crossedOnThrow}
+                                    onChange={(e) => setOverthrowData({ ...overthrowData, crossedOnThrow: e.target.checked })}
+                                />
+                            </Col>
+                        </Row>
+
+                        <Form.Group className="mb-4">
+                            <Form.Label className="small fw-bold text-uppercase text-muted">Overthrow Result</Form.Label>
+                            <div className="d-flex gap-4 p-3 bg-light rounded-3">
+                                <Form.Check
+                                    type="radio"
+                                    label="Boundary (+4)"
+                                    name="ovResult"
+                                    className="fw-bold"
+                                    checked={overthrowData.resultType === 'boundary'}
+                                    onChange={() => setOverthrowData({ ...overthrowData, resultType: 'boundary' })}
+                                />
+                                <Form.Check
+                                    type="radio"
+                                    label="Manual Runs"
+                                    name="ovResult"
+                                    className="fw-bold"
+                                    checked={overthrowData.resultType === 'manual'}
+                                    onChange={() => setOverthrowData({ ...overthrowData, resultType: 'manual' })}
+                                />
+                            </div>
+                        </Form.Group>
+
+                        {overthrowData.resultType === 'manual' && (
+                            <Form.Group className="mb-3">
+                                <Form.Label className="small fw-bold text-uppercase text-muted">Extra Runs from Overthrow</Form.Label>
+                                <Form.Control
+                                    type="number"
+                                    min="0"
+                                    className="rounded-3 border-0 shadow-sm"
+                                    value={overthrowData.manualRuns}
+                                    onChange={(e) => setOverthrowData({ ...overthrowData, manualRuns: parseInt(e.target.value) || 0 })}
+                                />
+                            </Form.Group>
+                        )}
+                    </Form>
+                </Modal.Body>
+                <Modal.Footer className="border-0 justify-content-center pb-4">
+                    <Button variant="outline-secondary" className="px-4 fw-bold" onClick={() => setShowOverthrowModal(false)}>Cancel</Button>
+                    <Button variant="primary" className="px-4 fw-black premium-btn shadow" onClick={() => {
+                        handleUpdate('overthrow', overthrowData);
+                        setShowOverthrowModal(false);
+                    }}>Record Overthrow</Button>
+                </Modal.Footer>
+            </Modal>
+
         </>
     );
 };

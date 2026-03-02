@@ -4,6 +4,7 @@ import { Container, Table, Card, Spinner, Badge, Nav } from 'react-bootstrap';
 import { motion, AnimatePresence } from 'framer-motion';
 import { io } from 'socket.io-client';
 import API_URL from '../utils/api';
+import { pluralize } from '../utils/formatters';
 
 const socket = io(API_URL);
 
@@ -35,7 +36,6 @@ const PointsTable = () => {
             const teamA = innings[0].team;
             const teamB = innings[1].team;
 
-            // Only consider completed matches for Win/Loss/Points
             if (m.status === 'completed') {
                 teamStats[teamA].p += 1;
                 teamStats[teamB].p += 1;
@@ -77,7 +77,6 @@ const PointsTable = () => {
                 }
             }
 
-            // NRR calculation uses balls for accuracy
             const getBalls = (overs) => (Math.floor(overs) * 6) + Math.round((overs % 1) * 10);
 
             teamStats[teamA].runsScored += runsA;
@@ -94,9 +93,10 @@ const PointsTable = () => {
         return Object.values(teamStats).map(t => {
             const oversFaced = t.ballsFaced / 6;
             const oversBowled = t.ballsBowled / 6;
-            const nrr = ((t.runsScored / (oversFaced || 1)) - (t.runsConceded / (oversBowled || 1))).toFixed(3);
+            const nrrValue = ((t.runsScored / (oversFaced || 1)) - (t.runsConceded / (oversBowled || 1)));
+            const nrr = nrrValue.toFixed(3);
             return { ...t, nrr };
-        }).sort((a, b) => b.pts - a.pts || b.nrr - a.nrr);
+        }).sort((a, b) => b.pts - a.pts || parseFloat(b.nrr) - parseFloat(a.nrr));
     };
 
     const fetchMatches = async () => {
@@ -105,7 +105,6 @@ const PointsTable = () => {
             const data = Array.isArray(res.data) ? res.data : [];
             setMatches(data);
 
-            // Auto-select first series if none active
             if (data.length > 0) {
                 const seriesList = [...new Set(data.map(m => m.series || 'SMCC LIVE'))];
                 setActiveSeries(prev => prev || seriesList[0]);
@@ -169,19 +168,19 @@ const PointsTable = () => {
                         <span className="fw-black text-uppercase x-small text-muted letter-spacing-2">
                             {activeSeries} • Points Table
                         </span>
-                        <Badge bg="success" className="x-small px-2 py-1">REAL-TIME</Badge>
+                        <Badge bg="success" className="x-small px-2 py-1 shadow-sm">REAL-TIME</Badge>
                     </div>
                     <Card.Body className="p-0">
                         <Table hover responsive className="mb-0">
                             <thead className="bg-white">
                                 <tr className="text-muted x-small text-uppercase fw-black letter-spacing-1 border-bottom">
                                     <th className="ps-4 py-3">Teams</th>
-                                    <th className="text-center py-3">M</th>
-                                    <th className="text-center py-3">W</th>
-                                    <th className="text-center py-3">L</th>
-                                    <th className="text-center py-3">T/NR</th>
-                                    <th className="text-center py-3">PTS</th>
-                                    <th className="text-center py-3 pe-4">NRR</th>
+                                    <th className="text-center py-3">Played</th>
+                                    <th className="text-center py-3">Won</th>
+                                    <th className="text-center py-3">Lost</th>
+                                    <th className="text-center py-3">Tied/NR</th>
+                                    <th className="text-center py-3">Points</th>
+                                    <th className="text-center py-3 pe-4">Net Run Rate</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -191,6 +190,7 @@ const PointsTable = () => {
                                             initial={{ opacity: 0 }}
                                             animate={{ opacity: 1 }}
                                             exit={{ opacity: 0 }}
+                                            key="empty"
                                         >
                                             <td colSpan={7} className="text-center py-5 text-muted fw-bold">
                                                 No matches played in this series yet.

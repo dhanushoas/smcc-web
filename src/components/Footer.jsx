@@ -53,6 +53,7 @@ const Footer = () => {
                                     <li><Link to="/improvements" className="text-muted text-decoration-none hover-text-primary transition-all">Improvements</Link></li>
                                     <li><Link to="/join" className="text-muted text-decoration-none hover-text-primary transition-all">Join Council</Link></li>
                                     <li><Link to="/sponsorship" className="text-muted text-decoration-none hover-text-primary transition-all">Sponsorship</Link></li>
+                                    <li><Link to="/login" className="text-muted text-decoration-none hover-text-primary transition-all">Console</Link></li>
                                 </ul>
                             </Col>
                         </Row>

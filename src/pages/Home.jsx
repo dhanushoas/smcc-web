@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Badge, Spinner, Button } from 'react-bootstrap';
 import { io } from 'socket.io-client';
 import { useApp } from '../AppContext';
-import { formatTime } from '../utils/formatters';
+import { formatTime, pluralize } from '../utils/formatters';
 import { motion, AnimatePresence } from 'framer-motion';
 import API_URL from '../utils/api';
 
@@ -101,8 +101,8 @@ const Home = () => {
                                 {match.teamA}
                             </span>
                             <span className="fw-black fs-5">
-                                {(match.status === 'live' || isCompleted) ? (match.innings?.[0]?.runs || 0) + '/' + (match.innings?.[0]?.wickets || 0) : ''}
-                                <small className="text-dark ms-2 x-small fw-bold">{(match.status === 'live' || isCompleted) ? '(' + (match.innings?.[0]?.overs || 0) + ' ov)' : ''}</small>
+                                {(match.status === 'live' || isCompleted) ? (match.innings?.[0]?.runs || 0) + ' / ' + (match.innings?.[0]?.wickets || 0) : ''}
+                                <small className="text-dark ms-2 x-small fw-bold">{(match.status === 'live' || isCompleted) ? '(' + pluralize(match.innings?.[0]?.overs || 0, 'Over') + ')' : ''}</small>
                             </span>
                         </div>
 
@@ -111,20 +111,23 @@ const Home = () => {
                                 {match.teamB}
                             </span>
                             <span className="fw-black fs-5">
-                                {(match.status === 'live' || isCompleted) ? (match.innings?.[1]?.runs || 0) + '/' + (match.innings?.[1]?.wickets || 0) : ''}
-                                <small className="text-dark ms-2 x-small fw-bold">{(match.status === 'live' || isCompleted) ? '(' + (match.innings?.[1]?.overs || 0) + ' ov)' : ''}</small>
+                                {(match.status === 'live' || isCompleted) ? (match.innings?.[1]?.runs || 0) + ' / ' + (match.innings?.[1]?.wickets || 0) : ''}
+                                <small className="text-dark ms-2 x-small fw-bold">{(match.status === 'live' || isCompleted) ? '(' + pluralize(match.innings?.[1]?.overs || 0, 'Over') + ')' : ''}</small>
                             </span>
                         </div>
 
                         {isLive && match.currentBatsmen && match.currentBatsmen.length > 0 && (
-                            <div className="mb-3 small bg-light p-2 rounded border">
+                            <div className="mb-3 small bg-light p-2 rounded border shadow-sm">
+                                {match.score?.freeHit && (
+                                    <div className="bg-danger text-white text-center fw-black x-small rounded py-1 mb-2 animate-pulse" style={{ letterSpacing: '1px' }}>🚀 FREE HIT ACTIVE</div>
+                                )}
                                 <Row className="g-2">
                                     <Col xs={6}>
                                         <div className="fw-black text-dark x-small text-uppercase mb-1">Batting</div>
                                         {match.currentBatsmen.map((b, idx) => (
                                             <div key={idx} className="text-truncate fw-bold text-dark">
                                                 {b.onStrike ? <span title="Striker" className="me-1">🏏</span> : <span style={{ opacity: 0 }} className="me-1">🏏</span>}
-                                                {b.name} {b.onStrike ? '*' : ''} <span className="fw-black text-primary ms-1">{b.runs || 0}<span className="text-muted small fw-bold">({b.balls || 0})</span></span>
+                                                {b.name} {b.onStrike ? '*' : ''} <span className="fw-black text-primary ms-1">{b.runs || 0} <span className="text-muted small fw-bold">({pluralize(b.balls || 0, 'Ball')})</span></span>
                                             </div>
                                         ))}
                                     </Col>
@@ -140,8 +143,8 @@ const Home = () => {
                                                     const ballStr = ball.toString().toUpperCase();
                                                     const isFour = ballStr === '4';
                                                     const isSix = ballStr === '6';
-                                                    const isWicket = ballStr === 'W' || ballStr === 'OUT';
-                                                    const isExtra = ballStr.includes('WD') || ballStr.includes('NB');
+                                                    const isWicket = ballStr.startsWith('W') || ballStr === 'OUT';
+                                                    const isExtra = ballStr.startsWith('WD') || ballStr.startsWith('NB') || ballStr.startsWith('LB') || ballStr.startsWith('B');
 
                                                     let badgeClass = 'bg-white text-dark border';
                                                     if (isSix) badgeClass = 'bg-primary text-white border-primary';
@@ -186,63 +189,49 @@ const Home = () => {
                                                 inn2 = innings[lastIdx];
                                                 inn1 = innings[lastIdx - 1];
 
-                                                if (inn1.runs > inn2.runs) {
-                                                    return `MATCH TIED | ${inn1.team.toUpperCase()} WON VIA SUPER OVER`;
-                                                } else if (inn2.runs > inn1.runs) {
-                                                    return `MATCH TIED | ${inn2.team.toUpperCase()} WON VIA SUPER OVER`;
-                                                }
-                                                return "MATCH DRAWN | SUPER OVER TIED";
+                                                if (inn1.runs > inn2.runs) return `${inn1.team.toUpperCase()} WON VIA SUPER OVER`;
+                                                if (inn2.runs > inn1.runs) return `${inn2.team.toUpperCase()} WON VIA SUPER OVER`;
+                                                return "SUPER OVER TIED";
                                             } else {
                                                 inn1 = innings[0];
                                                 inn2 = innings[1];
-
                                                 if (inn1.runs > inn2.runs) {
                                                     const diff = inn1.runs - inn2.runs;
-                                                    return `${inn1.team.toUpperCase()} WON BY ${diff} ${diff === 1 ? 'RUN' : 'RUNS'}`;
+                                                    return `${inn1.team} won by ${pluralize(diff, 'Run')}`;
                                                 } else if (inn2.runs > inn1.runs) {
                                                     const wicketsRemaining = 10 - inn2.wickets;
-                                                    return `${inn2.team.toUpperCase()} WON BY ${wicketsRemaining} ${wicketsRemaining === 1 ? 'WICKET' : 'WICKETS'}`;
+                                                    return `${inn2.team} won by ${pluralize(wicketsRemaining, 'Wicket')}`;
                                                 }
-                                                return "MATCH DRAWN";
+                                                return "Match Drawn";
                                             }
-                                        })()}</span>
-                                        {match.manOfTheMatch && <span className="x-small text-muted fw-black">MOM: {match.manOfTheMatch}</span>}
+                                        })().toUpperCase()}</span>
+                                        {match.manOfTheMatch && (
+                                            <span className="x-small text-muted fw-black bg-light px-2 py-1 rounded border">
+                                                🏆 {match.manOfTheMatch.toUpperCase()}
+                                            </span>
+                                        )}
                                     </div>
                                 ) : isLive ? (
                                     <div className="d-flex align-items-center gap-2">
-                                        <span className="text-danger">●</span>
+                                        <span className="text-danger animate-pulse">●</span>
                                         <span>{(() => {
-                                            if (match.score?.isPaused) {
-                                                return `MATCH PAUSED: ${match.score.pauseReason}`;
-                                            }
+                                            if (match.score?.isPaused) return `PAUSED: ${match.score.pauseReason}`;
                                             if (match.score?.target) {
-                                                const currentRuns = match.score?.runs || 0;
-                                                const runsNeeded = match.score.target - currentRuns;
-
-                                                const overs = match.score?.overs || 0;
-                                                const ballsBowled = (Math.floor(overs) * 6) + Math.round((overs * 10) % 10);
+                                                const runsNeeded = match.score.target - (match.score?.runs || 0);
                                                 const isSuperOver = match.innings && match.innings.length > 2;
-                                                const matchOvers = isSuperOver ? 1 : (match.totalOvers || 20);
-                                                const totalBalls = matchOvers * 6;
-                                                let remainingBalls = totalBalls - ballsBowled;
-                                                if (remainingBalls < 0) remainingBalls = 0;
-
-                                                const statusText = runsNeeded > 0
-                                                    ? `${match.score.battingTeam} needs ${runsNeeded} run${runsNeeded === 1 ? '' : 's'} from ${remainingBalls} ball${remainingBalls === 1 ? '' : 's'} to win`
+                                                return runsNeeded > 0
+                                                    ? `Target: ${pluralize(runsNeeded, 'Run')} Required`
                                                     : 'Scores Level';
-
-                                                return <span className="fw-bold">{isSuperOver ? `Match Tied | (Super Over) - ${statusText}` : statusText}</span>;
                                             }
-
-                                            const isSuperOver = match.innings && match.innings.length > 2;
-                                            return <span className="fw-bold">{isSuperOver ? 'Match Tied | Super Over in progress' : 'Match in progress'}</span>;
+                                            return match.innings && match.innings.length > 2 ? 'Super Over in progress' : 'Match in progress';
                                         })()}</span>
                                     </div>
                                 ) : (
-                                    <span className="text-dark fw-bold"><i className="bi bi-geo-alt-fill text-danger me-1"></i> Starting at {formatTime(match.date)} • {match.venue || 'TBA'}</span>
+                                    <span className="text-dark fw-bold"><i className="bi bi-geo-alt-fill text-danger me-1"></i> {formatTime(match.date)} • {match.venue || 'TBA'}</span>
                                 )}
                             </div>
                         </div>
+
                     </div>
                 </motion.div>
             </Col>
@@ -274,8 +263,9 @@ const Home = () => {
                             {liveMatches.length > 0 ? (
                                 liveMatches.map(m => renderMatchCard(m))
                             ) : (
-                                <div className="bg-white p-5 rounded-3 border text-center mb-4">
-                                    <h5 className="fw-bold text-muted">No live matches scheduled in this series</h5>
+                                <div className="bg-white p-5 rounded-3 border text-center mb-4 shadow-sm">
+                                    <h5 className="fw-black text-primary mb-2">NO ACTIVE MATCHES</h5>
+                                    <p className="text-muted mb-0">There are no matches currently in progress. Please check back later for live coverage.</p>
                                 </div>
                             )}
                         </div>
