@@ -12,14 +12,22 @@ export const pluralize = (count, singular, plural) => {
 };
 
 export const oversToBalls = (overs) => {
-    const ov = parseFloat(overs) || 0;
-    return (Math.floor(ov) * 6) + Math.round((ov % 1) * 10);
+    if (typeof overs === 'number') {
+        const whole = Math.floor(overs);
+        const balls = Math.round((overs - whole) * 10);
+        return (whole * 6) + balls;
+    }
+    const ovStr = overs?.toString() || '0.0';
+    const parts = ovStr.split('.');
+    const whole = parseInt(parts[0]) || 0;
+    const balls = parts.length > 1 ? parseInt(parts[1]) || 0 : 0;
+    return (whole * 6) + balls;
 };
 
 export const ballsToOvers = (totalBalls) => {
-    const overs = Math.floor(totalBalls / 6);
+    const whole = Math.floor(totalBalls / 6);
     const balls = totalBalls % 6;
-    return parseFloat(`${overs}.${balls}`);
+    return parseFloat(`${whole}.${balls}`);
 };
 export const formatTime = (dateInput) => {
     if (!dateInput) return '';

@@ -125,17 +125,25 @@ const Home = () => {
                                     <Col xs={6}>
                                         <div className="fw-black text-dark x-small text-uppercase mb-1">Batting</div>
                                         {match.currentBatsmen.map((b, idx) => (
-                                            <div key={idx} className="text-truncate fw-bold text-dark">
-                                                {b.onStrike ? <span title="Striker" className="me-1">🏏</span> : <span style={{ opacity: 0 }} className="me-1">🏏</span>}
-                                                {b.name} {b.onStrike ? '*' : ''} <span className="fw-black text-primary ms-1">{b.runs || 0} <span className="text-muted small fw-bold">({pluralize(b.balls || 0, 'Ball')})</span></span>
+                                            <div key={idx} className="text-truncate fw-bold text-dark d-flex align-items-center mb-1">
+                                                <div className="d-inline-flex align-items-center justify-content-center rounded-circle me-1 border"
+                                                    style={{ width: '22px', height: '22px', backgroundColor: '#f1f5f9', fontSize: '0.8rem' }}>
+                                                    {b.onStrike ? <span title="Striker">🏏</span> : <span style={{ opacity: 0 }}>🏏</span>}
+                                                </div>
+                                                <span className="text-truncate">
+                                                    {b.name} {b.onStrike ? '*' : ''} <span className="fw-black text-primary ms-1">{b.runs || 0} <span className="text-muted small fw-bold">({pluralize(b.balls || 0, 'Ball')})</span></span>
+                                                </span>
                                             </div>
                                         ))}
                                     </Col>
                                     <Col xs={6} className="border-start ps-2">
                                         <div className="fw-black text-dark x-small text-uppercase mb-1">Bowling</div>
                                         <div className="text-truncate fw-bold text-dark mb-1 d-flex align-items-center">
-                                            <span title="Bowler" className="me-1">⚾</span>
-                                            {match.currentBowler || '...'}
+                                            <div className="d-inline-flex align-items-center justify-content-center rounded-circle me-1 border shadow-sm"
+                                                style={{ width: '22px', height: '22px', backgroundColor: '#fff7ed', fontSize: '0.8rem' }}>
+                                                <span title="Bowler">⚾</span>
+                                            </div>
+                                            <span className="text-truncate">{match.currentBowler || '...'}</span>
                                         </div>
                                         {match.score?.thisOver && match.score.thisOver.length > 0 && (
                                             <div className="d-flex gap-1 overflow-auto no-scrollbar pb-1">

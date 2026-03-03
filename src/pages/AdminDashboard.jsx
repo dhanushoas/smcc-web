@@ -1259,10 +1259,8 @@ const AdminDashboard = () => {
                     const overtimeRuns = resultType === 'boundary' ? 4 : manualRuns;
                     const totalRuns = (runsCompleted + (crossedOnThrow ? 1 : 0)) + overtimeRuns;
 
-                    // Normal balls and bye/lb count toward the over
-                    if (ballType === 'normal' || ballType === 'b' || ballType === 'lb') {
-                        ballCounts = true;
-                    }
+                    // Overthrow NEVER increments the ball count independently
+                    ballCounts = false;
 
                     if (ballType === 'normal' || ballType === 'nb') {
                         // Batter scores the runs (Total runs if hit by bat)
@@ -1282,10 +1280,29 @@ const AdminDashboard = () => {
                             currentBowling.bowling[bIdx].noBalls = (currentBowling.bowling[bIdx].noBalls || 0) + 1;
                             ballCounts = false;
                             updatedMatch.score.freeHit = true;
-                            updatedMatch.score.thisOver.push('NB' + (batterRuns + 1));
+                            // Update last ball in thisOver if it was an NB, or push if it's the base ball
+                            if (updatedMatch.score.thisOver.length > 0) {
+                                const last = updatedMatch.score.thisOver[updatedMatch.score.thisOver.length - 1].toString();
+                                if (last.startsWith('NB')) {
+                                    updatedMatch.score.thisOver[updatedMatch.score.thisOver.length - 1] = 'NB' + (parseInt(last.slice(2)) + batterRuns);
+                                } else {
+                                    updatedMatch.score.thisOver.push('NB' + (batterRuns + 1));
+                                }
+                            } else {
+                                updatedMatch.score.thisOver.push('NB' + (batterRuns + 1));
+                            }
                         } else {
-                            updatedMatch.score.thisOver.push(batterRuns);
-                            currentInnings.batting[sIdx].balls += 1;
+                            if (updatedMatch.score.thisOver.length > 0) {
+                                let last = updatedMatch.score.thisOver[updatedMatch.score.thisOver.length - 1];
+                                if (!isNaN(last)) {
+                                    updatedMatch.score.thisOver[updatedMatch.score.thisOver.length - 1] = parseInt(last) + batterRuns;
+                                } else {
+                                    updatedMatch.score.thisOver.push(batterRuns);
+                                }
+                            } else {
+                                updatedMatch.score.thisOver.push(batterRuns);
+                            }
+                            currentInnings.batting[sIdx].balls += 0; // Overthrow doesn't add a ball to batter stats
                         }
 
                         // Team breakdown
@@ -1304,7 +1321,16 @@ const AdminDashboard = () => {
                         currentBowling.bowling[bIdx].noBalls = (currentBowling.bowling[bIdx].noBalls || 0) + 1;
                         ballCounts = false;
                         updatedMatch.score.freeHit = true;
-                        updatedMatch.score.thisOver.push('NB' + (totalRuns + nbPenalty));
+                        if (updatedMatch.score.thisOver.length > 0) {
+                            const last = updatedMatch.score.thisOver[updatedMatch.score.thisOver.length - 1].toString();
+                            if (last.startsWith('NB')) {
+                                updatedMatch.score.thisOver[updatedMatch.score.thisOver.length - 1] = 'NB' + (parseInt(last.slice(2)) + totalRuns);
+                            } else {
+                                updatedMatch.score.thisOver.push('NB' + (totalRuns + nbPenalty));
+                            }
+                        } else {
+                            updatedMatch.score.thisOver.push('NB' + (totalRuns + nbPenalty));
+                        }
                     } else if (ballType === 'w') {
                         // Wide + Runs
                         const widePenalty = 1;
@@ -1332,27 +1358,23 @@ const AdminDashboard = () => {
                 }
 
                 if (ballCounts && type !== 'wicket_with_replacement' && type !== 'retired_with_replacement' && type !== 'new_bowler') {
-                    let currentOvers = currentInnings.overs;
-                    let overFull = Math.floor(currentOvers);
-                    let ballCount = Math.round((currentOvers * 10) % 10) + 1;
-
-                    let bOvers = currentBowling.bowling[bIdx].overs;
-                    let bOverFull = Math.floor(bOvers);
-                    let bBallCount = Math.round((bOvers * 10) % 10) + 1;
+                    const totalMatchBalls = oversToBalls(currentInnings.overs) + 1;
+                    const totalBowlerBalls = oversToBalls(currentBowling.bowling[bIdx].overs) + 1;
 
                     const formatLimit = updatedMatch.innings.length > 2 ? SUPER_OVER_OVERS : updatedMatch.totalOvers;
-                    if (ballCount >= BALLS_PER_OVER) {
-                        updatedMatch.score.lastOverBowler = localBowler; // Track for Law 17.8
+                    const ballsInCurrentOver = (totalMatchBalls % BALLS_PER_OVER) === 0 ? BALLS_PER_OVER : (totalMatchBalls % BALLS_PER_OVER);
+
+                    if (ballsInCurrentOver === BALLS_PER_OVER && (totalMatchBalls / BALLS_PER_OVER) % 1 === 0) {
+                        // Over Completed
+                        updatedMatch.score.lastOverBowler = localBowler;
                         updatedMatch.score.thisOver = [];
-                        ballCount = 0; overFull += 1;
-                        bBallCount = 0; bOverFull += 1;
                         const temp = localStriker; localStriker = localNonStriker; localNonStriker = temp;
-                        if (overFull < formatLimit) { setShowBowlerModal(true); }
-                    } else {
-                        if (bBallCount >= BALLS_PER_OVER) { bBallCount = 0; bOverFull += 1; }
+                        const matchOvers = ballsToOvers(totalMatchBalls);
+                        if (matchOvers < formatLimit) { setShowBowlerModal(true); }
                     }
-                    currentInnings.overs = parseFloat(`${overFull}.${ballCount}`);
-                    currentBowling.bowling[bIdx].overs = parseFloat(`${bOverFull}.${bBallCount}`);
+
+                    currentInnings.overs = ballsToOvers(totalMatchBalls);
+                    currentBowling.bowling[bIdx].overs = ballsToOvers(totalBowlerBalls);
                 }
 
                 currentInnings.batting.forEach(p => { if (p.balls > 0) p.strikeRate = parseFloat(((p.runs / p.balls) * 100).toFixed(2)); });
@@ -1869,15 +1891,11 @@ const AdminDashboard = () => {
                                 <option value="">Select Bowler</option>
                                 {(selectedMatch?.score?.battingTeam === selectedMatch?.teamA ? squadB : squadA).filter(p => p.trim() !== '').map((p, i) => <option key={i} value={p}>{p}</option>)}
                             </Form.Select>
-                            {selectedMatch?.score?.thisOver?.length > 0 && (() => {
-                                const overBalls = selectedMatch.score.thisOver;
-                                const legalBalls = overBalls.filter(b => !/WD|NB/i.test(b.toString())).length;
-                                const remaining = BALLS_PER_OVER - legalBalls;
-                                if (remaining > 0) {
-                                    toast(`A bowler has been replaced due to injury. There are ${pluralize(remaining, 'Ball')} remaining in this over.`, { icon: '🩹' });
-                                }
-                                return null;
-                            })()}
+                            {selectedMatch?.score?.thisOver?.length > 0 && selectedMatch.bowler && (
+                                <div className="mt-2 p-2 bg-warning bg-opacity-10 border border-warning rounded-3 small text-warning-emphasis fw-bold">
+                                    🩹 Replacing bowler mid-over. Remaining balls: {BALLS_PER_OVER - selectedMatch.score.thisOver.filter(b => !/WD|NB/i.test(b.toString())).length}
+                                </div>
+                            )}
                         </Form.Group>
                     </Modal.Body>
                     <Modal.Footer className="border-0 bg-light pb-4 px-4 d-flex gap-2">
@@ -2573,18 +2591,30 @@ const AdminDashboard = () => {
                                                                         </Dropdown.Menu>
                                                                     </Dropdown>
 
-                                                                    <Button variant="outline-dark" size="lg" className="px-3 fw-bold shadow-sm" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => {
-                                                                        if (currentInn && currentInn.overs >= limit) return toast.error(`Over limit reached!`);
-                                                                        setOverthrowData({ ballType: 'normal', runsCompleted: 0, crossedOnThrow: false, resultType: 'boundary', manualRuns: 0 });
-                                                                        setShowOverthrowModal(true);
-                                                                    }}>⚡ Overthrow</Button>
+                                                                    <Button variant="outline-dark" size="lg" className="px-3 fw-bold shadow-sm"
+                                                                        disabled={isUpdating || selectedMatch.score?.isPaused || !selectedMatch.score?.thisOver?.length}
+                                                                        onClick={() => {
+                                                                            if (currentInn && currentInn.overs >= limit) return toast.error(`Over limit reached!`);
+                                                                            setOverthrowData({ ballType: 'normal', runsCompleted: 0, crossedOnThrow: false, resultType: 'boundary', manualRuns: 0 });
+                                                                            setShowOverthrowModal(true);
+                                                                        }}>⚡ Overthrow</Button>
                                                                 </div>
 
                                                                 {/* ROW 4 – PLAYER ACTIONS */}
                                                                 <div className="d-flex flex-wrap gap-2 justify-content-center">
                                                                     <Button variant="outline-info" size="lg" className="px-3 fw-bold shadow-sm" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => handleUpdate('swap_strike')}>Change Strike</Button>
                                                                     <Button variant="outline-dark" size="lg" className="px-3 fw-bold shadow-sm" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => { setBatsmanModalType('retire'); setShowBatsmanModal(true); }}>Retire Batter</Button>
-                                                                    <Button variant="outline-success" size="lg" className="px-3 fw-bold shadow-sm" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => setShowBowlerModal(true)}>Replace Bowler Due to Injury</Button>
+                                                                    <Button variant="outline-success" size="lg" className="px-3 fw-bold shadow-sm" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => {
+                                                                        if (selectedMatch?.score?.thisOver?.length > 0) {
+                                                                            const overBalls = selectedMatch.score.thisOver;
+                                                                            const legalBalls = overBalls.filter(b => !/WD|NB/i.test(b.toString())).length;
+                                                                            const remaining = BALLS_PER_OVER - legalBalls;
+                                                                            if (remaining > 0) {
+                                                                                toast(`A bowler has been replaced due to injury. There are ${pluralize(remaining, 'Ball')} remaining in this over.`, { icon: '🩹' });
+                                                                            }
+                                                                        }
+                                                                        setShowBowlerModal(true);
+                                                                    }}>Replace Bowler Due to Injury</Button>
                                                                     {/* Free Hit Toggle moved here to maintain Row 5 as indicator only */}
                                                                     <Button variant={selectedMatch?.score?.freeHit ? "danger" : "outline-secondary"} size="lg" className="px-3 fw-bold shadow-sm" onClick={() => handleUpdate('manual', { ...selectedMatch, score: { ...selectedMatch.score, freeHit: !selectedMatch.score.freeHit } })}>
                                                                         {selectedMatch?.score?.freeHit ? '🚀 DISABLE FREE HIT' : '🚀 ENABLE FREE HIT'}
