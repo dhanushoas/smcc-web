@@ -372,6 +372,12 @@ const FullScorecard = () => {
                                             <i className="bi bi-stopwatch-fill text-primary"></i>
                                             <span>{match.totalOvers} Overs Format</span>
                                         </div>
+                                        {match.toss?.winner && (
+                                            <div className="d-flex align-items-center gap-2 bg-warning bg-opacity-10 px-2 py-1 rounded">
+                                                <i className="bi bi-coin text-warning"></i>
+                                                <span className="fw-bold text-dark">{match.toss.winner} won toss & elected to {match.toss.decision}</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </Col>
                                 <Col md={4} className="mt-4 mt-md-0 text-md-end">

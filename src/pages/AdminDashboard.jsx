@@ -386,18 +386,18 @@ const AdminDashboard = () => {
         // Result block FIRST (most prominent)
         const result = calculateWinner(selectedMatch);
         if (result && selectedMatch.status === 'completed') {
-            doc.setFontSize(13);
-            doc.setTextColor(0, 146, 112);
+            doc.setFontSize(14);
+            doc.setTextColor(0, 146, 112); // Green
             doc.setFont(undefined, 'bold');
             doc.text(`RESULT: ${result.toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
-            currentY += 5; // 8px after result
+            currentY += 7;
 
             if (selectedMatch.manOfTheMatch) {
-                doc.setFontSize(11);
-                doc.setTextColor(217, 119, 6); // Amber color for MOM
+                doc.setFontSize(12);
+                doc.setTextColor(190, 24, 93); // Rose/Premium color for MOM
                 doc.setFont(undefined, 'bold');
                 doc.text(`PLAYER OF THE MATCH: ${selectedMatch.manOfTheMatch.toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
-                currentY += 6; // 16px after MOM
+                currentY += 8;
             } else {
                 currentY += 4;
             }
@@ -408,40 +408,42 @@ const AdminDashboard = () => {
         doc.setFontSize(16);
         doc.setTextColor(30, 60, 114);
         doc.setFont(undefined, 'bold');
-        doc.text('SMCC CRICKET SCORECARD', pageWidth / 2, currentY, { align: 'center' });
+        doc.text('SMCC CRICKET OFFICIAL SCORECARD', pageWidth / 2, currentY, { align: 'center' });
         doc.setFont(undefined, 'normal');
-        currentY += 5; // 8px after main title
+        currentY += 6;
 
         // Match title
         doc.setFontSize(12);
         doc.setTextColor(50);
         doc.setFont(undefined, 'bold');
-        doc.text(`${selectedMatch.teamA} VS ${selectedMatch.teamB}`, pageWidth / 2, currentY, { align: 'center' });
+        doc.text(`${selectedMatch.teamA.toUpperCase()} VS ${selectedMatch.teamB.toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
         doc.setFont(undefined, 'normal');
-        currentY += 5; // 8px after match title
+        currentY += 6;
 
         // Toss Info
         if (selectedMatch.toss?.winner) {
             doc.setFontSize(10);
-            doc.setTextColor(100);
-            doc.setFont(undefined, 'italic');
-            doc.text(`Toss won by ${selectedMatch.toss.winner} and elected to ${selectedMatch.toss.decision} first.`, pageWidth / 2, currentY, { align: 'center' });
+            doc.setTextColor(70);
+            doc.setFont(undefined, 'bold');
+            const tossText = `TOSS: ${selectedMatch.toss.winner.toUpperCase()} WON AND ELECTED TO ${selectedMatch.toss.decision.toUpperCase()} FIRST`;
+            doc.text(tossText, pageWidth / 2, currentY, { align: 'center' });
             currentY += 6;
         }
 
         // Meta info
-        doc.setFontSize(8);
-        doc.setTextColor(120);
+        doc.setFontSize(9);
+        doc.setTextColor(100);
         doc.setFont(undefined, 'normal');
-        doc.text(`SERIES: ${(selectedMatch.title || 'SMCC LIVE').toUpperCase()} | GROUND: ${(selectedMatch.venue || 'TBA').toUpperCase()} | DATE: ${new Date(selectedMatch.date).toLocaleDateString().toUpperCase()} ${formatTime(selectedMatch.date).toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
-        currentY += 4;
-        doc.text(`EXPORTED: ${new Date().toLocaleString().toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
-        currentY += 6; // 16px before divider
+        doc.text(`SERIES: ${(selectedMatch.series || 'SMCC LIVE').toUpperCase()} | GROUND: ${(selectedMatch.venue || 'TBA').toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
+        currentY += 5;
+        doc.text(`DATE: ${new Date(selectedMatch.date).toLocaleDateString().toUpperCase()} ${formatTime(selectedMatch.date).toUpperCase()} | EXPORTED: ${new Date().toLocaleString().toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
+        currentY += 8;
 
         // Divider
-        doc.setDrawColor(200);
+        doc.setDrawColor(30, 60, 114);
+        doc.setLineWidth(0.5);
         doc.line(14, currentY, pageWidth - 14, currentY);
-        currentY += 7;
+        currentY += 10;
 
         doc.setTextColor(0);
 
@@ -450,10 +452,7 @@ const AdminDashboard = () => {
                 return;
             }
 
-            if (idx === 2) {
-                doc.addPage();
-                currentY = 20;
-            } else if (idx !== 2 && currentY > 260) {
+            if (idx > 0 && currentY > 220) {
                 doc.addPage();
                 currentY = 20;
             }
@@ -465,8 +464,8 @@ const AdminDashboard = () => {
             doc.setTextColor(30, 60, 114);
             doc.setFont(undefined, 'bold');
             const getOrdinal = (n) => { const s = ["th", "st", "nd", "rd"]; const v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
-            const titleStr = `${inn.team} ${getOrdinal(idx + 1).toUpperCase()} INNINGS${idx >= 2 ? ' (SUPER OVER)' : ''}`;
-            doc.text(`${titleStr.toUpperCase()}: ${inn.runs}/${inn.wickets} (${inn.overs} OV)`, 14, currentY);
+            const titleStr = `${inn.team.toUpperCase()} ${getOrdinal(idx + 1).toUpperCase()} INNINGS${idx >= 2 ? ' (SUPER OVER)' : ''}`;
+            doc.text(`${titleStr}: ${inn.runs}/${inn.wickets} (${inn.overs} OV)`, 14, currentY);
             doc.setFont(undefined, 'normal');
             currentY += 7;
 
@@ -478,7 +477,8 @@ const AdminDashboard = () => {
                     head: [['Batter', 'Status', 'R', 'B', '4s', '6s', 'SR']],
                     body: battingData,
                     theme: 'striped',
-                    headStyles: { fillColor: [30, 60, 114] }
+                    headStyles: { fillColor: [30, 60, 114] },
+                    styles: { fontSize: 9 }
                 });
                 currentY = doc.lastAutoTable.finalY + 8;
             }
@@ -490,7 +490,8 @@ const AdminDashboard = () => {
                     head: [['Bowler', 'O', 'M', 'R', 'W', 'Eco']],
                     body: bowlingInn.bowling.map(b => [b.player.toUpperCase(), b.overs, b.maidens, b.runs, b.wickets, b.economy]),
                     theme: 'grid',
-                    headStyles: { fillColor: [0, 146, 112] }
+                    headStyles: { fillColor: [0, 146, 112] },
+                    styles: { fontSize: 9 }
                 });
                 currentY = doc.lastAutoTable.finalY + 5;
             }
@@ -543,47 +544,26 @@ const AdminDashboard = () => {
             doc.setFontSize(9);
             doc.setTextColor(0);
             doc.setFont(undefined, 'bold');
-            doc.text(`TOTAL: ${inn.runs}/${inn.wickets} in ${inn.overs} ${parseFloat(inn.overs) === 1 ? 'Over' : 'Overs'} | 4s: ${inn.fours || 0}, 6s: ${inn.sixes || 0}`, 14, currentY);
+            const teamTotalText = `TOTAL: ${inn.runs}/${inn.wickets} IN ${inn.overs} ${parseFloat(inn.overs) === 1 ? 'OVER' : 'OVERS'} | 4S: ${inn.fours || 0}, 6S: ${inn.sixes || 0}`;
+            doc.text(teamTotalText, 14, currentY);
             doc.setFont(undefined, 'normal');
-            currentY += 12;
+            currentY += 15;
         });
 
-        doc.save(`${selectedMatch.teamA}_vs_${selectedMatch.teamB}_Scorecard.pdf`);
+        const timestampFilename = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        doc.save(`${selectedMatch.teamA}_vs_${selectedMatch.teamB}_Scorecard_${timestampFilename}.pdf`);
     };
 
     const undoLastBall = async () => {
-        if (!selectedMatch || !selectedMatch.history || selectedMatch.history.length === 0) {
-            toast.error("Nothing to undo!");
-            return;
-        }
-
-        // Using toast for confirmation to avoid window.confirm
-        const proceed = true; // For now assuming true or we'd need a custom UI. 
-        // Logic: if user clicked undo, they intend to undo.
-        // If the user really wants a modal, I'll keep it but make it a React Modal later if they insist.
-        // For now, replacing window.confirm with a simple immediate action or a toast-confirm if available.
-        // Let's use a simple confirm but wrapped to be less 'system' looking if possible? 
-        // No, I'll just remove the window.confirm as requested "no more local messages".
-        const previousState = selectedMatch.history[selectedMatch.history.length - 1];
-
-        // Optimistic UI Update
-        setSelectedMatch(previousState);
-        setScorecardData(previousState.innings);
-        syncLocalPlayers(previousState);
-
+        if (!selectedMatch) return;
         try {
-            const { id, _id, lastUpdated, ...payload } = previousState;
-            await axios.put(`${API_URL}/api/matches/${previousState._id || previousState.id}`, payload, config);
-            toast.success("Undo successful!");
+            const res = await axios.put(`${API_URL}/api/matches/${selectedMatch?._id || selectedMatch?.id}/reverse`, {}, config);
+            const resData = res.data.success ? res.data.data : res.data;
+            setSelectedMatch(resData);
+            fetchMatches();
+            toast.success("Last action reversed");
         } catch (err) {
-            if (err.response?.status === 401) {
-                localStorage.removeItem('token');
-                navigate('/login');
-                toast.error("Session expired");
-            } else {
-                toast.error("Undo failed on server");
-            }
-            fetchMatches(); // Revert to server state
+            toast.error(err.response?.data?.msg || "Failed to reverse last action");
         }
     };
 
@@ -635,7 +615,8 @@ const AdminDashboard = () => {
     const fetchMatches = async () => {
         try {
             const res = await axios.get(`${API_URL}/api/matches`);
-            setMatches(Array.isArray(res.data) ? res.data : []);
+            const resData = res.data.success ? res.data.data : res.data;
+            setMatches(Array.isArray(resData) ? resData : []);
         } catch (err) {
             console.error(err);
             toast.error("Failed to load matches");
@@ -1458,8 +1439,9 @@ const AdminDashboard = () => {
             const { id, _id, lastUpdated, ...payload } = updatedMatch;
             const res = await axios.put(`${API_URL}/api/matches/${selectedMatch._id || selectedMatch.id}`, payload, config);
 
-            // Resilience: Prepare new state from server
-            let newMatchState = res.data;
+            // Response Standardization: Backend now returns { success, message, data }
+            const resData = res.data.success ? res.data.data : res.data;
+            let newMatchState = resData;
 
             // Ensure history is preserved if backend didn't return it correctly
             if ((!newMatchState.history || newMatchState.history.length === 0) && updatedMatch.history && updatedMatch.history.length > 0) {
@@ -1628,7 +1610,7 @@ const AdminDashboard = () => {
             toast.success('Match deleted permanently'); fetchMatches();
             if (selectedMatch?._id === id || selectedMatch?.id === id) setSelectedMatch(null);
         } catch (err) {
-            const errorMsg = err.response?.data?.msg || "Delete operation failed";
+            const errorMsg = err.response?.data?.message || err.response?.data?.msg || "Delete operation failed";
             toast.error(errorMsg);
         }
     };
@@ -1724,29 +1706,30 @@ const AdminDashboard = () => {
         toast.success("Match start time updated!");
     };
 
-    const handlePauseToggle = (reason = '') => {
+    const handlePauseToggle = async (reason = '') => {
         if (!selectedMatch) return;
-        let sm = JSON.parse(JSON.stringify(selectedMatch));
+        const isCurrentlyPaused = selectedMatch.score?.isPaused;
+        const finalReason = reason || (pauseReason === 'Other' ? customPauseReason : pauseReason);
 
-        if (sm.score?.isPaused) {
-            sm.score.isPaused = false;
-            sm.score.pauseReason = '';
-            handleUpdate('manual', sm);
-            toast.success("Match Resumed!");
-        } else {
+        if (!isCurrentlyPaused && !finalReason) {
+            toast.error("Please provide a reason for pausing");
+            return;
+        }
+
+        try {
+            const res = await axios.put(`${API_URL}/api/matches/${selectedMatch?._id || selectedMatch?.id}/pause`, {
+                reason: finalReason
+            }, config);
+
+            // Handle standardized { success, data }
+            const updatedData = res.data.success ? res.data.data : res.data;
+            setSelectedMatch(updatedData);
             setShowPauseModal(false);
             setPauseReason('');
             setCustomPauseReason('');
-            const finalReason = reason || (pauseReason === 'Other' ? customPauseReason : pauseReason);
-            if (!finalReason) {
-                toast.error("Please provide a reason for pausing");
-                return;
-            }
-            if (!sm.score) sm.score = {};
-            sm.score.isPaused = true;
-            sm.score.pauseReason = finalReason;
-            handleUpdate('manual', sm);
-            toast.success(`Match Paused: ${finalReason}`);
+            toast.success(isCurrentlyPaused ? "Match Resumed!" : `Match Paused: ${finalReason}`);
+        } catch (err) {
+            toast.error(err.response?.data?.message || "Failed to toggle pause");
         }
     };
 
@@ -1802,15 +1785,22 @@ const AdminDashboard = () => {
                         </Form.Group>
                     </Modal.Body>
                     <Modal.Footer>
-                        <Button variant="primary" onClick={() => {
+                        <Button variant="primary" onClick={async () => {
                             if (!tossData.winner) return toast.error("Select a winner");
-                            const battingTeam = tossData.decision === 'bat' ? tossData.winner : (tossData.winner === selectedMatch?.teamA ? selectedMatch?.teamB : selectedMatch?.teamA);
-                            handleUpdate('manual', {
-                                ...selectedMatch,
-                                toss: tossData,
-                                score: { ...selectedMatch.score, battingTeam } // Auto set batting team
-                            });
-                            setShowTossModal(false);
+                            try {
+                                const res = await axios.put(`${API_URL}/api/matches/${selectedMatch?._id || selectedMatch?.id}/toss`, {
+                                    tossWinnerTeamId: tossData.winner,
+                                    tossDecision: tossData.decision.toUpperCase()
+                                }, config);
+
+                                const updatedData = res.data.success ? res.data.data : res.data;
+                                setSelectedMatch(updatedData);
+                                setScorecardData(updatedData.innings);
+                                setShowTossModal(false);
+                                toast.success("Toss updated successfully");
+                            } catch (err) {
+                                toast.error(err.response?.data?.message || "Failed to update toss");
+                            }
                         }}>Confirm Toss</Button>
                     </Modal.Footer>
                 </Modal>
@@ -2392,23 +2382,6 @@ const AdminDashboard = () => {
                                         </div>
 
                                         <div className="d-flex gap-2 mb-4 justify-content-center flex-wrap">
-                                            <Button variant="outline-dark" size="lg" className="px-3 fw-bold" onClick={() => setShowSquadModal(true)}>👥 SQUADS</Button>
-                                            {selectedMatch.status === 'live' && (
-                                                <Button variant="outline-primary" size="lg" className="px-3 fw-bold" onClick={() => {
-                                                    setDlsData({
-                                                        target: selectedMatch.score?.target || '',
-                                                        totalOvers: selectedMatch.totalOvers || ''
-                                                    });
-                                                    setShowDlsModal(true);
-                                                }}>🌧️ DLS</Button>
-                                            )}
-                                            <Button variant="outline-secondary" size="lg" className="px-3 fw-bold" onClick={() => handleUpdate('undo')}>
-                                                <i className="bi bi-arrow-counterclockwise me-2"></i> Reverse Last Action
-                                            </Button>
-                                            <Button variant="outline-warning" size="lg" className="px-3 fw-bold" onClick={() => handleUpdate('pause')}>
-                                                <i className={`bi bi-${selectedMatch.score.isPaused ? 'play-fill' : 'pause-fill'} me-2`}></i>
-                                                {selectedMatch.score.isPaused ? 'Resume Match' : 'Temporarily Pause Match'}
-                                            </Button>
                                             {(!selectedMatch.toss?.winner && (selectedMatch.status === 'upcoming' || selectedMatch.status === 'live')) && <Button variant="warning" size="lg" className="px-5 fw-bold" onClick={() => {
                                                 // Allow 15 min buffer
                                                 const now = new Date();
@@ -2529,33 +2502,59 @@ const AdminDashboard = () => {
                                                             })()
                                                         )}
 
-                                                        {/* SCORING BUTTONS */}
+                                                        {/* SCORING PANEL - 5 ROW LAYOUT */}
                                                         {selectedMatch.status === 'live' && selectedMatch.currentBatsmen?.length > 0 && selectedMatch.currentBowler && !isComplete && (
-                                                            <div className="d-flex flex-wrap gap-2 justify-content-center">
-                                                                {[0, 1, 2, 3, 4, 6].map(r => (
-                                                                    <Button key={r} disabled={isUpdating} variant="outline-primary" size="lg" className="px-3 fw-bold" onClick={() => {
-                                                                        if (currentInn && currentInn.overs >= limit) return toast.error(`Over limit reached!`);
-                                                                        handleUpdate('runs', r);
-                                                                    }}>{r} {r === 1 ? 'Run' : 'Runs'}</Button>
-                                                                ))}
-                                                                <Button variant="danger" size="lg" className="px-3 fw-bold" disabled={isUpdating} onClick={() => {
-                                                                    setWicketDetails(prev => ({ ...prev, type: 'caught', fielder: '', runs: 0, whomOut: 'striker' }));
-                                                                    setShowWicketModal(true);
-                                                                }}>Wicket</Button>
+                                                            <div className="scoring-panel-container d-grid gap-3 justify-content-center w-100">
+                                                                {selectedMatch.toss?.winner && (
+                                                                    <div className="alert alert-warning text-center fw-bold py-2 mb-0 border-0 shadow-sm rounded-pill">
+                                                                        🪙 Toss: {selectedMatch.toss.winner} won & elected to {selectedMatch.toss.decision} first.
+                                                                    </div>
+                                                                )}
 
-                                                                <Button variant="outline-dark" size="lg" className="px-3 fw-bold" disabled={isUpdating} onClick={() => {
-                                                                    if (currentInn && currentInn.overs >= limit) return toast.error(`Over limit reached!`);
-                                                                    setOverthrowData({ ballType: 'normal', runsCompleted: 0, crossedOnThrow: false, resultType: 'boundary', manualRuns: 0 });
-                                                                    setShowOverthrowModal(true);
-                                                                }}>⚡ Overthrow</Button>
+                                                                {/* ROW 1 – MATCH CONTROLS */}
+                                                                <div className="d-flex flex-wrap gap-2 justify-content-center">
+                                                                    <Button variant="outline-primary" size="lg" className="px-3 fw-bold shadow-sm" onClick={() => setShowSquadModal(true)}>
+                                                                        <i className="bi bi-people-fill me-2"></i>SQUADS
+                                                                    </Button>
+                                                                    <Button variant="outline-primary" size="lg" className="px-3 fw-bold shadow-sm" onClick={() => setShowDlsModal(true)}>
+                                                                        <i className="bi bi-cloud-rain-fill me-2"></i>DLS
+                                                                    </Button>
+                                                                    <Button variant="outline-warning" size="lg" className="px-3 fw-bold shadow-sm" onClick={undoLastBall} disabled={!selectedMatch.history || selectedMatch.history.length === 0}>
+                                                                        <i className="bi bi-arrow-counterclockwise me-2"></i>Reverse Last Action
+                                                                    </Button>
+                                                                    {selectedMatch.score?.isPaused ? (
+                                                                        <Button variant="success" size="lg" className="px-3 fw-bold shadow-sm" onClick={() => handlePauseToggle()}>
+                                                                            <i className="bi bi-play-fill me-2"></i>RESUME MATCH
+                                                                        </Button>
+                                                                    ) : (
+                                                                        <Button variant="danger" size="lg" className="px-3 fw-bold shadow-sm" onClick={() => setShowPauseModal(true)}>
+                                                                            <i className="bi bi-pause-fill me-2"></i>Temporarily Pause Match
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
 
-                                                                <div className="w-100 mt-2 d-flex flex-wrap gap-2 justify-content-center">
+                                                                {/* ROW 2 – PRIMARY SCORING */}
+                                                                <div className="d-flex flex-wrap gap-2 justify-content-center">
+                                                                    {[0, 1, 2, 3, 4, 6].map(r => (
+                                                                        <Button key={r} disabled={isUpdating || selectedMatch.score?.isPaused} variant="outline-primary" size="lg" className="px-4 fw-bold shadow-sm" onClick={() => {
+                                                                            if (currentInn && currentInn.overs >= limit) return toast.error(`Over limit reached!`);
+                                                                            handleUpdate('runs', r);
+                                                                        }}>{r} {r === 1 ? 'Run' : 'Runs'}</Button>
+                                                                    ))}
+                                                                    <Button variant="danger" size="lg" className="px-4 fw-bold shadow-sm" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => {
+                                                                        setWicketDetails(prev => ({ ...prev, type: 'caught', fielder: '', runs: 0, whomOut: 'striker' }));
+                                                                        setShowWicketModal(true);
+                                                                    }}>Wicket</Button>
+                                                                </div>
+
+                                                                {/* ROW 3 – EXTRAS */}
+                                                                <div className="d-flex flex-wrap gap-2 justify-content-center">
                                                                     <Dropdown as={ButtonGroup}>
-                                                                        <Button variant="outline-warning" size="lg" className="px-3 fw-bold" disabled={isUpdating} onClick={() => {
+                                                                        <Button variant="outline-warning" size="lg" className="px-3 fw-bold shadow-sm" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => {
                                                                             if (currentInn && currentInn.overs >= limit) return toast.error(`Over limit reached!`);
                                                                             handleUpdate('extra', 'w', { amount: 1 });
                                                                         }}>Wide Ball</Button>
-                                                                        <Dropdown.Toggle split variant="outline-warning" id="dropdown-wide" disabled={isUpdating} />
+                                                                        <Dropdown.Toggle split variant="outline-warning" id="dropdown-wide" disabled={isUpdating || selectedMatch.score?.isPaused} />
                                                                         <Dropdown.Menu className="border-0 shadow-lg p-2">
                                                                             <Dropdown.Item onClick={() => handleUpdate('extra', 'w', { amount: 2 })}>Wide + 1 (2 Runs)</Dropdown.Item>
                                                                             <Dropdown.Item onClick={() => handleUpdate('extra', 'w', { amount: 3 })}>Wide + 2 (3 Runs)</Dropdown.Item>
@@ -2564,11 +2563,11 @@ const AdminDashboard = () => {
                                                                     </Dropdown>
 
                                                                     <Dropdown as={ButtonGroup}>
-                                                                        <Button variant="outline-warning" size="lg" className="px-3 fw-bold" disabled={isUpdating} onClick={() => {
+                                                                        <Button variant="outline-warning" size="lg" className="px-3 fw-bold shadow-sm" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => {
                                                                             if (currentInn && currentInn.overs >= limit) return toast.error(`Over limit reached!`);
                                                                             handleUpdate('extra', 'nb', { amount: 1, isBat: false });
                                                                         }}>No Ball</Button>
-                                                                        <Dropdown.Toggle split variant="outline-warning" id="dropdown-noball" disabled={isUpdating} />
+                                                                        <Dropdown.Toggle split variant="outline-warning" id="dropdown-noball" disabled={isUpdating || selectedMatch.score?.isPaused} />
                                                                         <Dropdown.Menu className="border-0 shadow-lg p-3" style={{ minWidth: '250px' }}>
                                                                             <div className="fw-bold small text-muted mb-2 text-uppercase">Hit by Bat (Striker)</div>
                                                                             <Dropdown.Item onClick={() => handleUpdate('extra', 'nb', { amount: 2, isBat: true })}>No Ball + 1 Run (2)</Dropdown.Item>
@@ -2583,11 +2582,11 @@ const AdminDashboard = () => {
                                                                     </Dropdown>
 
                                                                     <Dropdown as={ButtonGroup}>
-                                                                        <Button variant="outline-warning" size="lg" className="px-3 fw-bold text-dark" disabled={isUpdating} onClick={() => {
+                                                                        <Button variant="outline-warning" size="lg" className="px-3 fw-bold text-dark shadow-sm" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => {
                                                                             if (currentInn && currentInn.overs >= limit) return toast.error(`Over limit reached!`);
                                                                             handleUpdate('extra', 'lb', { amount: 1 });
                                                                         }}>Leg Bye</Button>
-                                                                        <Dropdown.Toggle split variant="outline-warning" id="dropdown-legbye" disabled={isUpdating} className="text-dark" />
+                                                                        <Dropdown.Toggle split variant="outline-warning" id="dropdown-legbye" disabled={isUpdating || selectedMatch.score?.isPaused} className="text-dark" />
                                                                         <Dropdown.Menu className="border-0 shadow-lg p-2">
                                                                             <Dropdown.Item onClick={() => handleUpdate('extra', 'lb', { amount: 1 })}>1 Leg Bye</Dropdown.Item>
                                                                             <Dropdown.Item onClick={() => handleUpdate('extra', 'lb', { amount: 2 })}>2 Leg Byes</Dropdown.Item>
@@ -2596,26 +2595,41 @@ const AdminDashboard = () => {
                                                                     </Dropdown>
 
                                                                     <Dropdown as={ButtonGroup}>
-                                                                        <Button variant="outline-warning" size="lg" className="px-3 fw-bold text-dark" disabled={isUpdating} onClick={() => {
+                                                                        <Button variant="outline-warning" size="lg" className="px-3 fw-bold text-dark shadow-sm" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => {
                                                                             if (currentInn && currentInn.overs >= limit) return toast.error(`Over limit reached!`);
                                                                             handleUpdate('extra', 'b', { amount: 1 });
                                                                         }}>Bye</Button>
-                                                                        <Dropdown.Toggle split variant="outline-warning" id="dropdown-bye" disabled={isUpdating} className="text-dark" />
+                                                                        <Dropdown.Toggle split variant="outline-warning" id="dropdown-bye" disabled={isUpdating || selectedMatch.score?.isPaused} className="text-dark" />
                                                                         <Dropdown.Menu className="border-0 shadow-lg p-2">
                                                                             <Dropdown.Item onClick={() => handleUpdate('extra', 'b', { amount: 1 })}>1 Bye</Dropdown.Item>
                                                                             <Dropdown.Item onClick={() => handleUpdate('extra', 'b', { amount: 2 })}>2 Byes</Dropdown.Item>
                                                                             <Dropdown.Item onClick={() => handleUpdate('extra', 'b', { amount: 4 })}>4 Byes</Dropdown.Item>
                                                                         </Dropdown.Menu>
                                                                     </Dropdown>
+
+                                                                    <Button variant="outline-dark" size="lg" className="px-3 fw-bold shadow-sm" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => {
+                                                                        if (currentInn && currentInn.overs >= limit) return toast.error(`Over limit reached!`);
+                                                                        setOverthrowData({ ballType: 'normal', runsCompleted: 0, crossedOnThrow: false, resultType: 'boundary', manualRuns: 0 });
+                                                                        setShowOverthrowModal(true);
+                                                                    }}>⚡ Overthrow</Button>
                                                                 </div>
 
-                                                                <div className="w-100 mt-3 d-flex flex-wrap gap-2 justify-content-center">
-                                                                    <Button variant="outline-info" size="lg" className="px-3 fw-bold" disabled={isUpdating} onClick={() => handleUpdate('swap')}>Change Strike</Button>
-                                                                    <Button variant="outline-dark" size="lg" className="px-3 fw-bold" disabled={isUpdating} onClick={() => { setBatsmanModalType('retire'); setShowBatsmanModal(true); }}>Retire Batter</Button>
-                                                                    <Button variant="outline-success" size="lg" className="px-3 fw-bold" onClick={() => setShowBowlerModal(true)}>Replace Bowler Due to Injury</Button>
-                                                                    <Button variant={selectedMatch?.score?.freeHit ? "danger" : "outline-secondary"} size="lg" className="px-3 fw-bold" onClick={() => handleUpdate('manual', { ...selectedMatch, score: { ...selectedMatch.score, freeHit: !selectedMatch.score.freeHit } })}>
-                                                                        {selectedMatch?.score?.freeHit ? '🚀 FREE HIT ON' : '🚀 FREE HIT OFF'}
+                                                                {/* ROW 4 – PLAYER ACTIONS */}
+                                                                <div className="d-flex flex-wrap gap-2 justify-content-center">
+                                                                    <Button variant="outline-info" size="lg" className="px-3 fw-bold shadow-sm" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => handleUpdate('swap')}>Change Strike</Button>
+                                                                    <Button variant="outline-dark" size="lg" className="px-3 fw-bold shadow-sm" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => { setBatsmanModalType('retire'); setShowBatsmanModal(true); }}>Retire Batter</Button>
+                                                                    <Button variant="outline-success" size="lg" className="px-3 fw-bold shadow-sm" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => setShowBowlerModal(true)}>Replace Bowler Due to Injury</Button>
+                                                                    {/* Free Hit Toggle moved here to maintain Row 5 as indicator only */}
+                                                                    <Button variant={selectedMatch?.score?.freeHit ? "danger" : "outline-secondary"} size="lg" className="px-3 fw-bold shadow-sm" onClick={() => handleUpdate('manual', { ...selectedMatch, score: { ...selectedMatch.score, freeHit: !selectedMatch.score.freeHit } })}>
+                                                                        {selectedMatch?.score?.freeHit ? '🚀 DISABLE FREE HIT' : '🚀 ENABLE FREE HIT'}
                                                                     </Button>
+                                                                </div>
+
+                                                                {/* ROW 5 – STATE INDICATOR */}
+                                                                <div className="d-flex justify-content-center mt-2">
+                                                                    <div className={`px-5 py-2 rounded-pill fw-black text-uppercase shadow-sm border-2 border ${selectedMatch?.score?.freeHit ? 'bg-danger text-white border-danger animate-pulse' : 'bg-light text-muted border-secondary'}`} style={{ fontSize: '0.9rem', letterSpacing: '1px' }}>
+                                                                        {selectedMatch?.score?.freeHit ? '🚀 FREE HIT ON' : '🚀 FREE HIT OFF'}
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         )}
@@ -2850,41 +2864,6 @@ const AdminDashboard = () => {
                                                         </tbody>
                                                     </Table>
                                                 </Card>
-                                            )
-                                        }
-
-                                        {
-                                            selectedMatch.toss?.winner && (
-                                                <Alert variant="warning" className="text-center fw-bold">
-                                                    🪙 Toss won by {selectedMatch.toss.winner} and elected to {selectedMatch.toss.decision} first.
-                                                </Alert>
-                                            )
-                                        }
-                                        {
-                                            selectedMatch.status === 'live' && (
-                                                <div className="d-flex flex-wrap gap-2 mb-4 justify-content-center">
-                                                    <Button variant="outline-danger" className="fw-black px-4 rounded-pill shadow-sm" onClick={() => { setBatsmanModalType('retired'); setShowBatsmanModal(true); }}>
-                                                        <i className="bi bi-person-x-fill me-2"></i> RETIRE BATSMAN
-                                                    </Button>
-                                                    <Button variant="outline-success" className="fw-black px-4 rounded-pill shadow-sm" onClick={() => setShowBowlerModal(true)}>
-                                                        <i className="bi bi-arrow-repeat me-2"></i> Replace Bowler Due to Injury
-                                                    </Button>
-                                                    <Button variant="outline-primary" className="fw-black px-4 rounded-pill shadow-sm" onClick={() => handleUpdate('swap_strike')}>
-                                                        <i className="bi bi-arrow-left-right me-2"></i> SWAP STRIKE
-                                                    </Button>
-                                                    <Button variant="outline-warning" className="fw-black px-4 rounded-pill shadow-sm" onClick={undoLastBall} disabled={!selectedMatch.history || selectedMatch.history.length === 0}>
-                                                        <i className="bi bi-arrow-counterclockwise me-2"></i> UNDO
-                                                    </Button>
-                                                    {selectedMatch.score?.isPaused ? (
-                                                        <Button variant="success" className="fw-black px-4 rounded-pill shadow-sm" onClick={() => handlePauseToggle()}>
-                                                            <i className="bi bi-play-fill me-2"></i> RESUME MATCH
-                                                        </Button>
-                                                    ) : (
-                                                        <Button variant="danger" className="fw-black px-4 rounded-pill shadow-sm" onClick={() => setShowPauseModal(true)}>
-                                                            <i className="bi bi-pause-fill me-2"></i> PAUSE MATCH
-                                                        </Button>
-                                                    )}
-                                                </div>
                                             )
                                         }
 
