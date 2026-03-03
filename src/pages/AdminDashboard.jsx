@@ -1436,8 +1436,9 @@ const AdminDashboard = () => {
         setScorecardData(updatedMatch.innings);
 
         try {
-            const { id, _id, lastUpdated, ...payload } = updatedMatch;
-            const res = await axios.put(`${API_URL}/api/matches/${selectedMatch._id || selectedMatch.id}`, payload, config);
+            // Strip irrelevant/large fields to prevent validation issues and reduce payload size
+            const { id, _id, lastUpdated, toss, ...payload } = updatedMatch;
+            const res = await axios.put(`${API_URL}/api/matches/${selectedMatch._id || selectedMatch.id}/score`, payload, config);
 
             // Response Standardization: Backend now returns { success, message, data }
             const resData = res.data.success ? res.data.data : res.data;
