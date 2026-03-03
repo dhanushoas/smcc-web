@@ -393,9 +393,9 @@ const AdminDashboard = () => {
             currentY += 5; // 8px after result
 
             if (selectedMatch.manOfTheMatch) {
-                doc.setFontSize(9);
-                doc.setTextColor(120);
-                doc.setFont(undefined, 'normal');
+                doc.setFontSize(11);
+                doc.setTextColor(217, 119, 6); // Amber color for MOM
+                doc.setFont(undefined, 'bold');
                 doc.text(`PLAYER OF THE MATCH: ${selectedMatch.manOfTheMatch.toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
                 currentY += 6; // 16px after MOM
             } else {
@@ -420,10 +420,20 @@ const AdminDashboard = () => {
         doc.setFont(undefined, 'normal');
         currentY += 5; // 8px after match title
 
+        // Toss Info
+        if (selectedMatch.toss?.winner) {
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            doc.setFont(undefined, 'italic');
+            doc.text(`Toss won by ${selectedMatch.toss.winner} and elected to ${selectedMatch.toss.decision} first.`, pageWidth / 2, currentY, { align: 'center' });
+            currentY += 6;
+        }
+
         // Meta info
         doc.setFontSize(8);
         doc.setTextColor(120);
-        doc.text(`SERIES: ${(selectedMatch.title || 'SMCC LIVE').toUpperCase()} | VENUE: ${(selectedMatch.venue || 'TBD').toUpperCase()} | DATE: ${new Date(selectedMatch.date).toLocaleDateString().toUpperCase()} ${formatTime(selectedMatch.date).toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
+        doc.setFont(undefined, 'normal');
+        doc.text(`SERIES: ${(selectedMatch.title || 'SMCC LIVE').toUpperCase()} | GROUND: ${(selectedMatch.venue || 'TBA').toUpperCase()} | DATE: ${new Date(selectedMatch.date).toLocaleDateString().toUpperCase()} ${formatTime(selectedMatch.date).toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
         currentY += 4;
         doc.text(`EXPORTED: ${new Date().toLocaleString().toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
         currentY += 6; // 16px before divider
@@ -1940,8 +1950,15 @@ const AdminDashboard = () => {
                         </Form.Group>
                         {(wicketDetails.type === 'caught' || wicketDetails.type === 'run out' || wicketDetails.type === 'stumped') && (
                             <Form.Group className="mb-3">
-                                <Form.Label className="fw-bold small text-uppercase text-muted">Fielder Name</Form.Label>
-                                <Form.Control size="lg" className="rounded-3 border-0 shadow-sm" type="text" placeholder="Fielder/Keeper Name" value={wicketDetails.fielder} onChange={e => setWicketDetails({ ...wicketDetails, fielder: e.target.value })} />
+                                <Form.Label className="fw-bold small text-uppercase text-muted">
+                                    {wicketDetails.type === 'stumped' ? 'Wicket Keeper Name' : 'Fielder Name'}
+                                </Form.Label>
+                                <Form.Select size="lg" className="rounded-3 border-0 shadow-sm" value={wicketDetails.fielder} onChange={e => setWicketDetails({ ...wicketDetails, fielder: e.target.value })}>
+                                    <option value="">Select Player</option>
+                                    {(selectedMatch?.score?.battingTeam === selectedMatch?.teamA ? squadB : squadA).filter(p => p.trim() !== '').map((p, i) => (
+                                        <option key={i} value={p}>{p}</option>
+                                    ))}
+                                </Form.Select>
                             </Form.Group>
                         )}
 

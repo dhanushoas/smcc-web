@@ -6,19 +6,21 @@ import axios from 'axios';
 import API_URL from '../utils/api';
 
 const Contact = () => {
-    const [formData, setFormData] = useState({ name: '', email: '', subject: '', message: '' });
+    const [formData, setFormData] = useState({ name: '', email: '', phone: '', subject: '', message: '' });
+    const [submitting, setSubmitting] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setSubmitting(true);
         try {
-            await axios.post(`${API_URL}/api/misc/submit`, {
-                type: 'contact',
-                ...formData
-            });
+            await axios.post(`${API_URL}/api/interactions/contact`, formData);
             toast.success("Message sent successfully! We'll get back to you soon.");
-            setFormData({ name: '', email: '', subject: '', message: '' });
+            setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
         } catch (err) {
-            toast.error("Failed to send message. Please try again.");
+            const errorMsg = err.response?.data?.msg || err.response?.data?.errors?.[0]?.msg || "Failed to send message. Please ensure inputs are valid and try again.";
+            toast.error(errorMsg);
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -90,9 +92,21 @@ const Contact = () => {
                                             />
                                         </Form.Group>
                                     </Col>
+                                    <Col md={12}>
+                                        <Form.Group>
+                                            <Form.Label className="small fw-bold text-muted">PHONE NUMBER (OPTIONAL)</Form.Label>
+                                            <Form.Control
+                                                type="tel"
+                                                placeholder="+91 98765 43210"
+                                                className="rounded-pill px-4 border-2"
+                                                value={formData.phone}
+                                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                            />
+                                        </Form.Group>
+                                    </Col>
                                     <Col xs={12}>
                                         <Form.Group>
-                                            <Form.Label className="small fw-bold text-muted">SUBJECT</Form.Label>
+                                            <Form.Label className="small fw-bold text-muted">SUBJECT *</Form.Label>
                                             <Form.Control
                                                 type="text"
                                                 placeholder="Inquiry about memberships"
@@ -119,8 +133,9 @@ const Contact = () => {
                                     </Col>
                                     <Col xs={12} className="text-end">
                                         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                                            <Button variant="primary" type="submit" className="premium-btn px-5 py-3 shadow-sm border-0">
-                                                <i className="bi bi-send-fill me-2"></i> Send Message
+                                            <Button variant="primary" type="submit" disabled={submitting} className="premium-btn px-5 py-3 shadow-sm border-0">
+                                                {submitting ? <span className="spinner-border spinner-border-sm me-2"></span> : <i className="bi bi-send-fill me-2"></i>}
+                                                {submitting ? 'Sending...' : 'Send Message'}
                                             </Button>
                                         </motion.div>
                                     </Col>

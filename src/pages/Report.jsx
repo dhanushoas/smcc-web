@@ -1,26 +1,42 @@
 import React, { useState } from 'react';
-import { Container, Card, Form, Button, Alert } from 'react-bootstrap';
+import { Container, Card, Form, Button, Alert, Row, Col } from 'react-bootstrap';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import axios from 'axios';
 import API_URL from '../utils/api';
 
 const Report = () => {
-    const [formData, setFormData] = useState({ type: 'Technical Bug / App Glitch', matchInfo: '', message: '', evidence: '' });
+    const [formData, setFormData] = useState({ name: '', email: '', type: 'Technical Bug / App Glitch', severity: 'Medium', matchInfo: '', message: '' });
+    const [file, setFile] = useState(null);
+    const [submitting, setSubmitting] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setSubmitting(true);
+
         try {
-            await axios.post(`${API_URL}/api/misc/submit`, {
-                type: 'report',
-                subject: formData.type,
-                message: formData.message,
-                data: { matchInfo: formData.matchInfo, evidence: formData.evidence }
+            const data = new FormData();
+            data.append('issueType', formData.type);
+            data.append('severity', formData.severity);
+            data.append('description', formData.matchInfo ? `Match: ${formData.matchInfo} - ${formData.message}` : formData.message);
+            data.append('pageUrl', window.location.href);
+
+            if (formData.name) data.append('name', formData.name);
+            if (formData.email) data.append('email', formData.email);
+            if (file) data.append('screenshot', file);
+
+            await axios.post(`${API_URL}/api/interactions/report`, data, {
+                headers: { 'Content-Type': 'multipart/form-data' }
             });
+
             toast.success("Incident/Issue reported. Our team will investigate immediately.");
-            setFormData({ type: 'Technical Bug / App Glitch', matchInfo: '', message: '', evidence: '' });
+            setFormData({ name: '', email: '', type: 'Technical Bug / App Glitch', severity: 'Medium', matchInfo: '', message: '' });
+            setFile(null);
         } catch (err) {
-            toast.error("Failed to submit report.");
+            const errorMsg = err.response?.data?.msg || err.response?.data?.errors?.[0]?.msg || "Failed to submit report. Please try again.";
+            toast.error(errorMsg);
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -47,20 +63,62 @@ const Report = () => {
 
                 <Card className="glass-card border-0 shadow-lg p-4 p-md-5">
                     <Form onSubmit={handleSubmit}>
-                        <Form.Group className="mb-4">
-                            <Form.Label className="small fw-bold text-muted">REPORT TYPE</Form.Label>
-                            <Form.Select
-                                className="rounded-pill px-4 border-2 shadow-none py-2"
-                                value={formData.type}
-                                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                            >
-                                <option>Technical Bug / App Glitch</option>
-                                <option>Incorrect Score Entry</option>
-                                <option>Unsportsmanlike Conduct</option>
-                                <option>Umpiring Dispute</option>
-                                <option>Other</option>
-                            </Form.Select>
-                        </Form.Group>
+                        <Row className="gy-4 mb-4">
+                            <Col md={6}>
+                                <Form.Group>
+                                    <Form.Label className="small fw-bold text-muted">NAME (OPTIONAL)</Form.Label>
+                                    <Form.Control
+                                        type="text"
+                                        placeholder="Your Name"
+                                        className="rounded-pill px-4 border-2"
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    />
+                                </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                                <Form.Group>
+                                    <Form.Label className="small fw-bold text-muted">EMAIL (OPTIONAL)</Form.Label>
+                                    <Form.Control
+                                        type="email"
+                                        placeholder="john@example.com"
+                                        className="rounded-pill px-4 border-2"
+                                        value={formData.email}
+                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    />
+                                </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                                <Form.Group>
+                                    <Form.Label className="small fw-bold text-muted">REPORT TYPE</Form.Label>
+                                    <Form.Select
+                                        className="rounded-pill px-4 border-2 shadow-none"
+                                        value={formData.type}
+                                        onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                                    >
+                                        <option value="Technical Bug / App Glitch">Technical Bug / App Glitch</option>
+                                        <option value="Incorrect Score Entry">Incorrect Score Entry</option>
+                                        <option value="Unsportsmanlike Conduct">Unsportsmanlike Conduct</option>
+                                        <option value="Umpiring Dispute">Umpiring Dispute</option>
+                                        <option value="Other">Other</option>
+                                    </Form.Select>
+                                </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                                <Form.Group>
+                                    <Form.Label className="small fw-bold text-muted">SEVERITY</Form.Label>
+                                    <Form.Select
+                                        className="rounded-pill px-4 border-2 shadow-none"
+                                        value={formData.severity}
+                                        onChange={(e) => setFormData({ ...formData, severity: e.target.value })}
+                                    >
+                                        <option value="Low">Low - Minor inconvenience</option>
+                                        <option value="Medium">Medium - Affects usage</option>
+                                        <option value="High">High - Critical failure / Misconduct</option>
+                                    </Form.Select>
+                                </Form.Group>
+                            </Col>
+                        </Row>
 
                         <Form.Group className="mb-4">
                             <Form.Label className="small fw-bold text-muted">MATCH DETAILS (IF APPLICABLE)</Form.Label>
@@ -87,19 +145,20 @@ const Report = () => {
                         </Form.Group>
 
                         <Form.Group className="mb-5">
-                            <Form.Label className="small fw-bold text-muted">ATTACH EVIDENCE (LINK)</Form.Label>
+                            <Form.Label className="small fw-bold text-muted">ATTACH SCREENSHOT (OPTIONAL)</Form.Label>
                             <Form.Control
-                                type="url"
-                                placeholder="GDD/Image Link (Optional)"
+                                type="file"
+                                accept="image/jpeg, image/png, application/pdf"
+                                onChange={(e) => setFile(e.target.files[0])}
                                 className="rounded-pill px-4 border-2"
-                                value={formData.evidence}
-                                onChange={(e) => setFormData({ ...formData, evidence: e.target.value })}
                             />
+                            <div className="form-text small">Max size: 5MB (JPG, PNG, PDF).</div>
                         </Form.Group>
 
                         <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
-                            <Button variant="danger" type="submit" className="w-100 py-3 rounded-pill fw-black text-uppercase letter-spacing-1 shadow">
-                                Submit Incident Report
+                            <Button variant="danger" type="submit" disabled={submitting} className="w-100 py-3 rounded-pill fw-black text-uppercase letter-spacing-1 shadow">
+                                {submitting ? <span className="spinner-border spinner-border-sm me-2"></span> : <i className="bi bi-shield-exclamation me-2"></i>}
+                                {submitting ? 'Submitting...' : 'Submit Incident Report'}
                             </Button>
                         </motion.div>
                     </Form>

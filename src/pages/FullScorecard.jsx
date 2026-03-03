@@ -156,9 +156,9 @@ const FullScorecard = () => {
                     currentY += 5; // 8px after result
                 }
                 if (match.manOfTheMatch) {
-                    doc.setFontSize(9);
-                    doc.setTextColor(120);
-                    doc.setFont(undefined, 'normal');
+                    doc.setFontSize(11);
+                    doc.setTextColor(217, 119, 6); // Amber color for MOM
+                    doc.setFont(undefined, 'bold');
                     doc.text(`PLAYER OF THE MATCH: ${match.manOfTheMatch.toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
                     currentY += 6; // 16px after MOM
                 } else if (winnerString) {
@@ -175,11 +175,24 @@ const FullScorecard = () => {
         doc.text(`${match.teamA.toUpperCase()} VS ${match.teamB.toUpperCase()} - FULL SCORECARD`, pageWidth / 2, currentY, { align: 'center' });
         currentY += 5; // 8px after title
 
+        // Toss Info
+        if (match.toss?.winner) {
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            doc.setFont(undefined, 'italic');
+            doc.text(`Toss won by ${match.toss.winner} and elected to ${match.toss.decision} first.`, pageWidth / 2, currentY, { align: 'center' });
+            currentY += 6;
+        }
+
         // Meta info
         doc.setFontSize(8);
         doc.setFont(undefined, 'normal');
         doc.setTextColor(120);
-        doc.text(`SERIES: ${(match.series || 'SMCC').toUpperCase()} | VENUE: ${match.venue.toUpperCase()} | DATE: ${new Date(match.date).toDateString().toUpperCase()} ${formatTime(match.date).toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
+        doc.text(`SERIES: ${(match.series || 'SMCC').toUpperCase()} | GROUND: ${(match.venue || 'TBA').toUpperCase()} | DATE: ${new Date(match.date).toDateString().toUpperCase()} ${formatTime(match.date).toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
+        currentY += 4;
+        const exportedDate = new Date();
+        const exportStr = `EXPORTED: ${exportedDate.toLocaleDateString().toUpperCase()} ${exportedDate.toLocaleTimeString().toUpperCase()}`;
+        doc.text(exportStr, pageWidth / 2, currentY, { align: 'center' });
         currentY += 6; // 16px before divider
 
         // Divider
@@ -662,20 +675,21 @@ const FullScorecard = () => {
                                                         <span className="fw-bold">{match.series || 'SMCC LIVE'}</span>
                                                     </div>
                                                     <div className="d-flex justify-content-between mb-3 border-bottom pb-2">
-                                                        <span className="text-muted">Venue</span>
-                                                        <span className="fw-bold">{match.venue}</span>
+                                                        <span className="text-muted">Ground</span>
+                                                        <span className="fw-bold">{match.venue || 'TBD'}</span>
+                                                    </div>
+                                                    <div className="d-flex justify-content-between mb-3 border-bottom pb-2 text-end">
+                                                        <span className="text-muted">Toss</span>
+                                                        <span className="fw-bold" style={{ maxWidth: '60%' }}>
+                                                            {match.toss?.winner ? `${match.toss.winner}, elected to ${match.toss.decision} first` : 'To be decided'}
+                                                        </span>
                                                     </div>
                                                     <div className="d-flex justify-content-between mb-3 border-bottom pb-2">
-                                                        <span className="text-muted">Match Type</span>
-                                                        <span className="fw-bold">{match.totalOvers} Overs</span>
-                                                    </div>
-                                                    <div className="d-flex justify-content-between mb-3 border-bottom pb-2">
-                                                        <span className="text-muted">Date</span>
-                                                        <span className="fw-bold">{new Date(match.date).toLocaleDateString()}</span>
-                                                    </div>
-                                                    <div className="d-flex justify-content-between">
-                                                        <span className="text-muted">Time</span>
-                                                        <span className="fw-bold">{formatTime(match.date)}</span>
+                                                        <span className="text-muted">Date & Time</span>
+                                                        <span className="fw-bold text-end">
+                                                            {new Date(match.date).toLocaleDateString()} <br />
+                                                            <span className="text-muted small">{formatTime(match.date)}</span>
+                                                        </span>
                                                     </div>
                                                 </div>
                                             </Col>

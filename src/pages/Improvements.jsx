@@ -6,21 +6,28 @@ import axios from 'axios';
 import API_URL from '../utils/api';
 
 const Improvements = () => {
-    const [formData, setFormData] = useState({ category: 'Live Scoring Experience', title: '', message: '' });
+    const [formData, setFormData] = useState({ name: '', email: '', category: 'Live Scoring Experience', priority: 'Low', title: '', message: '' });
+    const [submitting, setSubmitting] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setSubmitting(true);
         try {
-            await axios.post(`${API_URL}/api/misc/submit`, {
-                type: 'improvement',
-                subject: formData.title,
-                message: formData.message,
-                data: { category: formData.category }
+            await axios.post(`${API_URL}/api/interactions/improvement`, {
+                name: formData.name,
+                email: formData.email,
+                category: formData.category,
+                priority: formData.priority,
+                title: formData.title,
+                description: formData.message
             });
             toast.success("Thank you for your suggestion! We'll review it for our next update.");
-            setFormData({ category: 'Live Scoring Experience', title: '', message: '' });
+            setFormData({ name: '', email: '', category: 'Live Scoring Experience', priority: 'Low', title: '', message: '' });
         } catch (err) {
-            toast.error("Failed to submit suggestion.");
+            const errorMsg = err.response?.data?.msg || err.response?.data?.errors?.[0]?.msg || "Failed to submit suggestion. Please ensure title is > 5 chars and description > 20 chars.";
+            toast.error(errorMsg);
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -58,20 +65,62 @@ const Improvements = () => {
 
                 <Card className="glass-card border-0 shadow-lg p-4 p-md-5">
                     <Form onSubmit={handleSubmit}>
-                        <Form.Group className="mb-4">
-                            <Form.Label className="small fw-bold text-muted">IDEA CATEGORY</Form.Label>
-                            <Form.Select
-                                className="rounded-pill px-4 border-2 shadow-none py-2"
-                                value={formData.category}
-                                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                            >
-                                <option>Live Scoring Experience</option>
-                                <option>Admin Dashboard Tools</option>
-                                <option>Member Portal Features</option>
-                                <option>Mobile Performance</option>
-                                <option>Other</option>
-                            </Form.Select>
-                        </Form.Group>
+                        <Row className="gy-4 mb-4">
+                            <Col md={6}>
+                                <Form.Group>
+                                    <Form.Label className="small fw-bold text-muted">NAME (OPTIONAL)</Form.Label>
+                                    <Form.Control
+                                        type="text"
+                                        placeholder="Your Name"
+                                        className="rounded-pill px-4 border-2"
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    />
+                                </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                                <Form.Group>
+                                    <Form.Label className="small fw-bold text-muted">EMAIL (OPTIONAL)</Form.Label>
+                                    <Form.Control
+                                        type="email"
+                                        placeholder="john@example.com"
+                                        className="rounded-pill px-4 border-2"
+                                        value={formData.email}
+                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    />
+                                </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                                <Form.Group>
+                                    <Form.Label className="small fw-bold text-muted">IDEA CATEGORY</Form.Label>
+                                    <Form.Select
+                                        className="rounded-pill px-4 border-2 shadow-none py-2"
+                                        value={formData.category}
+                                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                                    >
+                                        <option value="Live Scoring Experience">Live Scoring Experience</option>
+                                        <option value="Admin Dashboard Tools">Admin Dashboard Tools</option>
+                                        <option value="Member Portal Features">Member Portal Features</option>
+                                        <option value="Mobile Performance">Mobile Performance</option>
+                                        <option value="Other">Other</option>
+                                    </Form.Select>
+                                </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                                <Form.Group>
+                                    <Form.Label className="small fw-bold text-muted">PRIORITY</Form.Label>
+                                    <Form.Select
+                                        className="rounded-pill px-4 border-2 shadow-none py-2"
+                                        value={formData.priority}
+                                        onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                                    >
+                                        <option value="Low">Low - Nice to have</option>
+                                        <option value="Medium">Medium - Important</option>
+                                        <option value="High">High - Critical for Growth</option>
+                                    </Form.Select>
+                                </Form.Group>
+                            </Col>
+                        </Row>
 
                         <Form.Group className="mb-4">
                             <Form.Label className="small fw-bold text-muted">TITLE OF YOUR SUGGESTION</Form.Label>
@@ -98,8 +147,9 @@ const Improvements = () => {
                             />
                         </Form.Group>
 
-                        <Button variant="primary" type="submit" className="premium-btn w-100 py-3 rounded-pill fw-black text-uppercase shadow border-0">
-                            Submit Suggestion
+                        <Button variant="primary" type="submit" disabled={submitting} className="premium-btn w-100 py-3 rounded-pill fw-black text-uppercase shadow border-0">
+                            {submitting ? <span className="spinner-border spinner-border-sm me-2"></span> : <i className="bi bi-rocket-takeoff-fill me-2"></i>}
+                            {submitting ? 'Submitting...' : 'Submit Suggestion'}
                         </Button>
                     </Form>
                 </Card>

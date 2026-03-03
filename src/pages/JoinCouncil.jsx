@@ -1,74 +1,192 @@
-import React from 'react';
-import { Container, Row, Col, Card, Button } from 'react-bootstrap';
+import React, { useState } from 'react';
+import { Container, Row, Col, Card, Form, Button, Alert } from 'react-bootstrap';
 import { motion } from 'framer-motion';
+import { toast } from 'react-hot-toast';
+import axios from 'axios';
+import API_URL from '../utils/api';
 
 const JoinCouncil = () => {
+    const [formData, setFormData] = useState({ name: '', email: '', phone: '', age: '', role: 'Player', experience: '' });
+    const [file, setFile] = useState(null);
+    const [submitting, setSubmitting] = useState(false);
+    const [otpSent, setOtpSent] = useState(false);
+
+    const handleSendOTP = () => {
+        if (!formData.phone || formData.phone.length < 10) {
+            toast.error("Please enter a valid phone number first.");
+            return;
+        }
+        toast.success(`OTP Sent to ${formData.phone} (Simulation)`);
+        setOtpSent(true);
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        if (!file) {
+            toast.error("Please upload a valid ID Document (Aadhar/Passport).");
+            return;
+        }
+
+        if (parseInt(formData.age) < 18) {
+            toast.error("You must be at least 18 years old to join the Council.");
+            return;
+        }
+
+        setSubmitting(true);
+        try {
+            const data = new FormData();
+            Object.keys(formData).forEach(key => data.append(key, formData[key]));
+            data.append('idDocument', file);
+
+            await axios.post(`${API_URL}/api/interactions/join-council`, data, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            toast.success("Application submitted successfully! Our team will contact you soon.");
+            setFormData({ name: '', email: '', phone: '', age: '', role: 'Player', experience: '' });
+            setFile(null);
+            setOtpSent(false);
+        } catch (err) {
+            const errorMsg = err.response?.data?.msg || err.response?.data?.errors?.[0]?.msg || "Failed to submit application. Please check your inputs.";
+            toast.error(errorMsg);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     return (
-        <Container className="py-5">
-            <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-            >
+        <Container className="py-5" style={{ maxWidth: '900px' }}>
+            <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
                 <div className="text-center mb-5">
                     <h1 className="fw-black premium-gradient-text text-uppercase mb-2">Join the Council</h1>
-                    <p className="text-muted">Become a vital part of the SMCC LIVE ecosystem.</p>
+                    <p className="text-muted">Register as an official player, umpire, or organizer in the SMCC ecosystem.</p>
                 </div>
 
-                <Row className="gy-4">
-                    <Col lg={6}>
-                        <Card className="glass-card border-0 shadow-lg h-100 overflow-hidden">
-                            <div className="bg-primary bg-opacity-10 p-5 text-center">
-                                <i className="bi bi-person-plus-fill fs-1 text-primary mb-3 d-block"></i>
-                                <h3 className="fw-black text-uppercase letter-spacing-1">As a Player</h3>
-                                <p className="text-muted">Register as an official player to participate in league matches, track your stats, and build your profile.</p>
-                            </div>
-                            <Card.Body className="p-4 p-md-5">
-                                <ul className="list-unstyled d-grid gap-3 mb-5">
-                                    <li className="d-flex align-items-start gap-2">
-                                        <i className="bi bi-check-circle-fill text-success"></i>
-                                        <span className="small text-muted fw-bold">Official player ID and profile</span>
-                                    </li>
-                                    <li className="d-flex align-items-start gap-2">
-                                        <i className="bi bi-check-circle-fill text-success"></i>
-                                        <span className="small text-muted fw-bold">Advanced career stats and rankings</span>
-                                    </li>
-                                    <li className="d-flex align-items-start gap-2">
-                                        <i className="bi bi-check-circle-fill text-success"></i>
-                                        <span className="small text-muted fw-bold">Eligibility for district selections</span>
-                                    </li>
-                                </ul>
-                                <Button variant="primary" className="premium-btn w-100 py-3 rounded-pill fw-black shadow-sm border-0">REGISTER AS PLAYER</Button>
-                            </Card.Body>
-                        </Card>
-                    </Col>
+                <Alert variant="info" className="border-0 shadow-sm rounded-4 p-4 mb-5">
+                    <div className="d-flex gap-3">
+                        <i className="bi bi-shield-check fs-3 text-info"></i>
+                        <div>
+                            <h6 className="fw-black mb-1">Identity Verification Required</h6>
+                            <p className="small mb-0 opacity-75">To maintain the integrity of our leagues, all members must undergo KYC verification.</p>
+                        </div>
+                    </div>
+                </Alert>
 
-                    <Col lg={6}>
-                        <Card className="glass-card border-0 shadow-lg h-100 overflow-hidden">
-                            <div className="bg-dark p-5 text-center">
-                                <i className="bi bi-shield-lock-fill fs-1 text-primary mb-3 d-block"></i>
-                                <h3 className="fw-black text-uppercase text-white letter-spacing-1">As an Official</h3>
-                                <p className="text-muted">Join as an umpire, scorer, or tournament organizer to help manage the league with professional tools.</p>
-                            </div>
-                            <Card.Body className="p-4 p-md-5">
-                                <ul className="list-unstyled d-grid gap-3 mb-5">
-                                    <li className="d-flex align-items-start gap-2">
-                                        <i className="bi bi-check-circle-fill text-primary"></i>
-                                        <span className="small text-muted fw-bold">Admin dashboard access</span>
-                                    </li>
-                                    <li className="d-flex align-items-start gap-2">
-                                        <i className="bi bi-check-circle-fill text-primary"></i>
-                                        <span className="small text-muted fw-bold">Professional training sessions</span>
-                                    </li>
-                                    <li className="d-flex align-items-start gap-2">
-                                        <i className="bi bi-check-circle-fill text-primary"></i>
-                                        <span className="small text-muted fw-bold">Be part of decision-making bodies</span>
-                                    </li>
-                                </ul>
-                                <Button variant="outline-dark" className="w-100 py-3 rounded-pill fw-black shadow-sm border-2">APPLY FOR OFFICIAL ROLE</Button>
-                            </Card.Body>
-                        </Card>
-                    </Col>
-                </Row>
+                <Card className="glass-card border-0 shadow-lg p-4 p-md-5">
+                    <Form onSubmit={handleSubmit}>
+                        <Row className="gy-4">
+                            <Col md={6}>
+                                <Form.Group>
+                                    <Form.Label className="small fw-bold text-muted">FULL LEGAL NAME *</Form.Label>
+                                    <Form.Control
+                                        type="text"
+                                        className="rounded-pill px-4 border-2"
+                                        required
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    />
+                                </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                                <Form.Group>
+                                    <Form.Label className="small fw-bold text-muted">EMAIL ADDRESS *</Form.Label>
+                                    <Form.Control
+                                        type="email"
+                                        className="rounded-pill px-4 border-2"
+                                        required
+                                        value={formData.email}
+                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    />
+                                </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                                <Form.Group>
+                                    <Form.Label className="small fw-bold text-muted">PHONE NUMBER *</Form.Label>
+                                    <div className="d-flex gap-2">
+                                        <Form.Control
+                                            type="tel"
+                                            className="rounded-pill px-4 border-2"
+                                            required
+                                            value={formData.phone}
+                                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                        />
+                                        <Button
+                                            variant={otpSent ? "success" : "outline-primary"}
+                                            className="rounded-pill px-4 fw-bold"
+                                            onClick={handleSendOTP}
+                                        >
+                                            {otpSent ? <i className="bi bi-check-circle-fill"></i> : 'OTP'}
+                                        </Button>
+                                    </div>
+                                    <Form.Text className="text-muted small">An OTP will be sent to verify this number.</Form.Text>
+                                </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                                <Form.Group>
+                                    <Form.Label className="small fw-bold text-muted">AGE *</Form.Label>
+                                    <Form.Control
+                                        type="number"
+                                        min="18"
+                                        className="rounded-pill px-4 border-2"
+                                        required
+                                        value={formData.age}
+                                        onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                                    />
+                                </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                                <Form.Group>
+                                    <Form.Label className="small fw-bold text-muted">REQUESTED ROLE *</Form.Label>
+                                    <Form.Select
+                                        className="rounded-pill px-4 border-2 shadow-none py-2"
+                                        value={formData.role}
+                                        onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                                    >
+                                        <option value="Player">Player</option>
+                                        <option value="Umpire">Umpire</option>
+                                        <option value="Scorer">Scorer</option>
+                                        <option value="Event Organizer">Event Organizer</option>
+                                    </Form.Select>
+                                </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                                <Form.Group>
+                                    <Form.Label className="small fw-bold text-muted">ID DOCUMENT (PDF/PNG/JPG) *</Form.Label>
+                                    <Form.Control
+                                        type="file"
+                                        accept="image/jpeg, image/png, application/pdf"
+                                        required
+                                        onChange={(e) => setFile(e.target.files[0])}
+                                        className="rounded-pill px-4 border-2"
+                                    />
+                                </Form.Group>
+                            </Col>
+                            <Col xs={12}>
+                                <Form.Group>
+                                    <Form.Label className="small fw-bold text-muted">PREVIOUS EXPERIENCE *</Form.Label>
+                                    <Form.Control
+                                        as="textarea"
+                                        rows={4}
+                                        placeholder="Outline your cricketing background, clubs played for, or officiating experience..."
+                                        className="rounded-4 px-4 py-3 border-2"
+                                        required
+                                        value={formData.experience}
+                                        onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
+                                    />
+                                </Form.Group>
+                            </Col>
+                            <Col xs={12} className="text-center pt-4">
+                                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                                    <Button variant="primary" type="submit" disabled={submitting || !otpSent} className="premium-btn px-5 py-3 rounded-pill shadow-sm border-0 w-100 fw-black text-uppercase letter-spacing-1">
+                                        {submitting ? <span className="spinner-border spinner-border-sm me-2"></span> : <i className="bi bi-person-lines-fill me-2"></i>}
+                                        {submitting ? 'Submitting Application...' : 'Submit Official Application'}
+                                    </Button>
+                                </motion.div>
+                            </Col>
+                        </Row>
+                    </Form>
+                </Card>
             </motion.div>
         </Container>
     );

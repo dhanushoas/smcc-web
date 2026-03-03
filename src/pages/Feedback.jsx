@@ -7,22 +7,36 @@ import API_URL from '../utils/api';
 
 const Feedback = () => {
     const [rating, setRating] = useState(5);
-    const [formData, setFormData] = useState({ name: '', category: 'Web Experience', message: '' });
+    const [formData, setFormData] = useState({ name: '', email: '', category: 'Web Experience', message: '' });
+    const [file, setFile] = useState(null);
+    const [submitting, setSubmitting] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setSubmitting(true);
+
         try {
-            await axios.post(`${API_URL}/api/misc/submit`, {
-                type: 'feedback',
-                name: formData.name,
-                message: formData.message,
-                data: { rating, category: formData.category }
+            const data = new FormData();
+            data.append('rating', rating);
+            data.append('feedbackType', formData.category);
+            data.append('message', formData.message);
+            if (formData.name) data.append('name', formData.name);
+            if (formData.email) data.append('email', formData.email);
+            if (file) data.append('image', file);
+
+            await axios.post(`${API_URL}/api/interactions/feedback`, data, {
+                headers: { 'Content-Type': 'multipart/form-data' }
             });
+
             toast.success("Thank you for your valuable feedback!");
-            setFormData({ name: '', category: 'Web Experience', message: '' });
+            setFormData({ name: '', email: '', category: 'Web Experience', message: '' });
             setRating(5);
+            setFile(null);
         } catch (err) {
-            toast.error("Failed to submit feedback.");
+            const errorMsg = err.response?.data?.msg || err.response?.data?.errors?.[0]?.msg || "Failed to submit feedback. Please try again.";
+            toast.error(errorMsg);
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -56,9 +70,9 @@ const Feedback = () => {
                         </div>
 
                         <Row className="gy-4">
-                            <Col md={6}>
+                            <Col md={4}>
                                 <Form.Group>
-                                    <Form.Label className="small fw-bold text-muted">NAME</Form.Label>
+                                    <Form.Label className="small fw-bold text-muted">NAME (OPTIONAL)</Form.Label>
                                     <Form.Control
                                         type="text"
                                         placeholder="Your Name"
@@ -68,7 +82,19 @@ const Feedback = () => {
                                     />
                                 </Form.Group>
                             </Col>
-                            <Col md={6}>
+                            <Col md={4}>
+                                <Form.Group>
+                                    <Form.Label className="small fw-bold text-muted">EMAIL (OPTIONAL)</Form.Label>
+                                    <Form.Control
+                                        type="email"
+                                        placeholder="john@example.com"
+                                        className="rounded-pill px-4 border-2"
+                                        value={formData.email}
+                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    />
+                                </Form.Group>
+                            </Col>
+                            <Col md={4}>
                                 <Form.Group>
                                     <Form.Label className="small fw-bold text-muted">CATEGORY</Form.Label>
                                     <Form.Select
@@ -76,10 +102,10 @@ const Feedback = () => {
                                         value={formData.category}
                                         onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                                     >
-                                        <option>Web Experience</option>
-                                        <option>Live Scoring Quality</option>
-                                        <option>Tournament Organization</option>
-                                        <option>Other</option>
+                                        <option value="Web Experience">Web Experience</option>
+                                        <option value="Live Scoring Quality">Live Scoring Quality</option>
+                                        <option value="Tournament Organization">Tournament Organization</option>
+                                        <option value="Other">Other</option>
                                     </Form.Select>
                                 </Form.Group>
                             </Col>
@@ -97,10 +123,23 @@ const Feedback = () => {
                                     />
                                 </Form.Group>
                             </Col>
+                            <Col xs={12}>
+                                <Form.Group>
+                                    <Form.Label className="small fw-bold text-muted">OPTIONAL SCREENSHOT</Form.Label>
+                                    <Form.Control
+                                        type="file"
+                                        accept="image/jpeg, image/png"
+                                        onChange={(e) => setFile(e.target.files[0])}
+                                        className="rounded-pill px-4 border-2"
+                                    />
+                                    <div className="form-text small">Max size: 5MB (JPG, PNG).</div>
+                                </Form.Group>
+                            </Col>
                             <Col xs={12} className="text-center pt-3">
                                 <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                                    <Button variant="primary" type="submit" className="premium-btn px-5 py-3 shadow-sm border-0 w-100">
-                                        Submit Feedback
+                                    <Button variant="primary" type="submit" disabled={submitting} className="premium-btn px-5 py-3 shadow-sm border-0 w-100">
+                                        {submitting ? <span className="spinner-border spinner-border-sm me-2"></span> : <i className="bi bi-send-fill me-2"></i>}
+                                        {submitting ? 'Submitting...' : 'Submit Feedback'}
                                     </Button>
                                 </motion.div>
                             </Col>
