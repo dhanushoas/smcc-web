@@ -207,7 +207,7 @@ const Home = () => {
                                         })().toUpperCase()}</span>
                                         {match.manOfTheMatch && (
                                             <span className="x-small text-muted fw-black bg-light px-2 py-1 rounded border">
-                                                🏆 {match.manOfTheMatch.toUpperCase()}
+                                                🥇 {match.manOfTheMatch.toUpperCase()}
                                             </span>
                                         )}
                                     </div>

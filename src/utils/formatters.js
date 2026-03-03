@@ -10,6 +10,17 @@ export const toCamelCase = (text) => {
 export const pluralize = (count, singular, plural) => {
     return count === 1 ? `${count} ${singular}` : `${count} ${plural || singular + 's'}`;
 };
+
+export const oversToBalls = (overs) => {
+    const ov = parseFloat(overs) || 0;
+    return (Math.floor(ov) * 6) + Math.round((ov % 1) * 10);
+};
+
+export const ballsToOvers = (totalBalls) => {
+    const overs = Math.floor(totalBalls / 6);
+    const balls = totalBalls % 6;
+    return parseFloat(`${overs}.${balls}`);
+};
 export const formatTime = (dateInput) => {
     if (!dateInput) return '';
     const date = new Date(dateInput);

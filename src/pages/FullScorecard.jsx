@@ -159,7 +159,7 @@ const FullScorecard = () => {
                     doc.setFontSize(11);
                     doc.setTextColor(217, 119, 6); // Amber color for MOM
                     doc.setFont(undefined, 'bold');
-                    doc.text(`PLAYER OF THE MATCH: ${match.manOfTheMatch.toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
+                    doc.text(`MAN OF THE MATCH: ${match.manOfTheMatch.toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
                     currentY += 6; // 16px after MOM
                 } else if (winnerString) {
                     currentY += 4;
@@ -414,7 +414,7 @@ const FullScorecard = () => {
                                                     {match.manOfTheMatch && (
                                                         <div className="d-inline-flex align-items-center gap-2 bg-white px-3 py-2 rounded-pill shadow-sm border">
                                                             <i className="bi bi-trophy-fill text-warning"></i>
-                                                            <span className="x-small fw-black text-uppercase text-muted letter-spacing-1">Player of the Match:</span>
+                                                            <span className="x-small fw-black text-uppercase text-muted letter-spacing-1">Man of the Match:</span>
                                                             <span className="fw-black text-primary">{match.manOfTheMatch.toUpperCase()}</span>
                                                         </div>
                                                     )}
@@ -508,7 +508,11 @@ const FullScorecard = () => {
                                                             {activeInnings < 2 ? `(Total ${match.totalOvers} overs)` : `(Total 1 over)`}
                                                         </div>
                                                     </div>
-
+                                                    {match.manOfTheMatch && (
+                                                        <span className="x-small text-muted fw-black bg-light px-2 py-1 rounded border">
+                                                            🥇 {match.manOfTheMatch.toUpperCase()}
+                                                        </span>
+                                                    )}
                                                 </div>
 
                                                 {match.innings[activeInnings] ? (

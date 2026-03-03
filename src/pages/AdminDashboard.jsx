@@ -6,7 +6,8 @@ import { Toaster, toast } from 'react-hot-toast';
 import { io } from 'socket.io-client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { jsPDF } from 'jspdf';
-import { toCamelCase, formatTime, pluralize } from '../utils/formatters';
+import { MAX_WICKETS, BALLS_PER_OVER, DEFAULT_MAX_OVERS, SUPER_OVER_WICKETS, SUPER_OVER_OVERS } from '../constants/scoring';
+import { toCamelCase, formatTime, pluralize, getBallDisplay, oversToBalls, ballsToOvers } from '../utils/formatters';
 import autoTable from 'jspdf-autotable';
 import API_URL from '../utils/api';
 import { useApp } from '../AppContext';
@@ -247,7 +248,7 @@ const AdminDashboard = () => {
                 const diff = inn1.runs - inn2.runs;
                 return `${inn1.team} won the match by ${pluralize(diff, 'Run')}.`;
             } else if (inn2.runs > inn1.runs) {
-                const wicketsRemaining = 10 - inn2.wickets;
+                const wicketsRemaining = MAX_WICKETS - inn2.wickets;
                 return `${inn2.team} won the match by ${pluralize(wicketsRemaining, 'Wicket')}.`;
             } else if (inn2.runs === inn1.runs && inn1.runs > 0) {
                 return "MATCH DRAWN";
@@ -396,7 +397,7 @@ const AdminDashboard = () => {
                 doc.setFontSize(12);
                 doc.setTextColor(190, 24, 93); // Rose/Premium color for MOM
                 doc.setFont(undefined, 'bold');
-                doc.text(`PLAYER OF THE MATCH: ${selectedMatch.manOfTheMatch.toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
+                doc.text(`MAN OF THE MATCH: ${selectedMatch.manOfTheMatch.toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
                 currentY += 8;
             } else {
                 currentY += 4;
@@ -516,7 +517,7 @@ const AdminDashboard = () => {
                 autoTable(doc, {
                     startY: currentY,
                     head: [['Wkt', 'Score', 'Over', 'Player']],
-                    body: inn.fallOfWickets.map(f => [f.wicket, f.runs, f.overs, f.player.toUpperCase()]),
+                    body: inn.fallOfWicklets.map(f => [f.wicket, f.runs, f.overs, f.player.toUpperCase()]),
                     theme: 'plain',
                     styles: { fontSize: 9 }
                 });
@@ -889,11 +890,11 @@ const AdminDashboard = () => {
 
                 if (battingSquad && (!battingSquad.includes(s) || !battingSquad.includes(ns))) {
                     toast.error("One or more batsmen are not in the squad!");
-                    return;
+                    setIsUpdating(false); return;
                 }
                 if (bowlingSquad && !bowlingSquad.includes(b)) {
                     toast.error("Bowler is not in the squad!");
-                    return;
+                    setIsUpdating(false); return;
                 }
 
                 // Ensure arrays exist
@@ -924,12 +925,23 @@ const AdminDashboard = () => {
                 localNonStriker = nonStriker || updatedMatch.currentBatsmen?.find(b => !b.onStrike)?.name || '';
                 localBowler = bowler || updatedMatch.currentBowler || '';
 
+                // Defensive check for striker and non-striker
+                if (!localStriker || !localNonStriker) {
+                    toast.error("Striker or Non-Striker is not set. Please initialize the match or select players.");
+                    setIsUpdating(false); return;
+                }
+
                 let sIdx = currentInnings.batting.findIndex(p => p.player === localStriker);
+                let nsIdx = currentInnings.batting.findIndex(p => p.player === localNonStriker);
 
                 // Auto-fix: If player exists in currentBatsmen but not in innings list
                 if (sIdx === -1 && localStriker) {
                     currentInnings.batting.push({ player: localStriker, status: 'not out', runs: 0, balls: 0, fours: 0, sixes: 0, strikeRate: 0 });
                     sIdx = currentInnings.batting.length - 1;
+                }
+                if (nsIdx === -1 && localNonStriker) {
+                    currentInnings.batting.push({ player: localNonStriker, status: 'not out', runs: 0, balls: 0, fours: 0, sixes: 0, strikeRate: 0 });
+                    nsIdx = currentInnings.batting.length - 1;
                 }
 
                 let bIdx = currentBowling.bowling.findIndex(p => p.player === localBowler);
@@ -938,10 +950,10 @@ const AdminDashboard = () => {
                     bIdx = currentBowling.bowling.length - 1;
                 }
 
-                if ((!localStriker || !localBowler || sIdx === -1 || bIdx === -1) && type !== 'new_bowler') {
-                    console.error("Missing State:", { localStriker, localBowler, sIdx, bIdx });
+                if ((!localStriker || !localNonStriker || !localBowler || sIdx === -1 || nsIdx === -1 || bIdx === -1) && type !== 'new_bowler') {
+                    console.error("Missing State:", { localStriker, localNonStriker, localBowler, sIdx, nsIdx, bIdx });
                     toast.error("Batsman or Bowler missing! Please check Match Info.");
-                    return;
+                    setIsUpdating(false); return;
                 }
 
                 ballCounts = true;
@@ -1061,7 +1073,7 @@ const AdminDashboard = () => {
                         return;
                     }
                 } else if (type === 'wicket') {
-                    const wDetail = params.wicketDetails || { type: 'caught', whomOut: 'striker' };
+                    const wDetail = params.wicketDetails || { type: 'bowled', whomOut: 'striker' };
                     const isStrikerOut = wDetail.type === 'run out' ? wDetail.whomOut === 'striker' : true;
                     setRunOutOutType(isStrikerOut ? 'striker' : 'non-striker');
 
@@ -1075,7 +1087,7 @@ const AdminDashboard = () => {
                     const battingSquad = battingTeam === updatedMatch.teamA ? updatedMatch.teamASquad : updatedMatch.teamBSquad;
                     if (battingSquad && !battingSquad.includes(newName)) {
                         toast.error("Player is not in the squad!");
-                        return;
+                        setIsUpdating(false); return;
                     }
                     const isStrikerReplacement = runOutOutType === 'striker';
 
@@ -1168,7 +1180,7 @@ const AdminDashboard = () => {
                                 }
                             }
 
-                            // If it's a valid ball that counts for the over, increment here 
+                            // If it's a valid ball that counts for the over, increment here
                             // because wicket_with_replacement is excluded from the global block
                             if (ballCounts) {
                                 let currentOvers = currentInnings.overs;
@@ -1179,15 +1191,15 @@ const AdminDashboard = () => {
                                 let bOverFull = Math.floor(bOvers);
                                 let bBallCount = Math.round((bOvers * 10) % 10) + 1;
 
-                                const formatLimit = updatedMatch.innings.length > 2 ? 1 : updatedMatch.totalOvers;
-                                if (ballCount >= 6) {
+                                const formatLimit = updatedMatch.innings.length > 2 ? SUPER_OVER_OVERS : updatedMatch.totalOvers;
+                                if (ballCount >= BALLS_PER_OVER) {
                                     updatedMatch.score.thisOver = [];
                                     ballCount = 0; overFull += 1;
                                     bBallCount = 0; bOverFull += 1;
                                     const temp = localStriker; localStriker = localNonStriker; localNonStriker = temp;
                                     if (overFull < formatLimit) { setShowBowlerModal(true); }
                                 } else {
-                                    if (bBallCount >= 6) { bBallCount = 0; bOverFull += 1; }
+                                    if (bBallCount >= BALLS_PER_OVER) { bBallCount = 0; bOverFull += 1; }
                                 }
                                 currentInnings.overs = parseFloat(`${overFull}.${ballCount}`);
                                 currentBowling.bowling[bIdx].overs = parseFloat(`${bOverFull}.${bBallCount}`);
@@ -1220,23 +1232,23 @@ const AdminDashboard = () => {
                 } else if (type === 'new_bowler') {
                     if (localBowler === value) {
                         toast.error("This bowler was already bowling! Select a different replacement.");
-                        return;
+                        setIsUpdating(false); return;
                     }
                     if (updatedMatch.score.lastOverBowler === value) {
                         toast.error("A bowler cannot bowl two overs in a row! This player bowled the previous over.");
-                        return;
+                        setIsUpdating(false); return;
                     }
 
                     const bowlerStats = currentBowling.bowling.find(p => p.player === value);
                     if (bowlerStats && Math.floor(bowlerStats.overs) >= 2) {
                         toast.error("A bowler cannot bowl more than 2 overs!");
-                        return;
+                        setIsUpdating(false); return;
                     }
 
                     const bowlingSquad = battingTeam === updatedMatch.teamA ? updatedMatch.teamBSquad : updatedMatch.teamASquad;
                     if (bowlingSquad && !bowlingSquad.includes(value)) {
                         toast.error("Bowler is not in the squad!");
-                        return;
+                        setIsUpdating(false); return;
                     }
                     localBowler = value;
                     if (!currentBowling.bowling.find(p => p.player === value)) {
@@ -1288,7 +1300,7 @@ const AdminDashboard = () => {
                         currentInnings.runs += (totalRuns + nbPenalty);
                         currentInnings.extras.noBalls = (currentInnings.extras.noBalls || 0) + (totalRuns + nbPenalty);
                         currentInnings.extras.total = (currentInnings.extras.total || 0) + (totalRuns + nbPenalty);
-                        currentBowling.bowling[bIdx].runs += (totalRuns + nbPenalty);
+                        currentBowling.bowling[bIdx].runs += (totalBowling.bowling[bIdx].runs || 0) + (totalRuns + nbPenalty);
                         currentBowling.bowling[bIdx].noBalls = (currentBowling.bowling[bIdx].noBalls || 0) + 1;
                         ballCounts = false;
                         updatedMatch.score.freeHit = true;
@@ -1299,7 +1311,7 @@ const AdminDashboard = () => {
                         currentInnings.runs += (totalRuns + widePenalty);
                         currentInnings.extras.wides = (currentInnings.extras.wides || 0) + (totalRuns + widePenalty);
                         currentInnings.extras.total = (currentInnings.extras.total || 0) + (totalRuns + widePenalty);
-                        currentBowling.bowling[bIdx].runs += (totalRuns + widePenalty);
+                        currentBowling.bowling[bIdx].runs += (currentBowling.bowling[bIdx].runs || 0) + (totalRuns + widePenalty);
                         currentBowling.bowling[bIdx].wides = (currentBowling.bowling[bIdx].wides || 0) + 1;
                         ballCounts = false;
                         updatedMatch.score.thisOver.push('WD' + (totalRuns + widePenalty));
@@ -1328,8 +1340,8 @@ const AdminDashboard = () => {
                     let bOverFull = Math.floor(bOvers);
                     let bBallCount = Math.round((bOvers * 10) % 10) + 1;
 
-                    const formatLimit = updatedMatch.innings.length > 2 ? 1 : updatedMatch.totalOvers;
-                    if (ballCount >= 6) {
+                    const formatLimit = updatedMatch.innings.length > 2 ? SUPER_OVER_OVERS : updatedMatch.totalOvers;
+                    if (ballCount >= BALLS_PER_OVER) {
                         updatedMatch.score.lastOverBowler = localBowler; // Track for Law 17.8
                         updatedMatch.score.thisOver = [];
                         ballCount = 0; overFull += 1;
@@ -1337,21 +1349,21 @@ const AdminDashboard = () => {
                         const temp = localStriker; localStriker = localNonStriker; localNonStriker = temp;
                         if (overFull < formatLimit) { setShowBowlerModal(true); }
                     } else {
-                        if (bBallCount >= 6) { bBallCount = 0; bOverFull += 1; }
+                        if (bBallCount >= BALLS_PER_OVER) { bBallCount = 0; bOverFull += 1; }
                     }
                     currentInnings.overs = parseFloat(`${overFull}.${ballCount}`);
                     currentBowling.bowling[bIdx].overs = parseFloat(`${bOverFull}.${bBallCount}`);
                 }
 
                 currentInnings.batting.forEach(p => { if (p.balls > 0) p.strikeRate = parseFloat(((p.runs / p.balls) * 100).toFixed(2)); });
-                currentBowling.bowling.forEach(p => {
-                    let totalBalls = (Math.floor(p.overs) * 6) + (Math.round((p.overs * 10) % 10));
-                    if (totalBalls > 0) p.economy = parseFloat(((p.runs / totalBalls) * 6).toFixed(2));
+                currentInnings.bowling.forEach(p => {
+                    let totalBalls = oversToBalls(p.overs);
+                    if (totalBalls > 0) p.economy = parseFloat(((p.runs / totalBalls) * BALLS_PER_OVER).toFixed(2));
                 });
 
                 // --- Check for Innings Completion ---
-                const isAllOut = currentInnings.wickets >= 10 || (updatedMatch.innings.length > 2 && currentInnings.wickets >= 2); // SO usually 2 wickets
-                const isOversCompleted = currentInnings.overs >= (updatedMatch.innings.length > 2 ? 1 : updatedMatch.totalOvers);
+                const isAllOut = currentInnings.wickets >= (updatedMatch.innings.length > 2 ? SUPER_OVER_WICKETS : MAX_WICKETS);
+                const isOversCompleted = currentInnings.overs >= (updatedMatch.innings.length > 2 ? SUPER_OVER_OVERS : updatedMatch.totalOvers);
                 const targetChased = updatedMatch.score.target && currentInnings.runs >= updatedMatch.score.target;
 
                 if (isAllOut || isOversCompleted || targetChased) {
@@ -1577,7 +1589,7 @@ const AdminDashboard = () => {
             };
 
             if (isEditingMode) {
-                // If it is live/completed, we don't allow changing Team A or Team B or Overs anyway 
+                // If it is live/completed, we don't allow changing Team A or Team B or Overs anyway
                 // but the form holds the original values because fields were disabled.
                 await axios.put(`${API_URL}/api/matches/${createForm._id}`, payload, config);
                 toast.success("Match updated successfully!");
@@ -1666,25 +1678,23 @@ const AdminDashboard = () => {
         toast.success("Match ended as a Tie! Don't forget to set Player of the Match.", { icon: '🤝', duration: 5000 });
     };
 
-    const getOversInBalls = (overs) => {
-        return (Math.floor(overs) * 6) + Math.round((overs * 10) % 10);
+    const getBalls = (overs) => oversToBalls(overs);
+
+    const getCRR = () => {
+        const totalBalls = getBalls(selectedMatch?.score?.overs || 0);
+        if (totalBalls === 0) return '0.00';
+        return (((selectedMatch?.score?.runs || 0) / totalBalls) * BALLS_PER_OVER).toFixed(2);
     };
 
-    const crr = (() => {
-        if (!selectedMatch?.score?.overs) return '0.00';
-        const totalBalls = getOversInBalls(selectedMatch?.score?.overs || 0);
-        if (totalBalls === 0) return '0.00';
-        return (((selectedMatch?.score?.runs || 0) / totalBalls) * 6).toFixed(2);
-    })();
-
-    const calculateRRR = () => {
-        if (!selectedMatch?.score?.target) return null;
-        const runsNeeded = (selectedMatch?.score?.target || 0) - (selectedMatch?.score?.runs || 0);
-        const totalBalls = (selectedMatch?.totalOvers || 0) * 6;
-        const ballsBowled = getOversInBalls(selectedMatch?.score?.overs || 0);
+    const getRRR = () => {
+        const target = selectedMatch?.score?.target;
+        if (!target) return null;
+        const totalBalls = (selectedMatch?.totalOvers || DEFAULT_MAX_OVERS) * BALLS_PER_OVER;
+        const ballsBowled = getBalls(selectedMatch?.score?.overs || 0);
         const ballsRemaining = totalBalls - ballsBowled;
-        if (ballsRemaining <= 0) return runsNeeded <= 0 ? '0.00' : '∞';
-        return ((runsNeeded / ballsRemaining) * 6).toFixed(2);
+        if (ballsRemaining <= 0) return '0.00';
+        const runsNeeded = target - (selectedMatch?.score?.runs || 0);
+        return ((runsNeeded / ballsRemaining) * BALLS_PER_OVER).toFixed(2);
     };
 
     const handleSaveDateTime = () => {
@@ -1734,7 +1744,7 @@ const AdminDashboard = () => {
         }
     };
 
-    const rrr = calculateRRR();
+    const rrr = getRRR();
 
     return (
         <>
@@ -1857,19 +1867,14 @@ const AdminDashboard = () => {
                             <Form.Label className="fw-bold small text-uppercase text-muted">Next Bowler Name:</Form.Label>
                             <Form.Select size="lg" className="rounded-3 border-0 shadow-sm" value={modalData.nextB} onChange={e => setModalData({ ...modalData, nextB: e.target.value })}>
                                 <option value="">Select Bowler</option>
-                                {(selectedMatch?.score?.battingTeam === selectedMatch?.teamA ? squadB : squadA).map((p, i) => <option key={i} value={p}>{p}</option>)}
+                                {(selectedMatch?.score?.battingTeam === selectedMatch?.teamA ? squadB : squadA).filter(p => p.trim() !== '').map((p, i) => <option key={i} value={p}>{p}</option>)}
                             </Form.Select>
                             {selectedMatch?.score?.thisOver?.length > 0 && (() => {
                                 const overBalls = selectedMatch.score.thisOver;
                                 const legalBalls = overBalls.filter(b => !/WD|NB/i.test(b.toString())).length;
-                                const remaining = 6 - legalBalls;
+                                const remaining = BALLS_PER_OVER - legalBalls;
                                 if (remaining > 0) {
-                                    return (
-                                        <Alert variant="warning" className="mt-3 border-0 rounded-3 small fw-bold">
-                                            <i className="bi bi-exclamation-triangle-fill me-2"></i>
-                                            A bowler has been replaced due to injury. There are {remaining} {pluralize(remaining, 'Ball')} remaining in this over.
-                                        </Alert>
-                                    );
+                                    toast(`A bowler has been replaced due to injury. There are ${pluralize(remaining, 'Ball')} remaining in this over.`, { icon: '🩹' });
                                 }
                                 return null;
                             })()}
@@ -1883,8 +1888,7 @@ const AdminDashboard = () => {
 
                 <Modal show={showBatsmanModal} onHide={() => setShowBatsmanModal(false)} centered backdrop="static" contentClassName="border-0 shadow-lg rounded-4 overflow-hidden">
                     <Modal.Header className={`${batsmanModalType === 'wicket' ? 'bg-danger' : 'bg-info'} text-white border-0 py-3 px-4`}>
-                        <Modal.Title className="fw-black">{batsmanModalType === 'wicket' ? '🏏 WICKET! NEW BATSMAN' : '🏥 RETIRED! NEW BATSMAN'}</Modal.Title>
-                    </Modal.Header>
+                        <Modal.Title className="fw-black">{batsmanModalType === 'wicket' ? '🏏 WICKET! NEW BATSMAN' : '🏥 RETIRED! NEW BATSMAN'}</Modal.Title></Modal.Header>
                     <Modal.Body className="p-4 bg-light">
                         <Form.Group>
                             <Form.Label className="fw-bold small text-uppercase text-muted">Select New Batsman:</Form.Label>
@@ -2336,7 +2340,7 @@ const AdminDashboard = () => {
                                                         {selectedMatch.status === 'completed' && (
                                                             <div className="mt-2 pt-4 border-top">
                                                                 <div className="bg-primary bg-opacity-10 py-2 px-3 rounded-pill d-inline-block mb-3 border border-primary border-opacity-10">
-                                                                    <Form.Label className="x-small fw-black text-uppercase text-primary m-0">🏆 Player of the Match</Form.Label>
+                                                                    <Form.Label className="x-small fw-black text-uppercase text-primary m-0">🥇 Man of the Match</Form.Label>
                                                                 </div>
 
                                                                 <Dropdown as={ButtonGroup} className="d-block shadow-sm rounded-4 overflow-hidden border-2 border-primary border-opacity-10">
@@ -2901,14 +2905,32 @@ const AdminDashboard = () => {
 
                                                     <Col md={4}>
                                                         <Form.Label className="x-small fw-black text-uppercase text-muted">Striker</Form.Label>
-                                                        <Form.Select size="sm" value={striker} onChange={e => { setStriker(e.target.value); handleUpdate('manual', { ...selectedMatch, currentBatsmen: selectedMatch.currentBatsmen.map((b, i) => i === 0 ? { ...b, name: e.target.value } : b) }); }}>
+                                                        <Form.Select size="sm" value={striker} onChange={e => {
+                                                            const val = e.target.value;
+                                                            setStriker(val);
+                                                            const cb = [...(selectedMatch.currentBatsmen || [])];
+                                                            if (cb.length > 0) cb[0] = { ...cb[0], name: val };
+                                                            else cb.push({ name: val, onStrike: true, runs: 0, balls: 0 });
+                                                            handleUpdate('manual', { ...selectedMatch, currentBatsmen: cb });
+                                                        }}>
                                                             <option value="">Select</option>
                                                             {(selectedMatch.score.battingTeam === selectedMatch.teamA ? squadA : squadB).map(p => <option key={p} value={p}>{p}</option>)}
                                                         </Form.Select>
                                                     </Col>
                                                     <Col md={4}>
                                                         <Form.Label className="x-small fw-black text-uppercase text-muted">Non-Striker</Form.Label>
-                                                        <Form.Select size="sm" value={nonStriker} onChange={e => { setNonStriker(e.target.value); handleUpdate('manual', { ...selectedMatch, currentBatsmen: selectedMatch.currentBatsmen.map((b, i) => i === 1 ? { ...b, name: e.target.value } : b) }); }}>
+                                                        <Form.Select size="sm" value={nonStriker} onChange={e => {
+                                                            const val = e.target.value;
+                                                            setNonStriker(val);
+                                                            const cb = [...(selectedMatch.currentBatsmen || [])];
+                                                            if (cb.length > 1) cb[1] = { ...cb[1], name: val };
+                                                            else if (cb.length === 1) cb.push({ name: val, onStrike: false, runs: 0, balls: 0 });
+                                                            else {
+                                                                cb.push({ name: '', onStrike: true, runs: 0, balls: 0 });
+                                                                cb.push({ name: val, onStrike: false, runs: 0, balls: 0 });
+                                                            }
+                                                            handleUpdate('manual', { ...selectedMatch, currentBatsmen: cb });
+                                                        }}>
                                                             <option value="">Select</option>
                                                             {(selectedMatch.score.battingTeam === selectedMatch.teamA ? squadA : squadB).map(p => <option key={p} value={p}>{p}</option>)}
                                                         </Form.Select>
@@ -2924,7 +2946,7 @@ const AdminDashboard = () => {
                                                     <Col md={12} className="pt-3">
                                                         <hr className="opacity-10" />
                                                         <h6 className="fw-bold mb-3 d-flex align-items-center gap-2">
-                                                            <i className="bi bi-award-fill text-warning"></i> PLAYER OF THE MATCH
+                                                            <i className="bi bi-award-fill text-warning"></i> MAN OF THE MATCH
                                                         </h6>
                                                         <Row className="g-3">
                                                             <Col md={12}>
