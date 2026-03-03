@@ -2295,10 +2295,15 @@ const AdminDashboard = () => {
                                                                 {dRuns} / {dWickets}
                                                             </div>
                                                             <div className="h4 fw-bold text-muted mb-0">
-                                                                {isFinished ? 'Completed in ' : ''}
-                                                                {pluralize(dOvers, 'Over')}
-                                                                <span className="mx-2 opacity-50">/</span>
-                                                                {pluralize(dLimit, 'Over')}
+                                                                {isFinished ? (
+                                                                    <>Completed in {pluralize(dOvers, 'Over')}</>
+                                                                ) : (
+                                                                    <>
+                                                                        {pluralize(dOvers, 'Over')}
+                                                                        <span className="mx-2 opacity-50">/</span>
+                                                                        {pluralize(dLimit, 'Over')}
+                                                                    </>
+                                                                )}
                                                                 {isSuperOver && <small className="ms-2 text-uppercase text-danger fw-black" style={{ fontSize: '0.6em' }}>(Super Over)</small>}
                                                             </div>
                                                         </div>
@@ -2336,51 +2341,7 @@ const AdminDashboard = () => {
                                                             </div>
                                                         )}
 
-                                                        {/* 5. Award Block (Man of the Match) */}
-                                                        {selectedMatch.status === 'completed' && (
-                                                            <div className="mt-2 pt-4 border-top">
-                                                                <div className="bg-primary bg-opacity-10 py-2 px-3 rounded-pill d-inline-block mb-3 border border-primary border-opacity-10">
-                                                                    <Form.Label className="x-small fw-black text-uppercase text-primary m-0">🥇 Man of the Match</Form.Label>
-                                                                </div>
-
-                                                                <Dropdown as={ButtonGroup} className="d-block shadow-sm rounded-4 overflow-hidden border-2 border-primary border-opacity-10">
-                                                                    <Dropdown.Toggle
-                                                                        variant="white"
-                                                                        size="lg"
-                                                                        className="w-100 fw-black py-3 px-5 border-0"
-                                                                        style={{ fontSize: '1.25rem', minWidth: '320px', letterSpacing: '0.01em' }}
-                                                                    >
-                                                                        {selectedMatch.manOfTheMatch ? selectedMatch.manOfTheMatch.toUpperCase() : '-- CHOOSE PLAYER --'}
-                                                                    </Dropdown.Toggle>
-
-                                                                    <Dropdown.Menu className="border-0 shadow-lg rounded-4 p-2" style={{ maxHeight: '400px', overflowY: 'auto', minWidth: '100%' }}>
-                                                                        <Dropdown.Header className="fw-black text-primary text-uppercase x-small py-2">{selectedMatch.teamA}</Dropdown.Header>
-                                                                        {squadA.filter(p => p).map(p => (
-                                                                            <Dropdown.Item
-                                                                                key={`A_${p}`}
-                                                                                onClick={() => handleUpdate('manual', { ...selectedMatch, manOfTheMatch: p })}
-                                                                                active={selectedMatch.manOfTheMatch === p}
-                                                                                className="rounded-3 fw-bold py-2 mb-1"
-                                                                            >
-                                                                                {p}
-                                                                            </Dropdown.Item>
-                                                                        ))}
-                                                                        <Dropdown.Divider />
-                                                                        <Dropdown.Header className="fw-black text-primary text-uppercase x-small py-2">{selectedMatch.teamB}</Dropdown.Header>
-                                                                        {squadB.filter(p => p).map(p => (
-                                                                            <Dropdown.Item
-                                                                                key={`B_${p}`}
-                                                                                onClick={() => handleUpdate('manual', { ...selectedMatch, manOfTheMatch: p })}
-                                                                                active={selectedMatch.manOfTheMatch === p}
-                                                                                className="rounded-3 fw-bold py-2 mb-1"
-                                                                            >
-                                                                                {p}
-                                                                            </Dropdown.Item>
-                                                                        ))}
-                                                                    </Dropdown.Menu>
-                                                                </Dropdown>
-                                                            </div>
-                                                        )}
+                                                        <div className="mt-2 pt-4 border-top opacity-0" style={{ height: '1px' }}></div>
                                                     </div>
                                                 );
                                             })()}
@@ -2621,7 +2582,7 @@ const AdminDashboard = () => {
 
                                                                 {/* ROW 4 – PLAYER ACTIONS */}
                                                                 <div className="d-flex flex-wrap gap-2 justify-content-center">
-                                                                    <Button variant="outline-info" size="lg" className="px-3 fw-bold shadow-sm" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => handleUpdate('swap')}>Change Strike</Button>
+                                                                    <Button variant="outline-info" size="lg" className="px-3 fw-bold shadow-sm" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => handleUpdate('swap_strike')}>Change Strike</Button>
                                                                     <Button variant="outline-dark" size="lg" className="px-3 fw-bold shadow-sm" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => { setBatsmanModalType('retire'); setShowBatsmanModal(true); }}>Retire Batter</Button>
                                                                     <Button variant="outline-success" size="lg" className="px-3 fw-bold shadow-sm" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => setShowBowlerModal(true)}>Replace Bowler Due to Injury</Button>
                                                                     {/* Free Hit Toggle moved here to maintain Row 5 as indicator only */}
@@ -2777,7 +2738,7 @@ const AdminDashboard = () => {
                                                 <Card className="border-0 shadow-sm mt-0 mb-4 overflow-hidden">
                                                     <Card.Header className="bg-primary text-white py-2 small fw-bold text-uppercase d-flex justify-content-between align-items-center">
                                                         <span><i className="bi bi-person-fill me-2"></i>Batting Summary: {selectedMatch.score.battingTeam}</span>
-                                                        <Badge bg="white" text="primary" className="x-small">CRR: {crr}</Badge>
+                                                        <Badge bg="white" text="primary" className="x-small">CRR: {getCRR()}</Badge>
                                                     </Card.Header>
                                                     <Table hover responsive size="sm" className="mb-0">
                                                         <thead className="bg-light x-small text-uppercase">
