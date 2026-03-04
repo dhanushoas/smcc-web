@@ -15,14 +15,45 @@ import { useApp } from '../AppContext';
 
 const socket = io(API_URL);
 
+// --- Time Utility Functions (Moved outside to ensure availability during initialization) ---
+
+// Converts 12-hour time string (e.g., "09:00 AM") to 24-hour format ("09:00")
+const parseTime12to24 = (time12) => {
+    const timeTrimmed = time12.trim();
+    const match = timeTrimmed.match(/^(1[0-2]|0?[1-9]):([0-5][0-9])\s?(AM|PM)$/i);
+    if (!match) return null;
+    let [, h, m, modifier] = match;
+    h = parseInt(h, 10);
+    if (modifier.toUpperCase() === 'PM' && h < 12) h += 12;
+    if (modifier.toUpperCase() === 'AM' && h === 12) h = 0;
+    return `${h.toString().padStart(2, '0')}:${m}`;
+};
+
+// Converts Date object or 24-hour time to 12-hour format ("HH:MM AM/PM")
+const formatTime24to12 = (dateObj) => {
+    if (!(dateObj instanceof Date)) {
+        // Handle string input if needed
+        const [h, m] = dateObj.split(':');
+        dateObj = new Date();
+        dateObj.setHours(parseInt(h), parseInt(m));
+    }
+    let hours = dateObj.getHours();
+    let minutes = dateObj.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    minutes = minutes < 10 ? '0' + minutes : minutes;
+    return `${hours.toString().padStart(2, '0')}:${minutes} ${ampm}`;
+};
+
 const AdminDashboard = () => {
-    const [matches, setMatches] = useState([]);
-    const [selectedMatch, setSelectedMatch] = useState(null);
-    const matchRef = useRef(null);
+    const [matches, setMatches] = useState([]); // List of all matches
+    const [selectedMatch, setSelectedMatch] = useState(null); // Currently active scoring match
+    const matchRef = useRef(null); // Reference for sync socket logic
 
     useEffect(() => {
         matchRef.current = selectedMatch;
-    }, [selectedMatch]);
+    }, [selectedMatch]); // Keep ref in sync for socket callbacks
 
     const [isCreating, setIsCreating] = useState(false);
     const [isEditingMode, setIsEditingMode] = useState(false);
@@ -34,8 +65,10 @@ const AdminDashboard = () => {
     const [createForm, setCreateForm] = useState({
         title: '', teamA: '', teamB: '', status: 'upcoming',
         date: new Date().toISOString().split('T')[0],
-        time: formatTime24to12(new Date()), venue: '', totalOvers: 20
-    });
+        time: formatTime24to12(new Date()), venue: '', totalOvers: 20,
+        competitionType: 'head-to-head',
+        seriesType: 'best_of_3'
+    }); // Form state for new match/series/tournament
 
     const [striker, setStriker] = useState('');
     const [nonStriker, setNonStriker] = useState('');
@@ -92,26 +125,7 @@ const AdminDashboard = () => {
     });
 
 
-    const parseTime12to24 = (time12) => {
-        const timeTrimmed = time12.trim();
-        const match = timeTrimmed.match(/^(1[0-2]|0?[1-9]):([0-5][0-9])\s?(AM|PM)$/i);
-        if (!match) return null;
-        let [, h, m, modifier] = match;
-        h = parseInt(h, 10);
-        if (modifier.toUpperCase() === 'PM' && h < 12) h += 12;
-        if (modifier.toUpperCase() === 'AM' && h === 12) h = 0;
-        return `${h.toString().padStart(2, '0')}:${m}`;
-    };
 
-    const formatTime24to12 = (dateObj) => {
-        let hours = dateObj.getHours();
-        let minutes = dateObj.getMinutes();
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        hours = hours % 12;
-        hours = hours ? hours : 12;
-        minutes = minutes < 10 ? '0' + minutes : minutes;
-        return `${hours.toString().padStart(2, '0')}:${minutes} ${ampm}`;
-    };
 
     const [editDate, setEditDate] = useState('');
     const [editTime, setEditTime] = useState('');
@@ -477,7 +491,7 @@ const AdminDashboard = () => {
                 autoTable(doc, {
                     startY: currentY,
                     head: [['Wkt', 'Score', 'Over', 'Player']],
-                    body: inn.fallOfWicklets.map(f => [f.wicket, f.runs, f.overs, f.player.toUpperCase()]),
+                    body: inn.fallOfWickets.map(f => [f.wicket, f.runs, f.overs, f.player.toUpperCase()]),
                     theme: 'plain',
                     styles: { fontSize: 9 }
                 });
@@ -1151,7 +1165,7 @@ const AdminDashboard = () => {
                                 let bOverFull = Math.floor(bOvers);
                                 let bBallCount = Math.round((bOvers * 10) % 10) + 1;
 
-                                const formatLimit = updatedMatch.innings.length > 2 ? SUPER_OVER_OVERS : updatedMatch.totalOvers;
+                                const formatLimit = updatedMatch.innings.length > 2 ? SUPER_OVER_OVERS : (updatedMatch.overs_per_match || updatedMatch.totalOvers);
                                 if (ballCount >= BALLS_PER_OVER) {
                                     updatedMatch.score.thisOver = [];
                                     ballCount = 0; overFull += 1;
@@ -1345,7 +1359,7 @@ const AdminDashboard = () => {
 
                 // --- Check for Innings Completion ---
                 const isAllOut = currentInnings.wickets >= (updatedMatch.innings.length > 2 ? SUPER_OVER_WICKETS : MAX_WICKETS);
-                const isOversCompleted = currentInnings.overs >= (updatedMatch.innings.length > 2 ? SUPER_OVER_OVERS : updatedMatch.totalOvers);
+                const isOversCompleted = currentInnings.overs >= (updatedMatch.innings.length > 2 ? SUPER_OVER_OVERS : (updatedMatch.overs_per_match || updatedMatch.totalOvers));
                 const targetChased = updatedMatch.score.target && currentInnings.runs >= updatedMatch.score.target;
 
                 if (isAllOut || isOversCompleted || targetChased) {
@@ -1515,7 +1529,7 @@ const AdminDashboard = () => {
                 return;
             }
 
-            if (!parseInt(createForm.totalOvers) || parseInt(createForm.totalOvers) < 1 || parseInt(createForm.totalOvers) > 50) {
+            if (!parseInt(createForm.totalOvers) || parseInt(createForm.totalOvers) < 1 || parseInt(createForm.totalOvers) > 20) {
                 toast.error("Overs must be between 1 and 50");
                 return;
             }
@@ -1576,17 +1590,45 @@ const AdminDashboard = () => {
                 teamBSquad: squadB,
                 date: selectedDateTime.toISOString(),
                 title: autoTitle,
-                series: createForm.series || 'SMCC LIVE'
+                series: createForm.series || 'SMCC LIVE',
+                competitionType: createForm.competitionType,
+                overs_per_match: createForm.totalOvers,
+                seriesType: createForm.seriesType
             };
 
-            if (isEditingMode) {
-                // If it is live/completed, we don't allow changing Team A or Team B or Overs anyway
-                // but the form holds the original values because fields were disabled.
-                await axios.put(`${API_URL}/api/matches/${createForm._id}`, payload, config);
-                toast.success("Match updated successfully!");
+            if (createForm.competitionType === 'series') {
+                const seriesPayload = {
+                    name: createForm.title || autoTitle,
+                    teamA: createForm.teamA.trim(),
+                    teamB: createForm.teamB.trim(),
+                    type: createForm.seriesType,
+                    oversPerMatch: createForm.totalOvers,
+                    startDate: selectedDateTime.toISOString(),
+                    venue: createForm.venue || 'SMCC Ground'
+                };
+                await axios.post(`${API_URL}/api/series`, seriesPayload, config);
+                toast.success("Series created successfully!");
+            } else if (createForm.competitionType === 'tournament') {
+                const tournamentPayload = {
+                    name: createForm.title || "New Tournament",
+                    totalTeams: createForm.totalTeams || 8,
+                    type: createForm.tournamentType || 'league_knockout',
+                    startDate: selectedDateTime.toISOString(),
+                    settings: {
+                        oversPerMatch: createForm.totalOvers,
+                        pointsPerWin: 2, pointsPerTie: 1, pointsPerLoss: 0, pointsPerNoResult: 1, qualificationSlots: 8
+                    }
+                };
+                await axios.post(`${API_URL}/api/tournaments`, tournamentPayload, config);
+                toast.success("Tournament created successfully!");
             } else {
-                await axios.post(`${API_URL}/api/matches`, payload, config);
-                toast.success("Match created successfully!");
+                if (isEditingMode) {
+                    await axios.put(`${API_URL}/api/matches/${createForm._id}`, payload, config);
+                    toast.success("Match updated successfully!");
+                } else {
+                    await axios.post(`${API_URL}/api/matches`, payload, config);
+                    toast.success("Match created successfully!");
+                }
             }
 
             fetchMatches();
@@ -1680,7 +1722,7 @@ const AdminDashboard = () => {
     const getRRR = () => {
         const target = selectedMatch?.score?.target;
         if (!target) return null;
-        const totalBalls = (selectedMatch?.totalOvers || DEFAULT_MAX_OVERS) * BALLS_PER_OVER;
+        const totalBalls = ((selectedMatch?.overs_per_match || selectedMatch?.totalOvers) || DEFAULT_MAX_OVERS) * BALLS_PER_OVER;
         const ballsBowled = getBalls(selectedMatch?.score?.overs || 0);
         const ballsRemaining = totalBalls - ballsBowled;
         if (ballsRemaining <= 0) return '0.00';
@@ -2081,9 +2123,14 @@ const AdminDashboard = () => {
                                     {matches.map(m => (
                                         <ListGroup.Item key={m._id || m.id} className="d-flex justify-content-between align-items-center py-3 border-start border-4 p-0 pointer-event" style={{ borderLeftColor: m.status === 'live' ? '#ff4b2b' : '#333' }}>
                                             <div className={`flex-grow-1 p-3 ${selectedMatch?._id === m._id || selectedMatch?.id === m.id ? 'bg-primary text-white' : ''}`} style={{ cursor: 'pointer' }} onClick={() => handleEdit(m)}>
-                                                <div className="fw-bold fs-6">{m.teamA.toUpperCase()} vs {m.teamB.toUpperCase()}</div>
+                                                <div className="fw-bold fs-6">
+                                                    {m.teamA.toUpperCase()} vs {m.teamB.toUpperCase()}
+                                                    <Badge bg={m.competitionType === 'tournament' ? 'warning' : m.competitionType === 'series' ? 'primary' : 'secondary'} className="ms-2 font-size-10 text-uppercase fw-normal" style={{ fontSize: '9px' }}>
+                                                        {m.competitionType === 'series' && m.matchNumber ? `Match ${m.matchNumber}` : (m.competitionType || 'Head-to-Head')}
+                                                    </Badge>
+                                                </div>
                                                 <small className={selectedMatch?._id === m._id || selectedMatch?.id === m.id ? 'text-white-50' : 'text-muted'}>
-                                                    {m.status.toUpperCase()} | {new Date(m.date).toLocaleDateString()} | {formatTime(m.date)}
+                                                    {m.status.toUpperCase()} | {new Date(m.date).toLocaleDateString()} | {formatTime(m.date)} • {(m.venue || 'TBA').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}
                                                 </small>
                                             </div>
                                             <div className="d-flex align-items-center">
@@ -2129,11 +2176,79 @@ const AdminDashboard = () => {
                                             <Row className="g-3">
                                                 <Col md={12}>
                                                     <Form.Group>
-                                                        <Form.Label className="small fw-bold">Title</Form.Label>
+                                                        <Form.Label className="small fw-bold">Competition Type</Form.Label>
+                                                        <div className="d-flex gap-2">
+                                                            <Button
+                                                                variant={createForm.competitionType === 'head-to-head' ? 'primary' : 'outline-primary'}
+                                                                onClick={() => setCreateForm({ ...createForm, competitionType: 'head-to-head' })}
+                                                                className="flex-fill"
+                                                            >Head-to-Head</Button>
+                                                            <Button
+                                                                variant={createForm.competitionType === 'series' ? 'primary' : 'outline-primary'}
+                                                                onClick={() => setCreateForm({ ...createForm, competitionType: 'series' })}
+                                                                className="flex-fill"
+                                                            >Series</Button>
+                                                            <Button
+                                                                variant={createForm.competitionType === 'tournament' ? 'primary' : 'outline-primary'}
+                                                                onClick={() => setCreateForm({ ...createForm, competitionType: 'tournament' })}
+                                                                className="flex-fill"
+                                                            >Tournament</Button>
+                                                        </div>
+                                                    </Form.Group>
+                                                </Col>
+
+                                                {createForm.competitionType === 'series' && (
+                                                    <Col md={12}>
+                                                        <Form.Group>
+                                                            <Form.Label className="small fw-bold">Series Type</Form.Label>
+                                                            <Form.Select
+                                                                value={createForm.seriesType}
+                                                                onChange={e => setCreateForm({ ...createForm, seriesType: e.target.value })}
+                                                            >
+                                                                <option value="best_of_3">Best of 3</option>
+                                                                <option value="best_of_5">Best of 5</option>
+                                                                <option value="best_of_7">Best of 7</option>
+                                                            </Form.Select>
+                                                        </Form.Group>
+                                                        {/* Schedule Preview */}
+                                                        {(() => {
+                                                            const countMap = { best_of_3: 3, best_of_5: 5, best_of_7: 7 };
+                                                            const count = countMap[createForm.seriesType] || 3;
+                                                            const preview = [];
+                                                            const baseTime24 = parseTime12to24(createForm.time);
+                                                            if (baseTime24) {
+                                                                const [bh, bm] = baseTime24.split(':').map(Number);
+                                                                for (let i = 0; i < count; i++) {
+                                                                    const d = new Date();
+                                                                    d.setHours(bh + i, bm);
+                                                                    preview.push(`Match ${i + 1} — ${formatTime24to12(d)}`);
+                                                                }
+                                                            }
+                                                            return preview.length > 0 ? (
+                                                                <div className="mt-2 p-3 bg-primary bg-opacity-10 rounded-3 border border-primary border-opacity-25">
+                                                                    <div className="x-small fw-black text-primary text-uppercase mb-2">
+                                                                        <i className="bi bi-calendar2-check me-1"></i>
+                                                                        {count} Matches Will Be Auto-Scheduled
+                                                                    </div>
+                                                                    {preview.map((p, i) => (
+                                                                        <div key={i} className="x-small text-primary fw-bold">• {p}</div>
+                                                                    ))}
+                                                                </div>
+                                                            ) : null;
+                                                        })()}
+                                                    </Col>
+                                                )}
+
+                                                <Col md={12}>
+                                                    <Form.Group>
+                                                        <Form.Label className="small fw-bold">{createForm.competitionType === 'series' ? 'Series Name' : (createForm.competitionType === 'tournament' ? 'Tournament Name' : 'Match Title')}</Form.Label>
                                                         <Form.Control
-                                                            disabled
-                                                            value={createForm.teamA && createForm.teamB ? `${createForm.teamA} vs ${createForm.teamB}` : ''}
-                                                            placeholder="Auto-generated"
+                                                            disabled={createForm.competitionType === 'head-to-head'}
+                                                            value={createForm.competitionType === 'head-to-head'
+                                                                ? (createForm.teamA && createForm.teamB ? `${createForm.teamA} vs ${createForm.teamB}` : '')
+                                                                : createForm.title}
+                                                            placeholder={createForm.competitionType === 'head-to-head' ? 'Auto-generated' : 'Enter Name'}
+                                                            onChange={e => setCreateForm({ ...createForm, title: e.target.value })}
                                                         />
                                                     </Form.Group>
                                                 </Col>
@@ -2152,7 +2267,7 @@ const AdminDashboard = () => {
                                                 <Col md={6}>
                                                     <Form.Group>
                                                         <Form.Label className="small fw-bold">Overs</Form.Label>
-                                                        <Form.Control type="number" min="1" max="50" disabled={isEditingMode && createForm.status !== 'upcoming'} required value={createForm.totalOvers} onChange={e => setCreateForm({ ...createForm, totalOvers: e.target.value })} />
+                                                        <Form.Control type="number" min="1" max="20" disabled={isEditingMode && createForm.status !== 'upcoming'} required value={createForm.totalOvers} onChange={e => setCreateForm({ ...createForm, totalOvers: e.target.value })} />
                                                     </Form.Group>
                                                 </Col>
                                                 <Col md={6}>
@@ -2175,13 +2290,12 @@ const AdminDashboard = () => {
                                                 </Col>
                                                 <Col md={6}>
                                                     <Form.Group>
-                                                        <Form.Label className="small fw-bold">Time (Local)</Form.Label>
+                                                        <Form.Label className="small fw-bold">Time (Local) <Badge bg="light" text="dark" className="ms-2 border">{createForm.time}</Badge></Form.Label>
                                                         <Form.Control
                                                             type="time"
                                                             value={parseTime12to24(createForm.time) || ''}
                                                             onKeyDown={(e) => e.preventDefault()}
                                                             onClick={(e) => e.target.showPicker?.()}
-                                                            onFocus={(e) => e.target.showPicker?.()}
                                                             onChange={e => {
                                                                 const val24 = e.target.value;
                                                                 if (!val24) return;
@@ -2197,7 +2311,11 @@ const AdminDashboard = () => {
                                             <div className="mt-4 d-flex gap-2">
                                                 <Button variant="outline-primary" onClick={() => setShowSquadModal(true)} disabled={isSaving || (isEditingMode && createForm.status !== 'upcoming')}>MANAGE SQUADS (11)</Button>
                                                 <Button variant="primary" type="submit" disabled={isSaving}>
-                                                    {isSaving ? <Spinner animation="border" size="sm" /> : (isEditingMode ? 'Update Match' : 'Create Match')}
+                                                    {isSaving ? <Spinner animation="border" size="sm" /> : (
+                                                        isEditingMode ? 'Update Match' :
+                                                            createForm.competitionType === 'series' ? `Create Series (${({ best_of_3: 3, best_of_5: 5, best_of_7: 7 }[createForm.seriesType] || 3)} Matches)` :
+                                                                'Create Match'
+                                                    )}
                                                 </Button>
                                                 {!isEditingMode && <Button variant="outline-danger" disabled={isSaving} onClick={() => setCreateForm({ title: '', teamA: '', teamB: '', status: 'upcoming', date: new Date().toISOString().split('T')[0], time: formatTime24to12(new Date()), venue: '', totalOvers: 20 })}>Clear</Button>}
                                                 <Button variant="light" disabled={isSaving} onClick={() => { setIsCreating(false); setIsEditingMode(false); }}>Cancel</Button>
@@ -2213,6 +2331,9 @@ const AdminDashboard = () => {
                                             <Button variant="outline-light" size="sm" onClick={() => handleEditMatchForm(selectedMatch)}>
                                                 <i className="bi bi-pencil-square me-1"></i> Edit Match
                                             </Button>
+                                            <Badge bg={selectedMatch.competitionType === 'tournament' ? 'warning' : selectedMatch.competitionType === 'series' ? 'primary' : 'secondary'} className="text-uppercase">
+                                                {selectedMatch.competitionType || 'Head-to-Head'}
+                                            </Badge>
                                             <Badge bg={selectedMatch.status === 'live' ? 'danger' : 'info'}>{selectedMatch.status.toUpperCase()}</Badge>
                                         </div>
                                     </Card.Header>
@@ -2254,7 +2375,7 @@ const AdminDashboard = () => {
                                                 const isFinished = selectedMatch.status === 'completed' || (
                                                     selectedMatch.score.target && (
                                                         selectedMatch.score.runs >= selectedMatch.score.target ||
-                                                        (selectedMatch.score.overs >= (selectedMatch.innings.length > 2 ? 1 : selectedMatch.totalOvers) && selectedMatch.score.runs < selectedMatch.score.target - 1) ||
+                                                        (selectedMatch.score.overs >= (selectedMatch.innings.length > 2 ? 1 : (selectedMatch.overs_per_match || selectedMatch.totalOvers)) && selectedMatch.score.runs < selectedMatch.score.target - 1) ||
                                                         (selectedMatch.score.wickets >= (selectedMatch.innings.length > 2 ? 2 : 10) && selectedMatch.score.runs < selectedMatch.score.target - 1)
                                                     )
                                                 );
@@ -2266,7 +2387,7 @@ const AdminDashboard = () => {
                                                 const dRuns = selectedMatch.score?.runs ?? 0;
                                                 const dWickets = selectedMatch.score?.wickets ?? 0;
                                                 const dOvers = selectedMatch.score?.overs ?? 0;
-                                                const dLimit = isSuperOver ? 1 : (selectedMatch.totalOvers || 0);
+                                                const dLimit = isSuperOver ? 1 : ((selectedMatch.overs_per_match || selectedMatch.totalOvers) || 0);
 
                                                 const crr = dOvers > 0 ? (dRuns / parseFloat(dOvers)).toFixed(2) : '0.00';
                                                 const ballsRemaining = target && dLimit > 0
@@ -2303,7 +2424,7 @@ const AdminDashboard = () => {
                                                             <div className="mb-4">
                                                                 <Badge bg="danger" className="px-4 py-3 rounded-pill shadow-sm border border-white border-opacity-25 w-100" style={{ fontSize: '1.25rem' }}>
                                                                     <i className="bi bi-bullseye me-2"></i>
-                                                                    TARGET: {pluralize(target, 'Run')} Required from {pluralize(isSuperOver ? 1 : selectedMatch.totalOvers, 'Over')}
+                                                                    TARGET: {pluralize(target, 'Run')} Required from {pluralize(isSuperOver ? 1 : (selectedMatch.overs_per_match || selectedMatch.totalOvers), 'Over')}
                                                                 </Badge>
                                                             </div>
                                                         )}
@@ -2397,7 +2518,7 @@ const AdminDashboard = () => {
                                                     currentInnIdx = selectedMatch.score?.target ? 1 : 0;
                                                 }
                                                 const currentInn = selectedMatch.innings[currentInnIdx];
-                                                const limit = selectedMatch.innings.length > 2 ? 1 : selectedMatch.totalOvers;
+                                                const limit = selectedMatch.innings.length > 2 ? 1 : (selectedMatch.overs_per_match || selectedMatch.totalOvers);
 
                                                 const isComplete = currentInn && (
                                                     currentInn.overs >= limit ||
@@ -2855,7 +2976,7 @@ const AdminDashboard = () => {
                                                     </Col>
                                                     <Col md={4}>
                                                         <Form.Label className="x-small fw-black text-uppercase text-muted">Overs Bowled</Form.Label>
-                                                        <Form.Control size="sm" className="fw-bold" type="number" step="0.1" min="0" max={selectedMatch.totalOvers} value={selectedMatch.score.overs} onChange={e => handleUpdate('manual', { ...selectedMatch, score: { ...selectedMatch.score, overs: Math.min(selectedMatch.totalOvers, Math.max(0, parseFloat(e.target.value) || 0)) } })} />
+                                                        <Form.Control size="sm" className="fw-bold" type="number" step="0.1" min="0" max={selectedMatch.overs_per_match || selectedMatch.totalOvers} value={selectedMatch.score.overs} onChange={e => handleUpdate('manual', { ...selectedMatch, score: { ...selectedMatch.score, overs: Math.min((selectedMatch.overs_per_match || selectedMatch.totalOvers), Math.max(0, parseFloat(e.target.value) || 0)) } })} />
                                                     </Col>
                                                     <Col md={6}>
                                                         <Form.Label className="x-small fw-black text-uppercase text-muted">Match Title Override</Form.Label>
@@ -2877,7 +2998,7 @@ const AdminDashboard = () => {
                                                             handleUpdate('manual', { ...selectedMatch, currentBatsmen: cb });
                                                         }}>
                                                             <option value="">Select</option>
-                                                            {(selectedMatch.score.battingTeam === selectedMatch.teamA ? squadA : squadB).map(p => <option key={p} value={p}>{p}</option>)}
+                                                            {(selectedMatch.score.battingTeam === selectedMatch.teamA ? squadA : squadB).filter(p => p && p.trim() !== '').map((p, i) => <option key={`striker_${p}_${i}`} value={p}>{p}</option>)}
                                                         </Form.Select>
                                                     </Col>
                                                     <Col md={4}>
@@ -2895,14 +3016,14 @@ const AdminDashboard = () => {
                                                             handleUpdate('manual', { ...selectedMatch, currentBatsmen: cb });
                                                         }}>
                                                             <option value="">Select</option>
-                                                            {(selectedMatch.score.battingTeam === selectedMatch.teamA ? squadA : squadB).map(p => <option key={p} value={p}>{p}</option>)}
+                                                            {(selectedMatch.score.battingTeam === selectedMatch.teamA ? squadA : squadB).filter(p => p && p.trim() !== '').map((p, i) => <option key={`nonstriker_${p}_${i}`} value={p}>{p}</option>)}
                                                         </Form.Select>
                                                     </Col>
                                                     <Col md={4}>
                                                         <Form.Label className="x-small fw-black text-uppercase text-muted">Current Bowler</Form.Label>
                                                         <Form.Select size="sm" value={bowler} onChange={e => { setBowler(e.target.value); handleUpdate('manual', { ...selectedMatch, currentBowler: e.target.value }); }}>
                                                             <option value="">Select</option>
-                                                            {(selectedMatch.score.battingTeam === selectedMatch.teamA ? squadB : squadA).map(p => <option key={p} value={p}>{p}</option>)}
+                                                            {(selectedMatch.score.battingTeam === selectedMatch.teamA ? squadB : squadA).filter(p => p && p.trim() !== '').map((p, i) => <option key={`bowler_${p}_${i}`} value={p}>{p}</option>)}
                                                         </Form.Select>
                                                     </Col>
 
@@ -2917,10 +3038,10 @@ const AdminDashboard = () => {
                                                                 <Form.Select size="sm" value={selectedMatch.manOfTheMatch || ''} onChange={e => handleUpdate('manual', { ...selectedMatch, manOfTheMatch: e.target.value })}>
                                                                     <option value="">-- None Selected --</option>
                                                                     <optgroup label={selectedMatch.teamA}>
-                                                                        {squadA.map(p => <option key={`A_${p}`} value={p}>{p}</option>)}
+                                                                        {squadA.filter(p => p && p.trim() !== '').map((p, i) => <option key={`mom_A_${p}_${i}`} value={p}>{p}</option>)}
                                                                     </optgroup>
                                                                     <optgroup label={selectedMatch.teamB}>
-                                                                        {squadB.map(p => <option key={`B_${p}`} value={p}>{p}</option>)}
+                                                                        {squadB.filter(p => p && p.trim() !== '').map((p, i) => <option key={`mom_B_${p}_${i}`} value={p}>{p}</option>)}
                                                                     </optgroup>
                                                                 </Form.Select>
                                                                 <small className="text-muted d-block mt-1">Player of the Match is a subjective choice selected by the admin.</small>
@@ -2939,14 +3060,12 @@ const AdminDashboard = () => {
                                                                 <Form.Control size="sm" type="date" value={editDate} onChange={e => setEditDate(e.target.value)} />
                                                             </Col>
                                                             <Col md={4}>
-                                                                <Form.Label className="x-small fw-black text-uppercase text-muted">Time (Local)</Form.Label>
+                                                                <Form.Label className="x-small fw-black text-uppercase text-muted">Time (Local) <Badge bg="light" text="dark" className="ms-2 border">{editTime}</Badge></Form.Label>
                                                                 <Form.Control
                                                                     size="sm"
                                                                     type="time"
                                                                     value={parseTime12to24(editTime) || ''}
-                                                                    onKeyDown={(e) => e.preventDefault()}
                                                                     onClick={(e) => e.target.showPicker?.()}
-                                                                    onFocus={(e) => e.target.showPicker?.()}
                                                                     onChange={e => {
                                                                         const val24 = e.target.value;
                                                                         if (!val24) return;
@@ -2965,7 +3084,7 @@ const AdminDashboard = () => {
 
                                                     <Col md={12} className="pt-4">
                                                         <div className="d-flex flex-wrap gap-2">
-                                                            <Button variant="danger" size="sm" className="fw-black flex-grow-1" onClick={() => { if (window.confirm("ARE YOU SURE? This will end the current innings manually.")) handleUpdate('manual', { ...selectedMatch, score: { ...selectedMatch.score, overs: selectedMatch.totalOvers } }); }}>
+                                                            <Button variant="danger" size="sm" className="fw-black flex-grow-1" onClick={() => { if (window.confirm("ARE YOU SURE? This will end the current innings manually.")) handleUpdate('manual', { ...selectedMatch, score: { ...selectedMatch.score, overs: Math.min(20, (selectedMatch.overs_per_match || selectedMatch.totalOvers)) } }); }}>
                                                                 FORCE END INNINGS
                                                             </Button>
                                                             <Button variant="dark" size="sm" className="fw-black flex-grow-1" onClick={() => handleUpdate('manual', { ...selectedMatch, score: { ...selectedMatch.score, thisOver: [] } })}>

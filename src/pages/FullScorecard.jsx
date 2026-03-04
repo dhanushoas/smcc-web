@@ -188,7 +188,7 @@ const FullScorecard = () => {
         doc.setFontSize(8);
         doc.setFont(undefined, 'normal');
         doc.setTextColor(120);
-        doc.text(`SERIES: ${(match.series || 'SMCC').toUpperCase()} | GROUND: ${(match.venue || 'TBA').toUpperCase()} | DATE: ${new Date(match.date).toDateString().toUpperCase()} ${formatTime(match.date).toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
+        doc.text(`COMPETITION: ${(match.competitionType || 'HEAD-TO-HEAD').toUpperCase()} | SERIES: ${(match.series || 'SMCC').toUpperCase()} | GROUND: ${(match.venue || 'TBA').toUpperCase()} | DATE: ${new Date(match.date).toDateString().toUpperCase()} ${formatTime(match.date).toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
         currentY += 4;
         const exportedDate = new Date();
         const exportStr = `EXPORTED: ${exportedDate.toLocaleDateString().toUpperCase()} ${exportedDate.toLocaleTimeString().toUpperCase()}`;
@@ -338,10 +338,16 @@ const FullScorecard = () => {
                                 />
                             </motion.div>
                             <div>
-                                <h2 className="fw-black mb-1 premium-gradient-text letter-spacing-1">{t('full_scorecard')}</h2>
-                                <div className="d-flex align-items-center gap-2 text-muted fw-bold small text-uppercase">
-                                    <i className="bi bi-shield-check text-primary"></i>
-                                    <span>{match.series || 'SMCC LIVE'}</span>
+                                <div className="d-flex align-items-center flex-wrap gap-2">
+                                    <h2 className="fw-black mb-0 premium-gradient-text letter-spacing-1">{t('full_scorecard')}</h2>
+                                    <span className="mx-1 opacity-25 d-none d-md-inline">|</span>
+                                    <div className="d-flex align-items-center gap-2 text-muted fw-bold small text-uppercase">
+                                        <i className="bi bi-shield-check text-primary"></i>
+                                        <span>{match.series || 'SMCC LIVE'}</span>
+                                        <Badge bg={match.competitionType === 'tournament' ? 'warning' : match.competitionType === 'series' ? 'primary' : 'secondary'} className="x-small">
+                                            {match.competitionType || 'Head-to-Head'}
+                                        </Badge>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -357,37 +363,51 @@ const FullScorecard = () => {
                     <Card.Body className="p-0">
                         <div className="p-4 p-md-5 border-bottom bg-light bg-opacity-50">
                             <Row className="align-items-center text-center text-md-start">
-                                <Col md={8}>
-                                    <h2 className="fw-black mb-2 text-uppercase letter-spacing-1">{match.teamA} vs {match.teamB}</h2>
-                                    <div className="d-flex flex-wrap justify-content-center justify-content-md-start gap-4 text-muted small">
-                                        <div className="d-flex align-items-center gap-2">
-                                            <i className="bi bi-geo-alt-fill text-primary"></i>
-                                            <span>{match.venue}</span>
+                                <Col lg={7} className="text-center text-lg-start mb-4 mb-lg-0">
+                                    <div className="d-inline-flex flex-wrap align-items-center gap-2 px-3 py-2 bg-white bg-opacity-50 rounded-pill border mb-3 small fw-bold text-muted shadow-sm">
+                                        <div className="d-flex align-items-center gap-1">
+                                            <i className="bi bi-calendar3 text-primary"></i>
+                                            <span>Date : {new Date(match.date).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })} • {formatTime(match.date)}</span>
                                         </div>
-                                        <div className="d-flex align-items-center gap-2">
-                                            <i className="bi bi-calendar-event-fill text-primary"></i>
-                                            <span>{new Date(match.date).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                                        <span className="mx-1 opacity-25 d-none d-md-inline">|</span>
+                                        <div className="d-flex align-items-center gap-1 mt-1 mt-md-0">
+                                            <i className="bi bi-geo-alt-fill text-danger"></i>
+                                            <span>Venue : <span style={{ textTransform: 'capitalize' }}>{(match.venue || 'TBA').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}</span></span>
                                         </div>
-                                        <div className="d-flex align-items-center gap-2">
-                                            <i className="bi bi-stopwatch-fill text-primary"></i>
-                                            <span>{match.totalOvers} Overs Format</span>
+                                    </div>
+
+                                    <h2 className="fw-black mb-3 text-uppercase letter-spacing-1 text-nowrap">
+                                        {match.teamA} <span className="text-primary mx-1">VS</span> {match.teamB}
+                                    </h2>
+
+                                    <div className="d-flex flex-wrap justify-content-center justify-content-lg-start gap-2 text-muted small">
+                                        <div className="d-flex align-items-center gap-2 bg-white px-2 py-1 rounded-3 border shadow-sm">
+                                            <i className="bi bi-layers-half text-primary"></i>
+                                            <span className="fw-bold x-small">{match.totalOvers} Overs Format</span>
                                         </div>
                                         {match.toss?.winner && (
-                                            <div className="d-flex align-items-center gap-2 bg-warning bg-opacity-10 px-2 py-1 rounded">
-                                                <i className="bi bi-coin text-warning"></i>
-                                                <span className="fw-bold text-dark">{match.toss.winner} won toss & elected to {match.toss.decision}</span>
+                                            <div className="d-flex align-items-center gap-2 bg-warning bg-opacity-10 px-2 py-1 rounded-3 border border-warning border-opacity-20 shadow-sm">
+                                                <i className="bi bi-universal-access text-warning"></i>
+                                                <span className="fw-bold text-dark x-small">{match.toss.winner} won toss & elected to {match.toss.decision}</span>
                                             </div>
                                         )}
                                     </div>
                                 </Col>
-                                <Col md={4} className="mt-4 mt-md-0 text-md-end">
+
+                                <Col lg={5}>
                                     {(match.status === 'completed' || (match.status === 'live' && match.score?.target)) && (
-                                        <div className="bg-primary bg-opacity-10 p-4 rounded-4 border border-primary border-opacity-10 shadow-sm">
+                                        <div className="bg-white p-3 rounded-4 border shadow-sm position-relative overflow-hidden">
+                                            <div className="position-absolute top-0 end-0 p-3 opacity-10">
+                                                <i className="bi bi-trophy fs-1"></i>
+                                            </div>
                                             {match.status === 'completed' ? (
-                                                <div className="mb-0">
-                                                    <div className="fw-black text-primary small mb-2 text-uppercase letter-spacing-2">Match Result</div>
-                                                    <div className="fw-black text-dark fs-5 mb-3">
-                                                        🏆 {(() => {
+                                                <div className="position-relative">
+                                                    <div className="d-flex align-items-center justify-content-between mb-2">
+                                                        <span className="badge bg-success bg-opacity-10 text-success p-1 px-2 rounded-pill letter-spacing-2 fw-black x-small">MATCH RESULT</span>
+                                                        <i className="bi bi-star-fill text-warning x-small"></i>
+                                                    </div>
+                                                    <h5 className="fw-black text-dark mb-3 text-nowrap">
+                                                        {(() => {
                                                             const innings = match.innings || [];
                                                             let inn1, inn2;
                                                             if (innings.length >= 4) {
@@ -410,23 +430,30 @@ const FullScorecard = () => {
                                                                 return "Match Drawn";
                                                             }
                                                         })().toUpperCase()}
-                                                    </div>
+                                                    </h5>
+
                                                     {match.manOfTheMatch && (
-                                                        <div className="d-inline-flex align-items-center gap-2 bg-white px-3 py-2 rounded-pill shadow-sm border">
-                                                            <i className="bi bi-trophy-fill text-warning"></i>
-                                                            <span className="x-small fw-black text-uppercase text-muted letter-spacing-1">Man of the Match:</span>
-                                                            <span className="fw-black text-primary">{match.manOfTheMatch.toUpperCase()}</span>
+                                                        <div className="mt-1 pt-2 border-top d-flex align-items-center gap-3">
+                                                            <div className="bg-warning bg-opacity-10 p-2 rounded-circle border border-warning border-opacity-20 shadow-sm">
+                                                                <i className="bi bi-award-fill text-warning fs-5"></i>
+                                                            </div>
+                                                            <div>
+                                                                <div className="x-small fw-black text-uppercase text-muted letter-spacing-1" style={{ fontSize: '9px' }}>Man of the Match</div>
+                                                                <h4 className="fw-black text-primary mb-0 text-uppercase letter-spacing-1">
+                                                                    {match.manOfTheMatch}
+                                                                </h4>
+                                                            </div>
                                                         </div>
                                                     )}
                                                 </div>
                                             ) : (
-                                                <div className="text-center text-md-end">
-                                                    <div className="fw-black text-danger small mb-2 text-uppercase letter-spacing-2">Chase Requirement</div>
-                                                    <div className="fw-black text-danger fs-5">
-                                                        TARGET: {pluralize(match.score.target, 'Run')}
+                                                <div className="text-center p-1">
+                                                    <div className="fw-black text-danger x-small mb-2 text-uppercase letter-spacing-2">Chase Requirement</div>
+                                                    <div className="fs-5 fw-black text-danger mb-1">
+                                                        TARGET: {match.score.target} <span className="x-small">Runs</span>
                                                     </div>
-                                                    <div className="x-small fw-bold text-muted mt-1">
-                                                        Required from {pluralize(match.totalOvers, 'Over')}
+                                                    <div className="p-1 bg-danger bg-opacity-10 rounded-pill d-inline-block px-3 fw-bold text-danger x-small">
+                                                        Required from {match.totalOvers} Overs
                                                     </div>
                                                 </div>
                                             )}

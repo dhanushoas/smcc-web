@@ -18,20 +18,25 @@ const Navbar = () => {
                     <span className="fw-black fs-5 text-white letter-spacing-2">SMCC LIVE</span>
                 </BsNavbar.Brand>
 
-                <Button
-                    variant="success"
-                    className="premium-btn d-flex align-items-center gap-2 border-0 shadow-sm hover-glow"
-                    style={{
-                        padding: '0.5rem 1.2rem',
-                        fontSize: '13px',
-                        background: 'linear-gradient(45deg, #2e7d32, #43a047)',
-                        color: 'white'
-                    }}
-                    onClick={() => window.open(APK_DOWNLOAD_URL, '_blank')}
-                >
-                    <i className="bi bi-android2 fs-5"></i>
-                    <span className="fw-black">DOWNLOAD</span>
-                </Button>
+                <BsNavbar.Toggle aria-controls="basic-navbar-nav" />
+                <BsNavbar.Collapse id="basic-navbar-nav">
+                    <Nav className="ms-auto me-3 align-items-center gap-3">
+                    </Nav>
+                    <Button
+                        variant="success"
+                        className="premium-btn d-flex align-items-center gap-2 border-0 shadow-sm hover-glow"
+                        style={{
+                            padding: '0.4rem 1rem',
+                            fontSize: '12px',
+                            background: 'linear-gradient(45deg, #2e7d32, #43a047)',
+                            color: 'white'
+                        }}
+                        onClick={() => window.open(APK_DOWNLOAD_URL, '_blank')}
+                    >
+                        <i className="bi bi-android2 fs-6"></i>
+                        <span className="fw-black">DOWNLOAD</span>
+                    </Button>
+                </BsNavbar.Collapse>
             </Container>
         </BsNavbar>
     );

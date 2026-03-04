@@ -13,9 +13,9 @@ const socket = io(API_URL);
 const Home = () => {
     const navigate = useNavigate();
     const { t } = useApp();
-    const [matches, setMatches] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [activeSeries, setActiveSeries] = useState('ALL');
+    const [matches, setMatches] = useState([]); // Array of match objects from API
+    const [loading, setLoading] = useState(true); // Initial load state
+    const [activeSeries, setActiveSeries] = useState('ALL'); // Series filter state
 
     const [blastValue, setBlastValue] = useState(0);
     const [blastMatchId, setBlastMatchId] = useState(null);
@@ -34,8 +34,9 @@ const Home = () => {
 
     useEffect(() => {
         document.title = 'SMCC LIVE | Real-time Cricket';
-        fetchMatches();
+        fetchMatches(); // Initial data fetch
 
+        // Socket.io listeners for real-time match and score updates
         socket.on('matchUpdate', (updatedMatch) => {
             setMatches(prevMatches => {
                 const matchesArr = Array.isArray(prevMatches) ? prevMatches : [];
@@ -70,9 +71,24 @@ const Home = () => {
         };
     }, []);
 
-    const renderMatchCard = (match) => {
+    const renderMatchCard = (match, groupType = 'head-to-head') => {
         const isLive = match.status === 'live';
         const isCompleted = match.status === 'completed';
+        const isSeries = groupType === 'series';
+        const isTournament = groupType === 'tournament';
+
+        const badgeBg = isTournament ? 'warning' : isSeries ? 'primary' : 'secondary';
+        const badgeText = isTournament ? 'TOURNAMENT' : isSeries ? 'SERIES' : 'HEAD-TO-HEAD';
+
+        const handleCardClick = () => {
+            if (isSeries && match.seriesId) {
+                navigate(`/series/${match.seriesId}`);
+            } else if (isTournament && match.tournamentId) {
+                navigate(`/tournaments/${match.tournamentId}`);
+            } else {
+                navigate(`/match/${match._id || match.id}`);
+            }
+        };
 
         return (
             <Col xs={12} key={match._id || match.id} className="mb-3">
@@ -82,13 +98,18 @@ const Home = () => {
                     animate={{ opacity: 1, scale: 1 }}
                     className="bg-white border rounded-3 overflow-hidden shadow-sm hover-shadow transition-all"
                     style={{ cursor: 'pointer' }}
-                    onClick={() => navigate(`/match/${match._id || match.id}`)}
+                    onClick={handleCardClick}
                 >
                     <div className="px-3 py-2 border-bottom bg-light d-flex justify-content-between align-items-center">
                         <span className="x-small fw-black text-muted text-uppercase letter-spacing-1">
-                            {match.series || 'SMCC LIVE'} • {new Date(match.date).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                            {match.series || 'SMCC LIVE'}
+                            {isSeries && match.matchNumber ? ` • Match ${match.matchNumber}` : ''}
+                            {' • '}{new Date(match.date).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                         </span>
                         <div>
+                            <Badge bg={badgeBg} className={`x-small px-2 me-1 text-uppercase ${isTournament ? 'text-dark' : ''}`}>
+                                {badgeText}
+                            </Badge>
                             {match.status === 'upcoming' && <Badge bg="info" className="x-small px-2"><i className="bi bi-clock me-1"></i>UPCOMING</Badge>}
                             {isLive && <Badge bg="danger" className="animate-pulse x-small px-2"><i className="bi bi-broadcast me-1"></i>LIVE</Badge>}
                             {isCompleted && <Badge bg="success" className="x-small px-2"><i className="bi bi-check-circle me-1"></i>COMPLETED</Badge>}
@@ -235,7 +256,7 @@ const Home = () => {
                                         })()}</span>
                                     </div>
                                 ) : (
-                                    <span className="text-dark fw-bold"><i className="bi bi-geo-alt-fill text-danger me-1"></i> {formatTime(match.date)} • {match.venue || 'TBA'}</span>
+                                    <span className="text-dark fw-bold"><i className="bi bi-geo-alt-fill text-danger me-1"></i> {formatTime(match.date)} • {(match.venue || 'TBA').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}</span>
                                 )}
                             </div>
                         </div>
@@ -258,6 +279,30 @@ const Home = () => {
     const liveMatches = filteredBySeries.filter(m => m.status === 'live' || m.status === 'upcoming');
     const completedMatches = filteredBySeries.filter(m => m.status === 'completed');
 
+    const renderFeed = (matchesArray) => {
+        const grouped = [];
+        const seenSeries = new Set();
+        const seenTournaments = new Set();
+
+        matchesArray.forEach(m => {
+            if (m.competitionType === 'series' && m.seriesId) {
+                if (!seenSeries.has(m.seriesId)) {
+                    seenSeries.add(m.seriesId);
+                    grouped.push({ type: 'series', match: m });
+                }
+            } else if (m.competitionType === 'tournament' && m.tournamentId) {
+                if (!seenTournaments.has(m.tournamentId)) {
+                    seenTournaments.add(m.tournamentId);
+                    grouped.push({ type: 'tournament', match: m });
+                }
+            } else {
+                grouped.push({ type: 'head-to-head', match: m });
+            }
+        });
+
+        return grouped.map(g => renderMatchCard(g.match, g.type));
+    };
+
     return (
         <div style={{ backgroundColor: '#f8f9fa' }}>
             <Container className="py-4 px-lg-5">
@@ -269,7 +314,7 @@ const Home = () => {
                                 Match Feed
                             </h5>
                             {liveMatches.length > 0 ? (
-                                liveMatches.map(m => renderMatchCard(m))
+                                renderFeed(liveMatches)
                             ) : (
                                 <div className="bg-white p-5 rounded-3 border text-center mb-4 shadow-sm">
                                     <h5 className="fw-black text-primary mb-2">NO ACTIVE MATCHES</h5>
@@ -281,7 +326,7 @@ const Home = () => {
                         <div>
                             <h5 className="fw-black text-uppercase letter-spacing-2 mb-3">Recently Completed</h5>
                             {completedMatches.length > 0 ? (
-                                completedMatches.map(m => renderMatchCard(m))
+                                renderFeed(completedMatches)
                             ) : (
                                 <div className="text-muted small">No recently completed matches.</div>
                             )}

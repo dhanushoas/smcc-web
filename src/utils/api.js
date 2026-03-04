@@ -18,11 +18,15 @@ const isLocal = typeof window !== 'undefined' &&
 const isProduction = typeof window !== 'undefined' &&
     (window.location.hostname.includes('vercel.app') || window.location.hostname.includes('onrender.com'));
 
-// Failsafe & Direct Override
 // 1. If we are in production but API is still localhost -> use Prod
 // 2. If we explicitly want to connect to Prod even while local -> use Prod
 if ((isProduction || CONNECT_TO_PROD) && (API_URL.includes('localhost') || API_URL.includes('127.0.0.1'))) {
     API_URL = PROD_BACKEND;
+}
+
+// 3. Fallback: If we are LOCAL and NOT explicitly asking for Prod, but API_URL is still pointing to Prod -> use Localhost
+if (isLocal && !CONNECT_TO_PROD && API_URL.includes(PROD_BACKEND)) {
+    API_URL = 'localhost:5000';
 }
 
 // Enforce protocol
@@ -73,7 +77,6 @@ axios.interceptors.response.use(
     }
 );
 
-console.log(`SMCC API initialized at: ${API_URL} (${CONNECT_TO_PROD ? 'PRODUCTION OVERRIDE' : 'STANDARD'})`);
 
 export default API_URL;
 
