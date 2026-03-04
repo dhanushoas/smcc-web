@@ -1572,7 +1572,8 @@ const AdminDashboard = () => {
             }
 
             // Allow a small buffer (e.g., 1 minute) to avoid issues if creating right at current time
-            if (selectedDateTime.getTime() < now.getTime() - 60000) {
+            // Ensure match is not scheduled in the past (allow exact current time)
+            if (selectedDateTime.getTime() < now.getTime()) {
                 toast.error("Match date or time cannot be in the past!");
                 return;
             }

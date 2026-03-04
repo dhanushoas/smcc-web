@@ -106,13 +106,8 @@ const PointsTable = () => {
             setMatches(data);
 
             if (data.length > 0) {
-                const tournamentMatches = data.filter(m => m.competitionType === 'tournament');
-                if (tournamentMatches.length > 0) {
-                    const seriesList = [...new Set(tournamentMatches.map(m => m.series || 'SMCC Tournament'))];
-                    setActiveSeries(prev => prev || seriesList[0]);
-                } else {
-                    setActiveSeries(null);
-                }
+                const seriesList = [...new Set(data.map(m => m.series || 'SMCC LIVE'))];
+                setActiveSeries(prev => prev || seriesList[0]);
             }
         } catch (err) {
             console.error("Error fetching matches", err);
@@ -138,9 +133,8 @@ const PointsTable = () => {
         </Container>
     );
 
-    const tournamentMatches = matches.filter(m => m.competitionType === 'tournament');
-    const seriesList = [...new Set(tournamentMatches.map(m => m.series || 'SMCC Tournament'))];
-    const filteredMatches = tournamentMatches.filter(m => (m.series || 'SMCC Tournament') === activeSeries);
+    const seriesList = [...new Set(matches.map(m => m.series || 'SMCC LIVE'))];
+    const filteredMatches = matches.filter(m => (m.series || 'SMCC LIVE') === activeSeries);
     const stats = calculateStats(filteredMatches);
 
     return (
@@ -150,7 +144,7 @@ const PointsTable = () => {
                 animate={{ opacity: 1, y: 0 }}
             >
                 <div className="mb-4">
-                    <h2 className="fw-black text-dark text-uppercase mb-3 letter-spacing-1">Tournament Standings</h2>
+                    <h2 className="fw-black text-dark text-uppercase mb-3 letter-spacing-1">Series Standings</h2>
 
                     {seriesList.length > 1 && (
                         <Nav variant="pills" className="bg-white p-2 rounded-pill shadow-sm border mb-4 gap-2 d-inline-flex">
@@ -199,7 +193,7 @@ const PointsTable = () => {
                                             key="empty"
                                         >
                                             <td colSpan={7} className="text-center py-5 text-muted fw-bold">
-                                                No tournaments played yet.
+                                                No matches played in this series yet.
                                             </td>
                                         </motion.tr>
                                     ) : (
