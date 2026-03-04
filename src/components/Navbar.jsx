@@ -30,7 +30,7 @@ const Navbar = () => {
                     onClick={() => window.open(APK_DOWNLOAD_URL, '_blank')}
                 >
                     <i className="bi bi-android2 fs-5"></i>
-                    <span className="fw-black">Download SMCC App</span>
+                    <span className="fw-black">DOWNLOAD</span>
                 </Button>
             </Container>
         </BsNavbar>

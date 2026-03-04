@@ -91,46 +91,6 @@ const AdminDashboard = () => {
         manualRuns: 0
     });
 
-    const handleTimeInput = (val, callback) => {
-        // Strip everything except digits
-        const digits = val.replace(/[^0-9]/g, '');
-
-        // Build HH:MM string from digits only
-        let formatted = '';
-        if (digits.length === 0) {
-            formatted = '';
-        } else if (digits.length <= 2) {
-            formatted = digits;
-        } else {
-            // Clamp hours to 01-12
-            let hour = digits.substring(0, 2);
-            if (parseInt(hour) > 12) hour = '12';
-            if (parseInt(hour) === 0) hour = '01';
-            // Clamp minutes to 00-59
-            let min = digits.substring(2, 4);
-            if (parseInt(min) > 59) min = '59';
-            formatted = `${hour}:${min}`;
-        }
-
-        // Extract existing AM/PM part to preserve it, then use 'AM' default
-        const ampmMatch = val.match(/(AM|PM)/i);
-        const ampm = ampmMatch ? ampmMatch[0].toUpperCase() : 'AM';
-
-        // Only append AM/PM if time is complete (HH:MM)
-        if (formatted.length === 5) {
-            callback(`${formatted} ${ampm}`);
-        } else {
-            callback(formatted);
-        }
-    };
-
-    const toggleAmPm = (currentVal, callback) => {
-        if (currentVal.includes('AM')) {
-            callback(currentVal.replace('AM', 'PM'));
-        } else if (currentVal.includes('PM')) {
-            callback(currentVal.replace('PM', 'AM'));
-        }
-    };
 
     const parseTime12to24 = (time12) => {
         const timeTrimmed = time12.trim();
@@ -2123,7 +2083,7 @@ const AdminDashboard = () => {
                                                         e.stopPropagation();
                                                         setCreateForm({
                                                             title: m.title || '', teamA: m.teamA, teamB: m.teamB, status: 'upcoming',
-                                                            date: new Date().toISOString().split('T')[0], time: m.date ? new Date(m.date).toTimeString().substring(0, 5) : '09:00', venue: m.venue || '', totalOvers: m.totalOvers || 20
+                                                            date: new Date().toISOString().split('T')[0], time: m.date ? formatTime24to12(new Date(m.date)) : '09:00 AM', venue: m.venue || '', totalOvers: m.totalOvers || 20
                                                         });
                                                         setSquadA(m.teamASquad || Array(11).fill(''));
                                                         setSquadB(m.teamBSquad || Array(11).fill(''));
@@ -2201,24 +2161,21 @@ const AdminDashboard = () => {
                                                 <Col md={6}>
                                                     <Form.Group>
                                                         <Form.Label className="small fw-bold">Time (Local)</Form.Label>
-                                                        <div className="d-flex gap-2">
-                                                            <Form.Control
-                                                                type="text"
-                                                                placeholder="hh:mm"
-                                                                value={createForm.time.replace(/\s?(AM|PM)/i, '').trim()}
-                                                                maxLength={5}
-                                                                onChange={e => handleTimeInput(e.target.value + ' ' + (createForm.time.match(/(AM|PM)/i)?.[0] || 'AM'), (val) => setCreateForm({ ...createForm, time: val }))}
-                                                            />
-                                                            <Button
-                                                                variant={createForm.time.includes('PM') ? 'warning' : 'outline-secondary'}
-                                                                className="fw-bold px-3"
-                                                                style={{ minWidth: '64px' }}
-                                                                type="button"
-                                                                onClick={() => toggleAmPm(createForm.time || '12:00 AM', (val) => setCreateForm({ ...createForm, time: val }))}
-                                                            >
-                                                                {createForm.time.includes('PM') ? 'PM' : 'AM'}
-                                                            </Button>
-                                                        </div>
+                                                        <Form.Control
+                                                            type="time"
+                                                            value={parseTime12to24(createForm.time) || ''}
+                                                            onKeyDown={(e) => e.preventDefault()}
+                                                            onClick={(e) => e.target.showPicker?.()}
+                                                            onFocus={(e) => e.target.showPicker?.()}
+                                                            onChange={e => {
+                                                                const val24 = e.target.value;
+                                                                if (!val24) return;
+                                                                const [h, m] = val24.split(':');
+                                                                const date = new Date();
+                                                                date.setHours(parseInt(h), parseInt(m));
+                                                                setCreateForm({ ...createForm, time: formatTime24to12(date) });
+                                                            }}
+                                                        />
                                                     </Form.Group>
                                                 </Col>
                                             </Row>
@@ -2967,27 +2924,23 @@ const AdminDashboard = () => {
                                                                 <Form.Control size="sm" type="date" value={editDate} onChange={e => setEditDate(e.target.value)} />
                                                             </Col>
                                                             <Col md={4}>
-                                                                <Form.Label className="x-small fw-black text-uppercase text-muted">Time (12-hour)</Form.Label>
-                                                                <div className="d-flex gap-2">
-                                                                    <Form.Control
-                                                                        size="sm"
-                                                                        type="text"
-                                                                        placeholder="hh:mm"
-                                                                        value={editTime.replace(/\s?(AM|PM)/i, '').trim()}
-                                                                        maxLength={5}
-                                                                        onChange={e => handleTimeInput(e.target.value + ' ' + (editTime.match(/(AM|PM)/i)?.[0] || 'AM'), setEditTime)}
-                                                                    />
-                                                                    <Button
-                                                                        variant={editTime.includes('PM') ? 'warning' : 'outline-secondary'}
-                                                                        size="sm"
-                                                                        className="fw-bold px-2"
-                                                                        style={{ minWidth: '52px' }}
-                                                                        type="button"
-                                                                        onClick={() => toggleAmPm(editTime || '12:00 AM', setEditTime)}
-                                                                    >
-                                                                        {editTime.includes('PM') ? 'PM' : 'AM'}
-                                                                    </Button>
-                                                                </div>
+                                                                <Form.Label className="x-small fw-black text-uppercase text-muted">Time (Local)</Form.Label>
+                                                                <Form.Control
+                                                                    size="sm"
+                                                                    type="time"
+                                                                    value={parseTime12to24(editTime) || ''}
+                                                                    onKeyDown={(e) => e.preventDefault()}
+                                                                    onClick={(e) => e.target.showPicker?.()}
+                                                                    onFocus={(e) => e.target.showPicker?.()}
+                                                                    onChange={e => {
+                                                                        const val24 = e.target.value;
+                                                                        if (!val24) return;
+                                                                        const [h, m] = val24.split(':');
+                                                                        const date = new Date();
+                                                                        date.setHours(parseInt(h), parseInt(m));
+                                                                        setEditTime(formatTime24to12(date));
+                                                                    }}
+                                                                />
                                                             </Col>
                                                             <Col md={4} className="d-flex align-items-end">
                                                                 <Button variant="primary" size="sm" className="w-100 fw-bold" onClick={handleSaveDateTime}>SAVE DATE & TIME</Button>
