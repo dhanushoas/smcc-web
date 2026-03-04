@@ -21,6 +21,8 @@ import Privacy from './pages/Privacy';
 import Improvements from './pages/Improvements';
 import JoinCouncil from './pages/JoinCouncil';
 import Sponsorship from './pages/Sponsorship';
+import UserManual from './pages/UserManual';
+import AdminManual from './pages/AdminManual';
 
 import { AppProvider } from './AppContext';
 
@@ -50,6 +52,8 @@ function App() {
               <Route path="/improvements" element={<Improvements />} />
               <Route path="/join" element={<JoinCouncil />} />
               <Route path="/sponsorship" element={<Sponsorship />} />
+              <Route path="/user-manual" element={<UserManual />} />
+              <Route path="/admin-manual" element={<AdminManual />} />
             </Routes>
             <Footer />
           </main>

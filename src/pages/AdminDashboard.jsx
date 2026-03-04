@@ -34,7 +34,7 @@ const AdminDashboard = () => {
     const [createForm, setCreateForm] = useState({
         title: '', teamA: '', teamB: '', status: 'upcoming',
         date: new Date().toISOString().split('T')[0],
-        time: '09:00 AM', venue: '', totalOvers: 20
+        time: formatTime24to12(new Date()), venue: '', totalOvers: 20
     });
 
     const [striker, setStriker] = useState('');
@@ -1540,11 +1540,20 @@ const AdminDashboard = () => {
             const selectedDateTime = new Date(`${createForm.date}T${parsedTime}`);
             const now = new Date();
 
-            // Validate Date (Can't select previous date natively, but verify here)
+            // Validate Date Range (Today to Today + 30 days)
             const todayStart = new Date();
             todayStart.setHours(0, 0, 0, 0);
+
+            const maxDate = new Date();
+            maxDate.setDate(maxDate.getDate() + 30);
+            maxDate.setHours(23, 59, 59, 999);
+
             if (selectedDateTime.getTime() < todayStart.getTime()) {
-                toast.error("Previous date not allowed");
+                toast.error("Match cannot be scheduled in the past!");
+                return;
+            }
+            if (selectedDateTime.getTime() > maxDate.getTime()) {
+                toast.error("Match can only be scheduled within the next 30 days!");
                 return;
             }
 
@@ -2082,8 +2091,8 @@ const AdminDashboard = () => {
                                                     <Button variant="link" className="text-secondary px-2" title="Copy Match & Squads" onClick={(e) => {
                                                         e.stopPropagation();
                                                         setCreateForm({
-                                                            title: m.title || '', teamA: m.teamA, teamB: m.teamB, status: 'upcoming',
-                                                            date: new Date().toISOString().split('T')[0], time: m.date ? formatTime24to12(new Date(m.date)) : '09:00 AM', venue: m.venue || '', totalOvers: m.totalOvers || 20
+                                                            title: '', teamA: m.teamA, teamB: m.teamB, status: 'upcoming',
+                                                            date: new Date().toISOString().split('T')[0], time: formatTime24to12(new Date()), venue: '', totalOvers: 20
                                                         });
                                                         setSquadA(m.teamASquad || Array(11).fill(''));
                                                         setSquadB(m.teamBSquad || Array(11).fill(''));
@@ -2155,7 +2164,13 @@ const AdminDashboard = () => {
                                                 <Col md={6}>
                                                     <Form.Group>
                                                         <Form.Label className="small fw-bold">Date</Form.Label>
-                                                        <Form.Control type="date" value={createForm.date} onChange={e => setCreateForm({ ...createForm, date: e.target.value })} />
+                                                        <Form.Control
+                                                            type="date"
+                                                            min={new Date().toISOString().split('T')[0]}
+                                                            max={new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0]}
+                                                            value={createForm.date}
+                                                            onChange={e => setCreateForm({ ...createForm, date: e.target.value })}
+                                                        />
                                                     </Form.Group>
                                                 </Col>
                                                 <Col md={6}>
@@ -2184,7 +2199,7 @@ const AdminDashboard = () => {
                                                 <Button variant="primary" type="submit" disabled={isSaving}>
                                                     {isSaving ? <Spinner animation="border" size="sm" /> : (isEditingMode ? 'Update Match' : 'Create Match')}
                                                 </Button>
-                                                {!isEditingMode && <Button variant="outline-danger" disabled={isSaving} onClick={() => setCreateForm({ title: '', teamA: '', teamB: '', status: 'upcoming', date: new Date().toISOString().split('T')[0], time: '09:00 AM', venue: '', totalOvers: 20 })}>Clear</Button>}
+                                                {!isEditingMode && <Button variant="outline-danger" disabled={isSaving} onClick={() => setCreateForm({ title: '', teamA: '', teamB: '', status: 'upcoming', date: new Date().toISOString().split('T')[0], time: formatTime24to12(new Date()), venue: '', totalOvers: 20 })}>Clear</Button>}
                                                 <Button variant="light" disabled={isSaving} onClick={() => { setIsCreating(false); setIsEditingMode(false); }}>Cancel</Button>
                                             </div>
                                         </Form>
