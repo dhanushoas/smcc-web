@@ -2122,12 +2122,12 @@ const AdminDashboard = () => {
                                 <Card.Header className="bg-white fw-bold d-flex justify-content-between"><span>Matches</span><Badge bg="secondary">{matches.length}</Badge></Card.Header>
                                 <ListGroup variant="flush" className="overflow-auto" style={{ maxHeight: '75vh' }}>
                                     {matches.map(m => (
-                                        <ListGroup.Item key={m._id || m.id} className="d-flex justify-content-between align-items-center py-3 border-start border-4 p-0 pointer-event" style={{ borderLeftColor: m.status === 'live' ? '#ff4b2b' : '#333' }}>
-                                            <div className={`flex-grow-1 p-3 ${selectedMatch?._id === m._id || selectedMatch?.id === m.id ? 'bg-primary text-white' : ''}`} style={{ cursor: 'pointer' }} onClick={() => handleEdit(m)}>
+                                        <ListGroup.Item key={m._id || m.id} className="d-flex justify-content-between align-items-center py-3 border-start border-4 p-0 pointer-event" style={{ borderLeftColor: m.status === 'live' ? '#ff4b2b' : m.status === 'cancelled' ? '#6c757d' : '#333', opacity: m.status === 'cancelled' ? 0.6 : 1 }}>
+                                            <div className={`flex-grow-1 p-3 ${selectedMatch?._id === m._id || selectedMatch?.id === m.id ? 'bg-primary text-white' : ''}`} style={{ cursor: m.status === 'cancelled' ? 'default' : 'pointer' }} onClick={() => m.status !== 'cancelled' && handleEdit(m)}>
                                                 <div className="fw-bold fs-6">
                                                     {m.teamA.toUpperCase()} vs {m.teamB.toUpperCase()}
-                                                    <Badge bg={m.competitionType === 'tournament' ? 'warning' : m.competitionType === 'series' ? 'primary' : 'secondary'} className="ms-2 font-size-10 text-uppercase fw-normal" style={{ fontSize: '9px' }}>
-                                                        {m.competitionType === 'series' && m.matchNumber ? `Match ${m.matchNumber}` : (m.competitionType || 'Head-to-Head')}
+                                                    <Badge bg={m.status === 'cancelled' ? 'secondary' : m.competitionType === 'tournament' ? 'warning' : m.competitionType === 'series' ? 'primary' : 'secondary'} className="ms-2 font-size-10 text-uppercase fw-normal" style={{ fontSize: '9px' }}>
+                                                        {m.status === 'cancelled' ? 'Not Required' : m.competitionType === 'series' && m.matchNumber ? `Match ${m.matchNumber}` : (m.competitionType || 'Head-to-Head')}
                                                     </Badge>
                                                 </div>
                                                 <small className={selectedMatch?._id === m._id || selectedMatch?.id === m.id ? 'text-white-50' : 'text-muted'}>
@@ -2135,7 +2135,8 @@ const AdminDashboard = () => {
                                                 </small>
                                             </div>
                                             <div className="d-flex align-items-center">
-                                                {(m.status === 'completed' || m.status === 'abandoned') && (
+                                                {(m.status === 'completed' || m.status === 'abandoned' || m.status === 'cancelled') && (
+
                                                     <Button variant="link" className="text-secondary px-2" title="Copy Match & Squads" onClick={(e) => {
                                                         e.stopPropagation();
                                                         setCreateForm({

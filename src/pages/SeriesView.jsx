@@ -49,6 +49,7 @@ const SeriesView = () => {
     const renderMatchCard = (match) => {
         const isLive = match.status === 'live';
         const isCompleted = match.status === 'completed';
+        const isCancelled = match.status === 'cancelled';
 
         // Use consistent formatting
         const titleCaseVenue = (match.venue || 'TBA').split(' ').map(s => s.length > 0 ? s[0].toUpperCase() + s.substring(1).toLowerCase() : '').join(' ');
@@ -59,10 +60,10 @@ const SeriesView = () => {
                     layout
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    whileHover={{ y: -5 }}
-                    className="bg-white border rounded-4 overflow-hidden shadow-sm hover-shadow transition-all"
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => navigate(`/match/${match.id || match._id}`)}
+                    whileHover={{ y: isCancelled ? 0 : -5 }}
+                    className={`bg-white border rounded-4 overflow-hidden shadow-sm hover-shadow transition-all ${isCancelled ? 'opacity-75' : ''}`}
+                    style={{ cursor: isCancelled ? 'default' : 'pointer' }}
+                    onClick={isCancelled ? null : () => navigate(`/match/${match.id || match._id}`)}
                 >
                     <div className="px-3 py-2 border-bottom bg-light d-flex justify-content-between align-items-center">
                         <span className="x-small fw-black text-muted text-uppercase letter-spacing-1">
@@ -72,6 +73,7 @@ const SeriesView = () => {
                             {match.status === 'upcoming' && <Badge bg="info" className="x-small px-2"><i className="bi bi-clock me-1"></i>UPCOMING</Badge>}
                             {isLive && <Badge bg="danger" className="animate-pulse x-small px-2"><i className="bi bi-broadcast me-1"></i>LIVE</Badge>}
                             {isCompleted && <Badge bg="success" className="x-small px-2"><i className="bi bi-check-circle me-1"></i>COMPLETED</Badge>}
+                            {isCancelled && <Badge bg="secondary" className="x-small px-2"><i className="bi bi-slash-circle me-1"></i>NOT REQUIRED</Badge>}
                         </div>
                     </div>
 
@@ -131,6 +133,8 @@ const SeriesView = () => {
                                         <span className="text-danger animate-pulse">●</span>
                                         <span>Match in progress</span>
                                     </div>
+                                ) : isCancelled ? (
+                                    <span className="text-muted fw-bold">SERIES DECIDED EARLY</span>
                                 ) : (
                                     <span className="text-dark fw-bold"><i className="bi bi-geo-alt-fill text-danger me-1"></i> {formatTime(match.date)} • {titleCaseVenue}</span>
                                 )}
@@ -168,23 +172,27 @@ const SeriesView = () => {
 
                         <Row className="align-items-center text-center justify-content-center pt-2">
                             <Col xs={4} md={3}>
-                                <div className="display-4 fw-black text-warning text-shadow">{teamAWins}</div>
+                                <div className="display-4 fw-black text-warning text-shadow">{series.teamAWins || 0}</div>
                                 <div className="fw-bold letter-spacing-1 mt-1 fs-5 text-truncate" title={series.teamA}>{series.teamA}</div>
                             </Col>
                             <Col xs={2} className="text-center">
                                 <div className="fw-black fs-4 opacity-50">VS</div>
                             </Col>
                             <Col xs={4} md={3}>
-                                <div className="display-4 fw-black text-warning text-shadow">{teamBWins}</div>
+                                <div className="display-4 fw-black text-warning text-shadow">{series.teamBWins || 0}</div>
                                 <div className="fw-bold letter-spacing-1 mt-1 fs-5 text-truncate" title={series.teamB}>{series.teamB}</div>
                             </Col>
                         </Row>
 
                         <div className="d-flex justify-content-center mt-4">
-                            <div className="bg-white bg-opacity-10 px-4 py-2 rounded-pill fw-bold border border-white border-opacity-25 backdrop-blur shadow-sm">
-                                {teamAWins > teamBWins ? `${series.teamA} LEADS ${teamAWins}-${teamBWins}` :
-                                    teamBWins > teamAWins ? `${series.teamB} LEADS ${teamBWins}-${teamAWins}` :
-                                        matches.length > 0 ? "SERIES LEVEL" : "SERIES HAS NOT STARTED YET"}
+                            <div className={`px-4 py-2 rounded-pill fw-bold border backdrop-blur shadow-sm ${series.status === 'completed' ? 'bg-success border-success' : 'bg-white bg-opacity-10 border-white border-opacity-25'}`}>
+                                {series.status === 'completed' ? (
+                                    <span>🎉 {series.winner?.toUpperCase()} WINS SERIES!</span>
+                                ) : (
+                                    series.teamAWins > series.teamBWins ? `${series.teamA} LEADS ${series.teamAWins}-${series.teamBWins}` :
+                                        series.teamBWins > series.teamAWins ? `${series.teamB} LEADS ${series.teamBWins}-${series.teamAWins}` :
+                                            matches.length > 0 ? "SERIES LEVEL" : "SERIES HAS NOT STARTED YET"
+                                )}
                             </div>
                         </div>
                     </Card.Body>
