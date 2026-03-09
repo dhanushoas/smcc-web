@@ -207,9 +207,9 @@ const AdminDashboard = () => {
         }
     };
 
-    const validateSquads = () => {
-        const fullA = squadA.filter(p => p.trim() !== '');
-        const fullB = squadB.filter(p => p.trim() !== '');
+    const validateSquads = (currA = squadA, currB = squadB) => {
+        const fullA = currA.filter(p => p.trim() !== '');
+        const fullB = currB.filter(p => p.trim() !== '');
 
         if (fullA.length !== 11 || fullB.length !== 11) {
             toast.error("Both teams must have exactly 11 players!");
@@ -611,10 +611,7 @@ const AdminDashboard = () => {
         setSquadA(cleanedA);
         setSquadB(cleanedB);
 
-        // We temporarily pass the cleaned ones to validate if needed, but since validateSquads uses state,
-        // React state update is async. Instead, let's just let it run. Worst case they hit save again.
-        // Actually to be robust, let's just let validateSquads run on current state, which already strips space via trim().
-        if (!validateSquads()) return;
+        if (!validateSquads(cleanedA, cleanedB)) return;
 
         if (isCreating) {
             setShowSquadModal(false);
