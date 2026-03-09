@@ -276,8 +276,18 @@ const Home = () => {
     const seriesList = ['ALL', ...new Set(matches.map(m => m.series || 'SMCC LIVE'))];
     const filteredBySeries = activeSeries === 'ALL' ? matches : matches.filter(m => (m.series || 'SMCC LIVE') === activeSeries);
 
-    const liveMatches = filteredBySeries.filter(m => m.status === 'live' || m.status === 'upcoming');
-    const completedMatches = filteredBySeries.filter(m => m.status === 'completed');
+    const liveMatches = filteredBySeries
+        .filter(m => m.status === 'live' || m.status === 'upcoming')
+        .sort((a, b) => {
+            if (a.status === 'live' && b.status !== 'live') return -1;
+            if (a.status !== 'live' && b.status === 'live') return 1;
+            // Break ties by chronological order (next upcoming match first)
+            return new Date(a.date).getTime() - new Date(b.date).getTime();
+        });
+
+    const completedMatches = filteredBySeries
+        .filter(m => m.status === 'completed')
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     const renderFeed = (matchesArray) => {
         const grouped = [];
