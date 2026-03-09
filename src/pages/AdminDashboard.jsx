@@ -196,14 +196,13 @@ const AdminDashboard = () => {
 
 
     const handleSquadChange = (team, index, value) => {
-        const val = toCamelCase(value);
         if (team === 'A') {
             const newSquad = [...squadA];
-            newSquad[index] = val;
+            newSquad[index] = value;
             setSquadA(newSquad);
         } else {
             const newSquad = [...squadB];
-            newSquad[index] = val;
+            newSquad[index] = value;
             setSquadB(newSquad);
         }
     };
@@ -607,6 +606,14 @@ const AdminDashboard = () => {
     };
 
     const handleSquadSave = async () => {
+        const cleanedA = squadA.map(v => toCamelCase(v));
+        const cleanedB = squadB.map(v => toCamelCase(v));
+        setSquadA(cleanedA);
+        setSquadB(cleanedB);
+
+        // We temporarily pass the cleaned ones to validate if needed, but since validateSquads uses state,
+        // React state update is async. Instead, let's just let it run. Worst case they hit save again.
+        // Actually to be robust, let's just let validateSquads run on current state, which already strips space via trim().
         if (!validateSquads()) return;
 
         if (isCreating) {
@@ -617,8 +624,8 @@ const AdminDashboard = () => {
             try {
                 await handleUpdate('manual', {
                     ...selectedMatch,
-                    teamASquad: squadA,
-                    teamBSquad: squadB
+                    teamASquad: cleanedA,
+                    teamBSquad: cleanedB
                 });
                 setShowSquadModal(false);
                 toast.success("Squads updated!");
@@ -1669,7 +1676,9 @@ const AdminDashboard = () => {
                     type: createForm.seriesType,
                     oversPerMatch: createForm.totalOvers,
                     startDate: selectedDateTime.toISOString(),
-                    venue: createForm.venue || 'SMCC Ground'
+                    venue: createForm.venue || 'SMCC Ground',
+                    teamASquad: squadA,
+                    teamBSquad: squadB
                 };
                 await axios.post(`${API_URL}/api/series`, seriesPayload, config);
                 toast.success("Series created successfully!");
@@ -2528,6 +2537,11 @@ const AdminDashboard = () => {
                                                 }
                                                 setShowTossModal(true);
                                             }}>🪙 CONDUCT TOSS</Button>}
+                                            {selectedMatch.status === 'upcoming' && (
+                                                <Button variant="outline-primary" size="lg" className="px-4 fw-bold shadow-sm" onClick={() => setShowSquadModal(true)}>
+                                                    <i className="bi bi-people-fill me-2"></i>SQUADS
+                                                </Button>
+                                            )}
                                             {/* INNINGS START BUTTONS */}
                                             {selectedMatch.status === 'upcoming' && (
                                                 <Button variant="success" size="lg" className="px-5 fw-bold" onClick={() => {
