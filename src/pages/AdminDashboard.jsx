@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Container, Row, Col, Card, Button, Form, Table, Badge, ListGroup, Modal, Spinner, Alert, Dropdown, ButtonGroup } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Form, Table, Badge, ListGroup, Modal, Spinner, Alert, Dropdown, ButtonGroup, InputGroup } from 'react-bootstrap';
 import { Toaster, toast } from 'react-hot-toast';
 import { io } from 'socket.io-client';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -44,6 +44,70 @@ const formatTime24to12 = (dateObj) => {
     hours = hours ? hours : 12;
     minutes = minutes < 10 ? '0' + minutes : minutes;
     return `${hours.toString().padStart(2, '0')}:${minutes} ${ampm}`;
+};
+
+const CustomTimePicker = ({ label, value, onChange, size = 'lg', editDisplay = false }) => {
+    // value expected like "09:00 AM"
+    const parts = value.match(/^(1[0-2]|0?[1-9]):([0-5][0-9])\s?(AM|PM)$/i);
+    const h = parts ? parts[1].padStart(2, '0') : '12';
+    const m = parts ? parts[2] : '00';
+    const ampm = parts ? parts[3].toUpperCase() : 'PM';
+
+    // Extract time without am/pm for 24h display
+    const time24h = parseTime12to24(value) || value;
+
+    return (
+        <Form.Group>
+            {editDisplay ? (
+                <Form.Label className="x-small fw-black text-uppercase text-muted">
+                    {label} <Badge bg="light" text="dark" className="ms-2 border">{value}</Badge>
+                    <Badge bg="secondary" className="ms-1">{time24h}</Badge>
+                </Form.Label>
+            ) : (
+                <Form.Label className="small fw-bold">
+                    {label} <Badge bg="light" text="dark" className="ms-2 border">{value}</Badge>
+                    <Badge bg="secondary" className="ms-1">{time24h}</Badge>
+                </Form.Label>
+            )}
+            <InputGroup size={size} className="shadow-sm border rounded-3 overflow-hidden bg-white">
+                <Form.Select
+                    className="border-0 bg-transparent text-center fw-bold shadow-none"
+                    value={h}
+                    onChange={e => onChange(`${e.target.value}:${m} ${ampm}`)}
+                    style={{ flex: '1 1 25%', appearance: 'none' }}
+                >
+                    {Array.from({ length: 12 }, (_, i) => {
+                        const val = (i + 1).toString().padStart(2, '0');
+                        return <option key={`h-${val}`} value={val}>{val}</option>;
+                    })}
+                </Form.Select>
+                <InputGroup.Text className="border-0 bg-transparent fw-black px-1 text-muted">:</InputGroup.Text>
+                <Form.Select
+                    className="border-0 bg-transparent text-center fw-bold shadow-none"
+                    value={m}
+                    onChange={e => onChange(`${h}:${e.target.value} ${ampm}`)}
+                    style={{ flex: '1 1 25%', appearance: 'none' }}
+                >
+                    {Array.from({ length: 60 }, (_, i) => {
+                        const val = i.toString().padStart(2, '0');
+                        return <option key={`m-${val}`} value={val}>{val}</option>;
+                    })}
+                </Form.Select>
+                <Form.Select
+                    className="border-0 bg-light text-center fw-black text-primary shadow-none"
+                    value={ampm}
+                    onChange={e => onChange(`${h}:${m} ${e.target.value}`)}
+                    style={{ flex: '1 1 35%' }}
+                >
+                    <option value="AM">AM</option>
+                    <option value="PM">PM</option>
+                </Form.Select>
+                <InputGroup.Text className="border-0 bg-light text-muted ps-2 pe-3">
+                    <i className="bi bi-clock"></i>
+                </InputGroup.Text>
+            </InputGroup>
+        </Form.Group>
+    );
 };
 
 const AdminDashboard = () => {
@@ -2292,20 +2356,11 @@ const AdminDashboard = () => {
                                                 </Col>
                                                 <Col md={6}>
                                                     <Form.Group>
-                                                        <Form.Label className="small fw-bold">Time (Local) <Badge bg="light" text="dark" className="ms-2 border">{createForm.time}</Badge></Form.Label>
-                                                        <Form.Control
-                                                            type="time"
-                                                            value={parseTime12to24(createForm.time) || ''}
-                                                            onKeyDown={(e) => e.preventDefault()}
-                                                            onClick={(e) => e.target.showPicker?.()}
-                                                            onChange={e => {
-                                                                const val24 = e.target.value;
-                                                                if (!val24) return;
-                                                                const [h, m] = val24.split(':');
-                                                                const date = new Date();
-                                                                date.setHours(parseInt(h), parseInt(m));
-                                                                setCreateForm({ ...createForm, time: formatTime24to12(date) });
-                                                            }}
+                                                        <CustomTimePicker
+                                                            label="Time (Local)"
+                                                            value={createForm.time}
+                                                            onChange={(newTime) => setCreateForm({ ...createForm, time: newTime })}
+                                                            size="md"
                                                         />
                                                     </Form.Group>
                                                 </Col>
@@ -3062,20 +3117,12 @@ const AdminDashboard = () => {
                                                                 <Form.Control size="sm" type="date" value={editDate} onChange={e => setEditDate(e.target.value)} />
                                                             </Col>
                                                             <Col md={4}>
-                                                                <Form.Label className="x-small fw-black text-uppercase text-muted">Time (Local) <Badge bg="light" text="dark" className="ms-2 border">{editTime}</Badge></Form.Label>
-                                                                <Form.Control
+                                                                <CustomTimePicker
+                                                                    label="Time (Local)"
+                                                                    value={editTime}
+                                                                    onChange={(newTime) => setEditTime(newTime)}
                                                                     size="sm"
-                                                                    type="time"
-                                                                    value={parseTime12to24(editTime) || ''}
-                                                                    onClick={(e) => e.target.showPicker?.()}
-                                                                    onChange={e => {
-                                                                        const val24 = e.target.value;
-                                                                        if (!val24) return;
-                                                                        const [h, m] = val24.split(':');
-                                                                        const date = new Date();
-                                                                        date.setHours(parseInt(h), parseInt(m));
-                                                                        setEditTime(formatTime24to12(date));
-                                                                    }}
+                                                                    editDisplay={true}
                                                                 />
                                                             </Col>
                                                             <Col md={4} className="d-flex align-items-end">
