@@ -376,9 +376,77 @@ const FullScorecard = () => {
                                         </div>
                                     </div>
 
-                                    <h2 className="fw-black mb-3 text-uppercase letter-spacing-1 text-nowrap">
+                                    <h2 className="fw-black mb-1 text-uppercase letter-spacing-1 text-nowrap">
                                         {match.teamA} <span className="text-primary mx-1">VS</span> {match.teamB}
                                     </h2>
+
+                                    {match.competitionType === 'series' && (
+                                        <div className="mb-4">
+                                            <div className="text-secondary fw-bold mb-2 pb-1" style={{ letterSpacing: '1px' }}>
+                                                Match {match.matchNumber} of {seriesData ? seriesData.matches.length : '?'}
+                                            </div>
+                                            {seriesData && (() => {
+                                                let teamAWins = 0;
+                                                let teamBWins = 0;
+                                                seriesData.matches.forEach(m => {
+                                                    if (m.status === 'completed') {
+                                                        let w = m.winner;
+                                                        if (!w && m.innings && m.innings.length >= 2) {
+                                                            let inn1, inn2;
+                                                            if (m.innings.length >= 4) {
+                                                                inn1 = m.innings[m.innings.length - 2];
+                                                                inn2 = m.innings[m.innings.length - 1];
+                                                            } else {
+                                                                inn1 = m.innings[0];
+                                                                inn2 = m.innings[1];
+                                                            }
+                                                            if (inn1.runs > inn2.runs) w = inn1.team;
+                                                            else if (inn2.runs > inn1.runs) w = inn2.team;
+                                                        }
+                                                        if (w && w !== 'Draw' && w !== 'Tie' && w !== 'Abandoned') {
+                                                            if (w.toLowerCase() === (m.teamA || '').toLowerCase()) teamAWins++;
+                                                            else if (w.toLowerCase() === (m.teamB || '').toLowerCase()) teamBWins++;
+                                                        }
+                                                    }
+                                                });
+                                                const totalReq = Math.floor(seriesData.matches.length / 2) + 1;
+                                                let seriesStatusStr = '';
+                                                if (teamAWins === teamBWins) {
+                                                    seriesStatusStr = `Tied ${teamAWins} - ${teamBWins}`;
+                                                } else {
+                                                    const leader = teamAWins > teamBWins ? (seriesData.matches[0]?.teamA || 'Team A') : (seriesData.matches[0]?.teamB || 'Team B');
+                                                    seriesStatusStr = `${leader} ${Math.max(teamAWins, teamBWins)} - ${Math.min(teamAWins, teamBWins)}`;
+                                                }
+
+                                                return (
+                                                    <div className="fw-black text-dark mb-4 p-2 bg-light rounded d-inline-block shadow-sm">
+                                                        Series Lead : <span className="text-primary">{seriesStatusStr}</span>
+                                                    </div>
+                                                );
+                                            })()}
+                                            {seriesData && seriesData.matches && seriesData.matches.length > 0 && (
+                                                <div className="d-flex overflow-auto gap-2 mb-4 pb-2 pb-md-0 no-scrollbar" style={{ whiteSpace: 'nowrap', maxWidth: '100%' }}>
+                                                    {[...seriesData.matches].sort((a, b) => (a.matchNumber || 0) - (b.matchNumber || 0)).map(sm => {
+                                                        const isCurrent = sm.id === match.id || sm._id === match._id;
+                                                        let statusSuffix = '';
+                                                        if (sm.status === 'upcoming') statusSuffix = '(Upcoming)';
+                                                        else if (sm.status === 'completed') statusSuffix = '(Completed)';
+
+                                                        return (
+                                                            <Link
+                                                                key={sm._id || sm.id}
+                                                                to={`/match/${sm._id || sm.id}`}
+                                                                className={`btn btn-sm px-4 fw-bold rounded-pill border shadow-sm ${isCurrent ? 'btn-primary border-primary' : 'btn-white text-secondary'}`}
+                                                                style={{ minWidth: 'max-content' }}
+                                                            >
+                                                                Match {sm.matchNumber} {statusSuffix && <span className="opacity-75 small">{statusSuffix}</span>}
+                                                            </Link>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
 
                                     <div className="d-flex flex-wrap justify-content-center justify-content-lg-start gap-2 text-muted small">
                                         <div className="d-flex align-items-center gap-2 bg-white px-2 py-1 rounded-3 border shadow-sm">
@@ -433,15 +501,15 @@ const FullScorecard = () => {
                                                     </h5>
 
                                                     {match.manOfTheMatch && (
-                                                        <div className="mt-1 pt-2 border-top d-flex align-items-center gap-3">
-                                                            <div className="bg-warning bg-opacity-10 p-2 rounded-circle border border-warning border-opacity-20 shadow-sm">
-                                                                <i className="bi bi-award-fill text-warning fs-5"></i>
+                                                        <div className="mt-1 pt-3 border-top d-flex align-items-center gap-3">
+                                                            <div>
+                                                                <i className="bi bi-star-fill shadow-sm rounded-circle p-2 bg-white" style={{ color: '#F4B400', fontSize: '1.2rem', border: '1px solid #f8e5b4' }}></i>
                                                             </div>
                                                             <div>
-                                                                <div className="x-small fw-black text-uppercase text-muted letter-spacing-1" style={{ fontSize: '9px' }}>Man of the Match</div>
-                                                                <h4 className="fw-black text-primary mb-0 text-uppercase letter-spacing-1">
-                                                                    {match.manOfTheMatch}
-                                                                </h4>
+                                                                <div className="x-small fw-bold text-muted letter-spacing-1">Man of the Match</div>
+                                                                <h5 className="fw-black text-dark mb-0 letter-spacing-1">
+                                                                    {match.manOfTheMatch.toUpperCase()}
+                                                                </h5>
                                                             </div>
                                                         </div>
                                                     )}
