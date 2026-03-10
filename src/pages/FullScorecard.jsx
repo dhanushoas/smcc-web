@@ -474,9 +474,6 @@ const FullScorecard = () => {
                                 <Col lg={5}>
                                     {(match.status === 'completed' || (match.status === 'live' && match.score?.target)) && (
                                         <div className="bg-white p-3 rounded-4 border shadow-sm position-relative overflow-hidden">
-                                            <div className="position-absolute top-0 end-0 p-3 opacity-10">
-                                                <i className="bi bi-trophy fs-1"></i>
-                                            </div>
                                             {match.status === 'completed' ? (
                                                 <div className="position-relative">
                                                     <div className="d-flex align-items-center justify-content-between mb-2">
