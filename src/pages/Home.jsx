@@ -142,6 +142,7 @@ const Home = () => {
                                         {match.currentBatsmen.map((b, idx) => (
                                             <div key={idx} className="text-truncate fw-bold text-dark d-flex align-items-center mb-1">
                                                 <span className="text-truncate">
+                                                    {b.onStrike && <span style={{ color: '#FF7A00', marginRight: '4px', fontSize: '0.9rem' }}>🏏</span>}
                                                     {b.name} {b.onStrike ? '*' : ''} <span className="fw-black text-primary ms-1">{b.runs || 0} <span className="text-muted small fw-bold">({b.balls || 0})</span></span>
                                                 </span>
                                             </div>
@@ -162,8 +163,8 @@ const Home = () => {
                                                     const ballStr = ball.toString().toUpperCase();
                                                     const isFour = ballStr === '4';
                                                     const isSix = ballStr === '6';
-                                                    const isWicket = ballStr.startsWith('W') || ballStr === 'OUT';
-                                                    const isExtra = ballStr.startsWith('WD') || ballStr.startsWith('NB') || ballStr.startsWith('LB') || ballStr.startsWith('B');
+                                                    const isWicket = (ballStr.startsWith('W') && !ballStr.startsWith('W+') && !ballStr.includes('OV')) || ballStr === 'OUT';
+                                                    const isExtra = ballStr.startsWith('W+') || ballStr.startsWith('WD') || ballStr.startsWith('NB') || ballStr.startsWith('LB') || ballStr.startsWith('B') || ballStr.includes('OV');
 
                                                     let badgeClass = 'bg-white text-dark border';
                                                     if (isSix) badgeClass = 'bg-primary text-white border-primary';
@@ -225,8 +226,11 @@ const Home = () => {
                                             }
                                         })().toUpperCase()}</span>
                                         {match.manOfTheMatch && (
-                                            <span className="x-small text-muted fw-black bg-light px-2 py-1 rounded border">
-                                                🥇 {match.manOfTheMatch.toUpperCase()}
+                                            <span className="x-small text-muted fw-black bg-light px-2 py-1 rounded border d-flex align-items-center">
+                                                <div className="d-inline-flex align-items-center justify-content-center rounded-circle me-1" style={{ backgroundColor: '#FBBF24', width: '20px', height: '20px' }}>
+                                                    <i className="bi bi-trophy-fill" style={{ color: '#111827', fontSize: '0.7rem' }}></i>
+                                                </div>
+                                                {match.manOfTheMatch.toUpperCase()}
                                             </span>
                                         )}
                                     </div>
@@ -328,6 +332,7 @@ const Home = () => {
                                                     {m.currentBatsmen.map((b, idx) => (
                                                         <div key={idx} className="text-truncate fw-bold text-dark d-flex align-items-center mb-1">
                                                             <span className="text-truncate">
+                                                                {b.onStrike && <span style={{ color: '#FF7A00', marginRight: '4px', fontSize: '0.9rem' }}>🏏</span>}
                                                                 {b.name} {b.onStrike ? '*' : ''} <span className="fw-black text-primary ms-1">{b.runs || 0} <span className="text-muted small fw-bold">({b.balls || 0})</span></span>
                                                             </span>
                                                         </div>
@@ -348,8 +353,8 @@ const Home = () => {
                                                                 const ballStr = ball.toString().toUpperCase();
                                                                 const isFour = ballStr === '4';
                                                                 const isSix = ballStr === '6';
-                                                                const isWicket = ballStr.startsWith('W') || ballStr === 'OUT';
-                                                                const isExtra = ballStr.startsWith('WD') || ballStr.startsWith('NB') || ballStr.startsWith('LB') || ballStr.startsWith('B');
+                                                                const isWicket = (ballStr.startsWith('W') && !ballStr.startsWith('W+') && !ballStr.includes('OV')) || ballStr === 'OUT';
+                                                                const isExtra = ballStr.startsWith('W+') || ballStr.startsWith('WD') || ballStr.startsWith('NB') || ballStr.startsWith('LB') || ballStr.startsWith('B') || ballStr.includes('OV');
 
                                                                 let badgeClass = 'bg-white text-dark border';
                                                                 if (isSix) badgeClass = 'bg-primary text-white border-primary';
@@ -410,8 +415,11 @@ const Home = () => {
                                                         }
                                                     })().toUpperCase()}</span>
                                                     {m.manOfTheMatch && (
-                                                        <span className="x-small text-muted fw-black bg-light px-2 py-1 rounded border">
-                                                            🥇 {m.manOfTheMatch.toUpperCase()}
+                                                        <span className="x-small text-muted fw-black bg-light px-2 py-1 rounded border d-flex align-items-center mt-2 mx-auto" style={{ width: 'fit-content' }}>
+                                                            <div className="d-inline-flex align-items-center justify-content-center rounded-circle me-1" style={{ backgroundColor: '#FBBF24', width: '20px', height: '20px' }}>
+                                                                <i className="bi bi-trophy-fill" style={{ color: '#111827', fontSize: '0.7rem' }}></i>
+                                                            </div>
+                                                            {m.manOfTheMatch.toUpperCase()}
                                                         </span>
                                                     )}
                                                 </div>

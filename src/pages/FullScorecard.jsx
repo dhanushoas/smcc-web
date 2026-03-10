@@ -236,7 +236,7 @@ const FullScorecard = () => {
                     head: [['Batter', 'Status', 'Runs', 'Balls', 'Fours', 'Sixes', 'Strike Rate']],
                     body: [
                         ...battingData,
-                        ['Extras', '', extras.total, `(Wide: ${extras.wides}, No Ball: ${extras.noBalls}, Bye: ${extras.byes}, Leg Bye: ${extras.legByes})`, '', '', '']
+                        ['Extras', '', extras.total, `(W ${extras.wides}, NB ${extras.noBalls}, B ${extras.byes}, LB ${extras.legByes})`, '', '', '']
                     ],
                     theme: 'grid',
                     headStyles: { fillColor: [0, 146, 112] }
@@ -502,8 +502,8 @@ const FullScorecard = () => {
 
                                                     {match.manOfTheMatch && (
                                                         <div className="mt-1 pt-3 border-top d-flex align-items-center gap-3">
-                                                            <div>
-                                                                <i className="bi bi-star-fill shadow-sm rounded-circle p-2 bg-white" style={{ color: '#F4B400', fontSize: '1.2rem', border: '1px solid #f8e5b4' }}></i>
+                                                            <div className="d-inline-flex align-items-center justify-content-center rounded-circle shadow-sm" style={{ width: '40px', height: '40px', backgroundColor: '#FBBF24' }}>
+                                                                <i className="bi bi-trophy-fill" style={{ color: '#111827', fontSize: '1.2rem' }}></i>
                                                             </div>
                                                             <div>
                                                                 <div className="x-small fw-bold text-muted letter-spacing-1">Man of the Match</div>
@@ -643,10 +643,7 @@ const FullScorecard = () => {
                                                                             <td colSpan={5} className="ps-3 fw-black fs-5">
                                                                                 {match.innings[activeInnings].extras?.total || 0}
                                                                                 <small className="ms-3 text-muted fw-bold text-uppercase" style={{ fontSize: '0.75rem' }}>
-                                                                                    (Wide Ball: {match.innings[activeInnings].extras?.wides || 0},
-                                                                                    No Ball: {match.innings[activeInnings].extras?.noBalls || 0},
-                                                                                    Bye: {match.innings[activeInnings].extras?.byes || 0},
-                                                                                    Leg Bye: {match.innings[activeInnings].extras?.legByes || 0})
+                                                                                    (W {match.innings[activeInnings].extras?.wides || 0}, NB {match.innings[activeInnings].extras?.noBalls || 0}, B {match.innings[activeInnings].extras?.byes || 0}, LB {match.innings[activeInnings].extras?.legByes || 0})
                                                                                 </small>
                                                                             </td>
                                                                         </tr>

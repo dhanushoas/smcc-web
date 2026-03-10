@@ -1084,7 +1084,7 @@ const AdminDashboard = () => {
                     currentInnings.runs += amount;
                     if (value === 'w') {
                         // Wide Ball: 1 penalty + runs ran = total Wides
-                        updatedMatch.score.thisOver.push('WD' + amount);
+                        updatedMatch.score.thisOver.push('W+' + amount);
                         currentInnings.extras.wides = (currentInnings.extras.wides || 0) + amount;
                         currentInnings.extras.total = (currentInnings.extras.total || 0) + amount;
                         currentBowling.bowling[bIdx].runs += amount;
@@ -1099,7 +1099,7 @@ const AdminDashboard = () => {
                     }
                     else if (value === 'nb') {
                         // No Ball: 1 penalty (Extras) + (Runs Ran or Bat Runs)
-                        updatedMatch.score.thisOver.push('NB' + amount);
+                        updatedMatch.score.thisOver.push('NB+' + amount);
                         const penalty = 1;
                         const additionalRuns = Math.max(0, amount - penalty);
                         currentInnings.extras.noBalls = (currentInnings.extras.noBalls || 0) + penalty;
@@ -1129,7 +1129,7 @@ const AdminDashboard = () => {
                         }
                     }
                     else if (value === 'b') {
-                        updatedMatch.score.thisOver.push('B' + amount);
+                        updatedMatch.score.thisOver.push('B+' + amount);
                         currentInnings.extras.byes = (currentInnings.extras.byes || 0) + amount;
                         currentInnings.extras.total = (currentInnings.extras.total || 0) + amount;
                         currentInnings.batting[sIdx].balls += 1;
@@ -1140,7 +1140,7 @@ const AdminDashboard = () => {
                         }
                     }
                     else if (value === 'lb') {
-                        updatedMatch.score.thisOver.push('LB' + amount);
+                        updatedMatch.score.thisOver.push('LB+' + amount);
                         currentInnings.extras.legByes = (currentInnings.extras.legByes || 0) + amount;
                         currentInnings.extras.total = (currentInnings.extras.total || 0) + amount;
                         currentInnings.batting[sIdx].balls += 1;
@@ -1374,26 +1374,30 @@ const AdminDashboard = () => {
                             ballCounts = false;
                             updatedMatch.score.freeHit = true;
                             // Update last ball in thisOver if it was an NB, or push if it's the base ball
+                            const ovString = `NB+${batterRuns + 1}`;
                             if (updatedMatch.score.thisOver.length > 0) {
                                 const last = updatedMatch.score.thisOver[updatedMatch.score.thisOver.length - 1].toString();
                                 if (last.startsWith('NB')) {
-                                    updatedMatch.score.thisOver[updatedMatch.score.thisOver.length - 1] = 'NB' + (parseInt(last.slice(2)) + batterRuns);
+                                    updatedMatch.score.thisOver[updatedMatch.score.thisOver.length - 1] = ovString;
                                 } else {
-                                    updatedMatch.score.thisOver.push('NB' + (batterRuns + 1));
+                                    updatedMatch.score.thisOver.push(ovString);
                                 }
                             } else {
-                                updatedMatch.score.thisOver.push('NB' + (batterRuns + 1));
+                                updatedMatch.score.thisOver.push(ovString);
                             }
                         } else {
+                            // Overthrow records as baseRuns+OVoverthrowRuns
+                            const baseRuns = runsCompleted + (crossedOnThrow ? 1 : 0);
+                            const ovString = `${baseRuns}+OV${overtimeRuns}`;
                             if (updatedMatch.score.thisOver.length > 0) {
                                 let last = updatedMatch.score.thisOver[updatedMatch.score.thisOver.length - 1];
                                 if (!isNaN(last)) {
-                                    updatedMatch.score.thisOver[updatedMatch.score.thisOver.length - 1] = parseInt(last) + batterRuns;
+                                    updatedMatch.score.thisOver[updatedMatch.score.thisOver.length - 1] = ovString;
                                 } else {
-                                    updatedMatch.score.thisOver.push(batterRuns);
+                                    updatedMatch.score.thisOver.push(ovString);
                                 }
                             } else {
-                                updatedMatch.score.thisOver.push(batterRuns);
+                                updatedMatch.score.thisOver.push(ovString);
                             }
                             currentInnings.batting[sIdx].balls += 0; // Overthrow doesn't add a ball to batter stats
                         }
@@ -1414,15 +1418,16 @@ const AdminDashboard = () => {
                         currentBowling.bowling[bIdx].noBalls = (currentBowling.bowling[bIdx].noBalls || 0) + 1;
                         ballCounts = false;
                         updatedMatch.score.freeHit = true;
+                        const ovString = `NB+${totalRuns + nbPenalty}`;
                         if (updatedMatch.score.thisOver.length > 0) {
                             const last = updatedMatch.score.thisOver[updatedMatch.score.thisOver.length - 1].toString();
                             if (last.startsWith('NB')) {
-                                updatedMatch.score.thisOver[updatedMatch.score.thisOver.length - 1] = 'NB' + (parseInt(last.slice(2)) + totalRuns);
+                                updatedMatch.score.thisOver[updatedMatch.score.thisOver.length - 1] = ovString;
                             } else {
-                                updatedMatch.score.thisOver.push('NB' + (totalRuns + nbPenalty));
+                                updatedMatch.score.thisOver.push(ovString);
                             }
                         } else {
-                            updatedMatch.score.thisOver.push('NB' + (totalRuns + nbPenalty));
+                            updatedMatch.score.thisOver.push(ovString);
                         }
                     } else if (ballType === 'w') {
                         // Wide + Runs
@@ -1433,7 +1438,7 @@ const AdminDashboard = () => {
                         currentBowling.bowling[bIdx].runs += (currentBowling.bowling[bIdx].runs || 0) + (totalRuns + widePenalty);
                         currentBowling.bowling[bIdx].wides = (currentBowling.bowling[bIdx].wides || 0) + 1;
                         ballCounts = false;
-                        updatedMatch.score.thisOver.push('WD' + (totalRuns + widePenalty));
+                        updatedMatch.score.thisOver.push('W+' + (totalRuns + widePenalty));
                     } else if (ballType === 'b' || ballType === 'lb') {
                         // Bye/Leg Bye + Runs
                         currentInnings.runs += totalRuns;
@@ -1441,7 +1446,7 @@ const AdminDashboard = () => {
                         else currentInnings.extras.legByes = (currentInnings.extras.legByes || 0) + totalRuns;
                         currentInnings.extras.total = (currentInnings.extras.total || 0) + totalRuns;
                         currentInnings.batting[sIdx].balls += 1;
-                        updatedMatch.score.thisOver.push((ballType === 'b' ? 'B' : 'LB') + totalRuns);
+                        updatedMatch.score.thisOver.push((ballType === 'b' ? 'B+' : 'LB+') + totalRuns);
                     }
 
                     // Strike Rotation: Total runs determine if they swap
@@ -2035,7 +2040,7 @@ const AdminDashboard = () => {
                             </Form.Select>
                             {selectedMatch?.score?.thisOver?.length > 0 && selectedMatch.bowler && (
                                 <div className="mt-2 p-2 bg-warning bg-opacity-10 border border-warning rounded-3 small text-warning-emphasis fw-bold">
-                                    🩹 Replacing bowler mid-over. Remaining balls: {BALLS_PER_OVER - selectedMatch.score.thisOver.filter(b => !/WD|NB/i.test(b.toString())).length}
+                                    🩹 Replacing bowler mid-over. Remaining balls: {BALLS_PER_OVER - selectedMatch.score.thisOver.filter(b => !/(W\+|WD|NB)/i.test(b.toString())).length}
                                 </div>
                             )}
                         </Form.Group>
@@ -2828,7 +2833,7 @@ const AdminDashboard = () => {
                                                                     <Button variant="outline-success" size="lg" className="px-3 fw-bold shadow-sm" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => {
                                                                         if (selectedMatch?.score?.thisOver?.length > 0) {
                                                                             const overBalls = selectedMatch.score.thisOver;
-                                                                            const legalBalls = overBalls.filter(b => !/WD|NB/i.test(b.toString())).length;
+                                                                            const legalBalls = overBalls.filter(b => !/(W\+|WD|NB)/i.test(b.toString())).length;
                                                                             const remaining = BALLS_PER_OVER - legalBalls;
                                                                             if (remaining > 0) {
                                                                                 toast(`A bowler has been replaced due to injury. There are ${pluralize(remaining, 'Ball')} remaining in this over.`, { icon: '🩹' });
@@ -2958,8 +2963,8 @@ const AdminDashboard = () => {
                                                                         <div className="d-flex gap-2">
                                                                             {selectedMatch.score.thisOver.map((ball, idx) => {
                                                                                 const bStr = ball.toString().toUpperCase();
-                                                                                const isWicket = bStr.startsWith('W') || bStr === 'OUT';
-                                                                                const isExtra = bStr.startsWith('WD') || bStr.startsWith('NB') || bStr.startsWith('LB') || bStr.startsWith('B');
+                                                                                const isWicket = (bStr.startsWith('W') && !bStr.startsWith('W+')) || bStr === 'OUT';
+                                                                                const isExtra = bStr.startsWith('W+') || bStr.startsWith('WD') || bStr.startsWith('NB') || bStr.startsWith('LB') || bStr.startsWith('B');
                                                                                 const isBound = bStr === '4' || bStr === '6';
 
                                                                                 let bgClass = 'bg-white border';
