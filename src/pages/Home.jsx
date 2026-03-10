@@ -502,10 +502,24 @@ const Home = () => {
             }
 
             if (computedStatus === 'completed' || computedStatus === 'CANCELLED') {
-                if (computedStatus === 'completed' && m.winner) {
-                    if (m.winner !== 'Draw' && m.winner !== 'Tie' && m.winner !== 'Abandoned') {
-                        if (m.winner === m.teamA) teamAWins++;
-                        if (m.winner === m.teamB) teamBWins++;
+                if (computedStatus === 'completed') {
+                    let w = m.winner;
+                    if (!w && m.innings && m.innings.length >= 2) {
+                        let inn1, inn2;
+                        if (m.innings.length >= 4) {
+                            inn1 = m.innings[m.innings.length - 2];
+                            inn2 = m.innings[m.innings.length - 1];
+                        } else {
+                            inn1 = m.innings[0];
+                            inn2 = m.innings[1];
+                        }
+                        if (inn1.runs > inn2.runs) w = inn1.team;
+                        else if (inn2.runs > inn1.runs) w = inn2.team;
+                    }
+
+                    if (w && w !== 'Draw' && w !== 'Tie' && w !== 'Abandoned') {
+                        if (w.toLowerCase() === (m.teamA || '').toLowerCase()) teamAWins++;
+                        else if (w.toLowerCase() === (m.teamB || '').toLowerCase()) teamBWins++;
                     }
                 }
             }
