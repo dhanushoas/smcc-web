@@ -16,6 +16,7 @@ const Home = () => {
     const [matches, setMatches] = useState([]); // Array of match objects from API
     const [loading, setLoading] = useState(true); // Initial load state
     const [activeSeries, setActiveSeries] = useState('ALL'); // Series filter state
+    const [completedFilter, setCompletedFilter] = useState('ALL'); // Completed section competition type filter
 
     const [blastValue, setBlastValue] = useState(0);
     const [blastMatchId, setBlastMatchId] = useState(null);
@@ -111,25 +112,28 @@ const Home = () => {
                     </div>
 
                     <div className="p-3">
-                        <div className="d-flex justify-content-between align-items-center mb-2">
-                            <span className="fw-black fs-5 text-dark">
-                                {match.teamA}
-                            </span>
-                            <span className="fw-black fs-5">
-                                {(match.status === 'live' || isCompleted) ? (match.innings?.[0]?.runs || 0) + ' / ' + (match.innings?.[0]?.wickets || 0) : ''}
-                                <small className="text-dark ms-2 x-small fw-bold">{(match.status === 'live' || isCompleted) ? '(' + pluralize(match.innings?.[0]?.overs || 0, 'Over') + ')' : ''}</small>
-                            </span>
-                        </div>
-
-                        <div className="d-flex justify-content-between align-items-center mb-3">
-                            <span className="fw-black fs-5 text-dark">
-                                {match.teamB}
-                            </span>
-                            <span className="fw-black fs-5">
-                                {(match.status === 'live' || isCompleted) ? (match.innings?.[1]?.runs || 0) + ' / ' + (match.innings?.[1]?.wickets || 0) : ''}
-                                <small className="text-dark ms-2 x-small fw-bold">{(match.status === 'live' || isCompleted) ? '(' + pluralize(match.innings?.[1]?.overs || 0, 'Over') + ')' : ''}</small>
-                            </span>
-                        </div>
+                        <Row className="g-1 mb-2">
+                            <Col xs={12} sm={6}>
+                                <div className="fw-black fs-5 text-dark">{match.teamA}</div>
+                            </Col>
+                            <Col xs={12} sm={6} className="text-sm-end">
+                                <span className="fw-black fs-5">
+                                    {(match.status === 'live' || isCompleted) ? (match.innings?.[0]?.runs || 0) + ' / ' + (match.innings?.[0]?.wickets || 0) : ''}
+                                    <small className="text-muted ms-2 x-small fw-bold">{(match.status === 'live' || isCompleted) ? '(' + pluralize(match.innings?.[0]?.overs || 0, 'Over') + ')' : ''}</small>
+                                </span>
+                            </Col>
+                        </Row>
+                        <Row className="g-1 mb-3">
+                            <Col xs={12} sm={6}>
+                                <div className="fw-black fs-5 text-dark">{match.teamB}</div>
+                            </Col>
+                            <Col xs={12} sm={6} className="text-sm-end">
+                                <span className="fw-black fs-5">
+                                    {(match.status === 'live' || isCompleted) ? (match.innings?.[1]?.runs || 0) + ' / ' + (match.innings?.[1]?.wickets || 0) : ''}
+                                    <small className="text-muted ms-2 x-small fw-bold">{(match.status === 'live' || isCompleted) ? '(' + pluralize(match.innings?.[1]?.overs || 0, 'Over') + ')' : ''}</small>
+                                </span>
+                            </Col>
+                        </Row>
 
                         {isLive && match.currentBatsmen && match.currentBatsmen.length > 0 && (
                             <div className="mb-3 small bg-light p-2 rounded border shadow-sm">
@@ -153,7 +157,7 @@ const Home = () => {
                                         <div className="text-truncate fw-bold text-dark mb-1 d-flex align-items-center">
                                             <div className="d-inline-flex align-items-center justify-content-center rounded-circle me-1 border"
                                                 style={{ width: '22px', height: '22px', backgroundColor: '#f1f5f9', fontSize: '0.8rem' }}>
-                                                <span title="Bowler">⚾</span>
+                                                <i className="bi bi-cricket text-muted"></i>
                                             </div>
                                             <span className="text-truncate">{match.currentBowler || '...'}</span>
                                         </div>
@@ -183,7 +187,7 @@ const Home = () => {
                                                             animate={{ scale: 1, rotate: 0, opacity: 1, filter: 'brightness(1)' }}
                                                             transition={{ type: 'spring', stiffness: 300, damping: 15 }}
                                                             className={`badge fw-bold d-inline-flex align-items-center justify-content-center p-0 ${badgeClass}`}
-                                                            style={{ minWidth: '20px', height: '20px', fontSize: '0.65rem' }}
+                                                            style={{ minWidth: '24px', height: '24px', fontSize: '0.7rem', padding: '0 4px' }}
                                                         >
                                                             {ball}
                                                         </motion.span>
@@ -201,8 +205,8 @@ const Home = () => {
                                 {isCompleted ? (
                                     <div className="d-flex align-items-center justify-content-between p-2 rounded-3" style={{ backgroundColor: '#FFF7D6', border: '1px solid #FDE68A' }}>
                                         <div className="d-flex align-items-center gap-2">
-                                            <div className="d-inline-flex align-items-center justify-content-center rounded-circle border border-warning" style={{ backgroundColor: '#FFF7D6', width: '28px', height: '28px' }}>
-                                                <i className="bi bi-trophy-fill" style={{ color: '#F59E0B', fontSize: '1rem' }}></i>
+                                            <div className="d-inline-flex align-items-center justify-content-center rounded-circle border border-warning shadow-sm" style={{ backgroundColor: '#FFF7D6', width: '32px', height: '32px' }}>
+                                                <i className="bi bi-trophy-fill" style={{ color: '#F59E0B', fontSize: '1.2rem' }}></i>
                                             </div>
                                             <span className="fw-black text-dark x-small letter-spacing-1">{(() => {
                                                 const innings = match.innings || [];
@@ -232,9 +236,7 @@ const Home = () => {
                                         </div>
                                         {match.manOfTheMatch && (
                                             <span className="x-small text-muted fw-black bg-white px-2 py-1 rounded border d-flex align-items-center shadow-sm">
-                                                <div className="d-inline-flex align-items-center justify-content-center rounded-circle me-1" style={{ backgroundColor: '#FBBF24', width: '18px', height: '18px' }}>
-                                                    <i className="bi bi-medal-fill" style={{ color: '#111827', fontSize: '0.7rem' }}></i>
-                                                </div>
+                                                <i className="bi bi-award-fill text-warning me-1" style={{ fontSize: '1rem' }}></i>
                                                 <span style={{ lineHeight: '1' }}>{match.manOfTheMatch.toUpperCase()}</span>
                                             </span>
                                         )}
@@ -311,20 +313,28 @@ const Home = () => {
                                 </div>
 
                                 <div className="p-3">
-                                    <div className="d-flex justify-content-between align-items-center mb-2">
-                                        <span className={`fw-black fs-5 ${isCancelled || isLocked ? 'text-muted' : 'text-dark'}`}>{m.teamA}</span>
-                                        <span className={`fw-black fs-5 ${isCancelled || isLocked ? 'text-muted' : ''}`}>
-                                            {(isLive || isCompleted) ? (m.innings?.[0]?.runs || 0) + ' / ' + (m.innings?.[0]?.wickets || 0) : ''}
-                                            <small className="ms-2 x-small fw-bold">{(isLive || isCompleted) ? '(' + pluralize(m.innings?.[0]?.overs || 0, 'Over') + ')' : ''}</small>
-                                        </span>
-                                    </div>
-                                    <div className="d-flex justify-content-between align-items-center mb-3">
-                                        <span className={`fw-black fs-5 ${isCancelled || isLocked ? 'text-muted' : 'text-dark'}`}>{m.teamB}</span>
-                                        <span className={`fw-black fs-5 ${isCancelled || isLocked ? 'text-muted' : ''}`}>
-                                            {(isLive || isCompleted) ? (m.innings?.[1]?.runs || 0) + ' / ' + (m.innings?.[1]?.wickets || 0) : ''}
-                                            <small className="ms-2 x-small fw-bold">{(isLive || isCompleted) ? '(' + pluralize(m.innings?.[1]?.overs || 0, 'Over') + ')' : ''}</small>
-                                        </span>
-                                    </div>
+                                    <Row className="g-1 mb-2">
+                                        <Col xs={12} sm={6}>
+                                            <div className={`fw-black fs-5 ${isCancelled || isLocked ? 'text-muted' : 'text-dark'}`}>{m.teamA}</div>
+                                        </Col>
+                                        <Col xs={12} sm={6} className="text-sm-end">
+                                            <span className={`fw-black fs-5 ${isCancelled || isLocked ? 'text-muted' : ''}`}>
+                                                {(isLive || isCompleted) ? (m.innings?.[0]?.runs || 0) + ' / ' + (m.innings?.[0]?.wickets || 0) : ''}
+                                                <small className="ms-2 x-small fw-bold">{(isLive || isCompleted) ? '(' + pluralize(m.innings?.[0]?.overs || 0, 'Over') + ')' : ''}</small>
+                                            </span>
+                                        </Col>
+                                    </Row>
+                                    <Row className="g-1 mb-3">
+                                        <Col xs={12} sm={6}>
+                                            <div className={`fw-black fs-5 ${isCancelled || isLocked ? 'text-muted' : 'text-dark'}`}>{m.teamB}</div>
+                                        </Col>
+                                        <Col xs={12} sm={6} className="text-sm-end">
+                                            <span className={`fw-black fs-5 ${isCancelled || isLocked ? 'text-muted' : ''}`}>
+                                                {(isLive || isCompleted) ? (m.innings?.[1]?.runs || 0) + ' / ' + (m.innings?.[1]?.wickets || 0) : ''}
+                                                <small className="ms-2 x-small fw-bold">{(isLive || isCompleted) ? '(' + pluralize(m.innings?.[1]?.overs || 0, 'Over') + ')' : ''}</small>
+                                            </span>
+                                        </Col>
+                                    </Row>
 
                                     {isLive && m.currentBatsmen && m.currentBatsmen.length > 0 && (
                                         <div className="mb-3 small bg-light p-2 rounded border shadow-sm">
@@ -348,7 +358,7 @@ const Home = () => {
                                                     <div className="text-truncate fw-bold text-dark mb-1 d-flex align-items-center">
                                                         <div className="d-inline-flex align-items-center justify-content-center rounded-circle me-1 border"
                                                             style={{ width: '22px', height: '22px', backgroundColor: '#f1f5f9', fontSize: '0.8rem' }}>
-                                                            <span title="Bowler">⚾</span>
+                                                            <i className="bi bi-cricket text-muted"></i>
                                                         </div>
                                                         <span className="text-truncate">{m.currentBowler || '...'}</span>
                                                     </div>
@@ -378,7 +388,7 @@ const Home = () => {
                                                                         animate={{ scale: 1, rotate: 0, opacity: 1, filter: 'brightness(1)' }}
                                                                         transition={{ type: 'spring', stiffness: 300, damping: 15 }}
                                                                         className={`badge fw-bold d-inline-flex align-items-center justify-content-center p-0 ${badgeClass}`}
-                                                                        style={{ minWidth: '20px', height: '20px', fontSize: '0.65rem' }}
+                                                                        style={{ minWidth: '24px', height: '24px', fontSize: '0.7rem', padding: '0 4px' }}
                                                                     >
                                                                         {ball}
                                                                     </motion.span>
@@ -395,8 +405,8 @@ const Home = () => {
                                         {isCompleted ? (
                                             <div className="d-flex align-items-center justify-content-between">
                                                 <div className="d-flex align-items-center gap-2">
-                                                    <div className="d-inline-flex align-items-center justify-content-center rounded-circle border border-warning" style={{ backgroundColor: '#FFF7D6', width: '28px', height: '28px' }}>
-                                                        <i className="bi bi-trophy-fill" style={{ color: '#F59E0B', fontSize: '1rem' }}></i>
+                                                    <div className="d-inline-flex align-items-center justify-content-center rounded-circle border border-warning shadow-sm" style={{ backgroundColor: '#FFF7D6', width: '32px', height: '32px' }}>
+                                                        <i className="bi bi-trophy-fill" style={{ color: '#F59E0B', fontSize: '1.2rem' }}></i>
                                                     </div>
                                                     <span className="fw-black text-dark x-small letter-spacing-1">{(() => {
                                                         const innings = m.innings || [];
@@ -425,9 +435,7 @@ const Home = () => {
                                                 </div>
                                                 {m.manOfTheMatch && (
                                                     <span className="x-small text-muted fw-black bg-white px-2 py-1 rounded border d-flex align-items-center shadow-sm">
-                                                        <div className="d-inline-flex align-items-center justify-content-center rounded-circle me-1" style={{ backgroundColor: '#FBBF24', width: '18px', height: '18px' }}>
-                                                            <i className="bi bi-medal-fill" style={{ color: '#111827', fontSize: '0.7rem' }}></i>
-                                                        </div>
+                                                        <i className="bi bi-award-fill text-warning me-1" style={{ fontSize: '1rem' }}></i>
                                                         <span style={{ lineHeight: '1' }}>{m.manOfTheMatch.toUpperCase()}</span>
                                                     </span>
                                                 )}
@@ -599,6 +607,20 @@ const Home = () => {
         return bTime - aTime;
     });
 
+    const COMPLETED_FILTERS = [
+        { key: 'ALL', label: 'All' },
+        { key: 'head-to-head', label: 'Head-to-Head' },
+        { key: 'series', label: 'Series' },
+        { key: 'tournament', label: 'Tournament' },
+    ];
+
+    const filteredCompletedItems = completedFilter === 'ALL'
+        ? completedItems
+        : completedItems.filter(item => {
+            if (item.type === 'series-group') return completedFilter === 'series';
+            return (item.match.competitionType || 'head-to-head') === completedFilter;
+        });
+
     const renderFeed = (itemsArray) => {
         return itemsArray.map(item => {
             if (item.type === 'series-group') return renderSeriesGroup(item.data);
@@ -627,11 +649,33 @@ const Home = () => {
                         </div>
 
                         <div>
-                            <h5 className="fw-black text-uppercase letter-spacing-2 mb-3">Recently Completed</h5>
-                            {completedItems.length > 0 ? (
-                                renderFeed(completedItems)
+                            <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                                <h5 className="fw-black text-uppercase letter-spacing-2 mb-0">Recently Completed</h5>
+                                <div className="d-flex gap-1 overflow-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+                                    {COMPLETED_FILTERS.map(f => (
+                                        <button
+                                            key={f.key}
+                                            onClick={() => setCompletedFilter(f.key)}
+                                            className={`btn btn-sm fw-bold text-nowrap px-3 ${completedFilter === f.key ? 'btn-primary' : 'btn-outline-secondary'}`}
+                                            style={{ borderRadius: '20px', fontSize: '0.75rem' }}
+                                        >
+                                            {f.key === 'ALL' && <i className="bi bi-grid-fill me-1"></i>}
+                                            {f.key === 'head-to-head' && <i className="bi bi-person-lines-fill me-1"></i>}
+                                            {f.key === 'series' && <i className="bi bi-collection-fill me-1"></i>}
+                                            {f.key === 'tournament' && <i className="bi bi-trophy-fill me-1"></i>}
+                                            {f.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            {filteredCompletedItems.length > 0 ? (
+                                renderFeed(filteredCompletedItems)
                             ) : (
-                                <div className="text-muted small">No recently completed matches.</div>
+                                <div className="bg-white p-5 rounded-3 border text-center shadow-sm">
+                                    <i className="bi bi-info-circle fs-1 text-muted mb-3 d-block"></i>
+                                    <h6 className="fw-black text-muted text-uppercase">No Matches Found</h6>
+                                    <p className="text-muted small mb-0">No completed matches for the selected filter.</p>
+                                </div>
                             )}
                         </div>
                     </Col>

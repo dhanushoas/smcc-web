@@ -63,7 +63,7 @@ const SeriesView = () => {
                     whileHover={{ y: isCancelled ? 0 : -5 }}
                     className={`bg-white border rounded-4 overflow-hidden shadow-sm hover-shadow transition-all ${isCancelled ? 'opacity-75' : ''}`}
                     style={{ cursor: isCancelled ? 'default' : 'pointer' }}
-                    onClick={isCancelled ? null : () => navigate(`/match/${match.id || match._id}`)}
+                    onClick={isCancelled ? null : () => navigate(`/scorecard/${match.id || match._id}`)}
                 >
                     <div className="px-3 py-2 border-bottom bg-light d-flex justify-content-between align-items-center">
                         <span className="x-small fw-black text-muted text-uppercase letter-spacing-1">

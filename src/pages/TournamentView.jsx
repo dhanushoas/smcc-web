@@ -342,7 +342,7 @@ const TournamentView = () => {
                                                             </Badge>
                                                         </td>
                                                         <td>
-                                                            <Button size="sm" variant="link" className="p-0 fw-bold text-primary" onClick={() => navigate(`/match/${m._id || m.id}`)}>
+                                                            <Button size="sm" variant="link" className="p-0 fw-bold text-primary" onClick={() => navigate(`/scorecard/${m._id || m.id}`)}>
                                                                 View
                                                             </Button>
                                                         </td>

@@ -854,7 +854,7 @@ const AdminDashboard = () => {
         let ballCounts = false;
 
         // --- History Logging (Optimized to use ONE clone) ---
-        if (['runs', 'extra', 'wicket', 'swap_strike', 'overthrow'].includes(type) && type !== 'init') {
+        if (['runs', 'extra', 'wicket', 'swap_strike', 'overthrow', 'manual'].includes(type) && type !== 'init') {
             if (!updatedMatch.history) updatedMatch.history = [];
             // Create snapshot from the ALREADY cloned updatedMatch (before modification)
             const { history, ...snapshot } = updatedMatch;
@@ -868,7 +868,7 @@ const AdminDashboard = () => {
             localStriker = updatedMatch.currentBatsmen?.find(b => b.onStrike)?.name || '';
             localNonStriker = updatedMatch.currentBatsmen?.find(b => !b.onStrike)?.name || '';
             localBowler = updatedMatch.currentBowler || '';
-        } else {
+        } else if (type === 'init') {
             // Safety: Ensure innings structure exists and has 2 teams
             if (!updatedMatch.innings || updatedMatch.innings.length < 2) {
                 const template = [
@@ -1880,6 +1880,7 @@ const AdminDashboard = () => {
 
             const updatedMatch = res.data.success ? res.data.data : res.data;
             setSelectedMatch(updatedMatch);
+            fetchMatches(); // Refresh sidebar to show new time
             toast.success("Match start time updated!");
         } catch (err) {
             toast.error(err.response?.data?.message || err.response?.data?.msg || "Failed to update date & time");
@@ -2861,8 +2862,9 @@ const AdminDashboard = () => {
                                             {selectedMatch.status === 'completed' && (
                                                 <div className="text-center w-100 my-4 my-md-5">
                                                     <div className="mb-5 px-4 mx-auto" style={{ width: 'fit-content' }}>
-                                                        <div className="bg-primary bg-opacity-10 py-2 px-3 rounded-pill d-inline-block mb-3 border border-primary border-opacity-10">
-                                                            <Form.Label className="x-small fw-black text-uppercase text-primary m-0">🥇 Man of the Match</Form.Label>
+                                                        <div className="bg-primary bg-opacity-10 py-2 px-3 rounded-pill d-inline-flex align-items-center mb-3 border border-primary border-opacity-10 gap-2">
+                                                            <i className="bi bi-medal-fill text-primary"></i>
+                                                            <Form.Label className="x-small fw-black text-uppercase text-primary m-0">Man of the Match</Form.Label>
                                                         </div>
                                                         <Dropdown as={ButtonGroup} className="d-block shadow-sm rounded-4 overflow-hidden border-2 border-primary border-opacity-10">
                                                             <Dropdown.Toggle
@@ -2973,7 +2975,7 @@ const AdminDashboard = () => {
                                                                                 else if (isExtra) bgClass = 'bg-warning text-dark';
 
                                                                                 return (
-                                                                                    <div key={idx} className={`rounded-circle d-flex align-items-center justify-content-center fw-bold small ${bgClass}`} style={{ width: '25px', height: '25px', fontSize: '10px' }}>
+                                                                                    <div key={idx} className={`rounded-pill d-flex align-items-center justify-content-center fw-bold ${bgClass}`} style={{ minWidth: '26px', height: '26px', fontSize: '0.75rem', padding: '0 4px' }}>
                                                                                         {ball}
                                                                                     </div>
                                                                                 );

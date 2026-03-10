@@ -23,11 +23,20 @@ const FullScorecard = () => {
     const { t } = useApp();
     const [blastValue, setBlastValue] = useState(0);
     const [showBlast, setShowBlast] = useState(false);
+    const [seriesData, setSeriesData] = useState(null);
 
     const fetchMatch = async () => {
         try {
             const res = await axios.get(`${API_URL}/api/matches/${id}`);
             setMatch(res.data);
+            if (res.data.competitionType === 'series' && res.data.seriesId) {
+                try {
+                    const sRes = await axios.get(`${API_URL}/api/series/${res.data.seriesId}`);
+                    setSeriesData(sRes.data.success ? sRes.data.data : sRes.data);
+                } catch (sErr) {
+                    console.error("Error fetching series details", sErr);
+                }
+            }
             if (res.data.status === 'live' || res.data.status === 'completed') {
                 const bTeam = res.data.score?.battingTeam;
                 if (bTeam) {
@@ -455,7 +464,7 @@ const FullScorecard = () => {
                                         </div>
                                         {match.toss?.winner && (
                                             <div className="d-flex align-items-center gap-2 bg-warning bg-opacity-10 px-2 py-1 rounded-3 border border-warning border-opacity-20 shadow-sm">
-                                                <i className="bi bi-universal-access text-warning"></i>
+                                                <i className="bi bi-coin text-warning"></i>
                                                 <span className="fw-bold text-dark x-small">{match.toss.winner} won toss & elected to {match.toss.decision}</span>
                                             </div>
                                         )}
@@ -475,8 +484,8 @@ const FullScorecard = () => {
                                                         <i className="bi bi-star-fill text-warning x-small"></i>
                                                     </div>
                                                     <div className="d-flex align-items-center gap-3 mb-3">
-                                                        <div className="d-inline-flex align-items-center justify-content-center rounded-circle border border-warning" style={{ backgroundColor: '#FFF7D6', width: '48px', height: '48px' }}>
-                                                            <i className="bi bi-trophy-fill" style={{ color: '#F59E0B', fontSize: '1.75rem' }}></i>
+                                                        <div className="d-inline-flex align-items-center justify-content-center rounded-circle border border-warning shadow-sm" style={{ backgroundColor: '#FFF7D6', width: '60px', height: '60px' }}>
+                                                            <i className="bi bi-trophy-fill" style={{ color: '#F59E0B', fontSize: '2.4rem' }}></i>
                                                         </div>
                                                         <h4 className="fw-black text-dark mb-0 letter-spacing-1">
                                                             {(() => {
@@ -508,7 +517,7 @@ const FullScorecard = () => {
                                                     {match.manOfTheMatch && (
                                                         <div className="mt-1 pt-3 border-top d-flex align-items-center gap-3">
                                                             <div className="d-inline-flex align-items-center justify-content-center rounded-circle shadow-sm" style={{ width: '40px', height: '40px', backgroundColor: '#FBBF24' }}>
-                                                                <i className="bi bi-medal-fill" style={{ color: '#111827', fontSize: '1.4rem' }}></i>
+                                                                <i className="bi bi-award-fill" style={{ color: '#111827', fontSize: '1.4rem' }}></i>
                                                             </div>
                                                             <div>
                                                                 <div className="x-small fw-bold text-muted letter-spacing-1">Man of the Match</div>
@@ -634,7 +643,21 @@ const FullScorecard = () => {
                                                                     <tbody>
                                                                         {(match.innings[activeInnings].batting || []).map((b, idx) => (
                                                                             <tr key={idx} className="align-middle">
-                                                                                <td className="ps-4 fw-black text-primary fs-6">{toCamelCase(b.player)}</td>
+                                                                                <td className="ps-4 fw-black text-primary fs-6">
+                                                                                    {(() => {
+                                                                                        const isLive = match.status === 'live';
+                                                                                        const isCurrentInnings = match.score?.battingTeam === match.innings[activeInnings].team;
+                                                                                        const striker = match.currentBatsmen?.find(cb => cb.onStrike)?.name;
+                                                                                        const onStrike = isLive && isCurrentInnings && striker === b.player;
+                                                                                        return (
+                                                                                            <div className="d-flex align-items-center gap-1">
+                                                                                                {onStrike && <span style={{ color: '#FF7A00', marginRight: '4px' }}>🏏</span>}
+                                                                                                {toCamelCase(b.player)}
+                                                                                                {onStrike && <span className="ms-1">*</span>}
+                                                                                            </div>
+                                                                                        );
+                                                                                    })()}
+                                                                                </td>
                                                                                 <td className="text-muted fw-bold small">{b.status}</td>
                                                                                 <td className="text-center fw-black fs-5">{b.runs}</td>
                                                                                 <td className="text-center fw-bold">{b.balls}</td>

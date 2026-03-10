@@ -58,7 +58,7 @@ const LiveScoreStrip = () => {
                             key={idx}
                             className="border-end pe-3 flex-shrink-0"
                             style={{ minWidth: '220px', cursor: 'pointer' }}
-                            onClick={() => navigate(`/match/${match._id || match.id}`)}
+                            onClick={() => navigate(`/scorecard/${match._id || match.id}`)}
                         >
                             <div className="x-small fw-black text-uppercase text-muted mb-1 d-flex justify-content-between">
                                 <span>{match.status === 'live' ? 'LIVE' : match.status.toUpperCase()}</span>
