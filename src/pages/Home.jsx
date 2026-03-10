@@ -163,8 +163,8 @@ const Home = () => {
                                                     const ballStr = ball.toString().toUpperCase();
                                                     const isFour = ballStr === '4';
                                                     const isSix = ballStr === '6';
-                                                    const isWicket = (ballStr.startsWith('W') && !ballStr.startsWith('W+') && !ballStr.includes('OV')) || ballStr === 'OUT';
-                                                    const isExtra = ballStr.startsWith('W+') || ballStr.startsWith('WD') || ballStr.startsWith('NB') || ballStr.startsWith('LB') || ballStr.startsWith('B') || ballStr.includes('OV');
+                                                    const isWicket = ballStr === 'W' || ballStr === 'OUT';
+                                                    const isExtra = ballStr.includes('+') ? (ballStr.startsWith('W+') || ballStr.startsWith('NB+') || ballStr.startsWith('B+') || ballStr.startsWith('LB+')) : (ballStr === 'WD' || ballStr === 'NB' || ballStr === 'LB' || ballStr === 'B');
 
                                                     let badgeClass = 'bg-white text-dark border';
                                                     if (isSix) badgeClass = 'bg-primary text-white border-primary';
@@ -225,14 +225,12 @@ const Home = () => {
                                                 return "Match Drawn";
                                             }
                                         })().toUpperCase()}</span>
-                                        {match.manOfTheMatch && (
-                                            <span className="x-small text-muted fw-black bg-light px-2 py-1 rounded border d-flex align-items-center">
-                                                <div className="d-inline-flex align-items-center justify-content-center rounded-circle me-1" style={{ backgroundColor: '#FBBF24', width: '20px', height: '20px' }}>
-                                                    <i className="bi bi-trophy-fill" style={{ color: '#111827', fontSize: '0.7rem' }}></i>
-                                                </div>
-                                                {match.manOfTheMatch.toUpperCase()}
-                                            </span>
-                                        )}
+                                        <span className="x-small text-muted fw-black bg-light px-2 py-1 rounded border d-flex align-items-center">
+                                            <div className="d-inline-flex align-items-center justify-content-center rounded-circle me-1" style={{ backgroundColor: '#FBBF24', width: '20px', height: '20px' }}>
+                                                <i className="bi bi-medal-fill" style={{ color: '#111827', fontSize: '0.8rem' }}></i>
+                                            </div>
+                                            <span style={{ lineHeight: '1' }}>{match.manOfTheMatch.toUpperCase()}</span>
+                                        </span>
                                     </div>
                                 ) : isLive ? (
                                     <div className="d-flex align-items-center gap-2">
@@ -353,8 +351,8 @@ const Home = () => {
                                                                 const ballStr = ball.toString().toUpperCase();
                                                                 const isFour = ballStr === '4';
                                                                 const isSix = ballStr === '6';
-                                                                const isWicket = (ballStr.startsWith('W') && !ballStr.startsWith('W+') && !ballStr.includes('OV')) || ballStr === 'OUT';
-                                                                const isExtra = ballStr.startsWith('W+') || ballStr.startsWith('WD') || ballStr.startsWith('NB') || ballStr.startsWith('LB') || ballStr.startsWith('B') || ballStr.includes('OV');
+                                                                const isWicket = ballStr === 'W' || ballStr === 'OUT';
+                                                                const isExtra = ballStr.includes('+') ? (ballStr.startsWith('W+') || ballStr.startsWith('NB+') || ballStr.startsWith('B+') || ballStr.startsWith('LB+')) : (ballStr === 'WD' || ballStr === 'NB' || ballStr === 'LB' || ballStr === 'B');
 
                                                                 let badgeClass = 'bg-white text-dark border';
                                                                 if (isSix) badgeClass = 'bg-primary text-white border-primary';
@@ -415,11 +413,11 @@ const Home = () => {
                                                         }
                                                     })().toUpperCase()}</span>
                                                     {m.manOfTheMatch && (
-                                                        <span className="x-small text-muted fw-black bg-light px-2 py-1 rounded border d-flex align-items-center mt-2 mx-auto" style={{ width: 'fit-content' }}>
+                                                        <span className="x-small text-muted fw-black bg-light px-2 py-1 rounded border d-flex align-items-center" style={{ width: 'fit-content' }}>
                                                             <div className="d-inline-flex align-items-center justify-content-center rounded-circle me-1" style={{ backgroundColor: '#FBBF24', width: '20px', height: '20px' }}>
-                                                                <i className="bi bi-trophy-fill" style={{ color: '#111827', fontSize: '0.7rem' }}></i>
+                                                                <i className="bi bi-medal-fill" style={{ color: '#111827', fontSize: '0.8rem' }}></i>
                                                             </div>
-                                                            {m.manOfTheMatch.toUpperCase()}
+                                                            <span style={{ lineHeight: '1' }}>{m.manOfTheMatch.toUpperCase()}</span>
                                                         </span>
                                                     )}
                                                 </div>

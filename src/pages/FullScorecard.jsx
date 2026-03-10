@@ -503,7 +503,7 @@ const FullScorecard = () => {
                                                     {match.manOfTheMatch && (
                                                         <div className="mt-1 pt-3 border-top d-flex align-items-center gap-3">
                                                             <div className="d-inline-flex align-items-center justify-content-center rounded-circle shadow-sm" style={{ width: '40px', height: '40px', backgroundColor: '#FBBF24' }}>
-                                                                <i className="bi bi-trophy-fill" style={{ color: '#111827', fontSize: '1.2rem' }}></i>
+                                                                <i className="bi bi-medal-fill" style={{ color: '#111827', fontSize: '1.4rem' }}></i>
                                                             </div>
                                                             <div>
                                                                 <div className="x-small fw-bold text-muted letter-spacing-1">Man of the Match</div>

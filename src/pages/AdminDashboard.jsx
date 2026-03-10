@@ -1083,8 +1083,8 @@ const AdminDashboard = () => {
                     const isBat = params?.isBat || false; // New flag for NB
                     currentInnings.runs += amount;
                     if (value === 'w') {
-                        // Wide Ball: 1 penalty + runs ran = total Wides
-                        updatedMatch.score.thisOver.push('W+' + amount);
+                        // Wide Ball: amount is total runs added. Display W+(amount-1) or WD.
+                        updatedMatch.score.thisOver.push(amount > 1 ? 'W+' + (amount - 1) : 'WD');
                         currentInnings.extras.wides = (currentInnings.extras.wides || 0) + amount;
                         currentInnings.extras.total = (currentInnings.extras.total || 0) + amount;
                         currentBowling.bowling[bIdx].runs += amount;
@@ -1098,8 +1098,8 @@ const AdminDashboard = () => {
                         }
                     }
                     else if (value === 'nb') {
-                        // No Ball: 1 penalty (Extras) + (Runs Ran or Bat Runs)
-                        updatedMatch.score.thisOver.push('NB+' + amount);
+                        // No Ball: amount is total runs added. Display NB+ (amount-1).
+                        updatedMatch.score.thisOver.push(amount > 1 ? 'NB+' + (amount - 1) : 'NB');
                         const penalty = 1;
                         const additionalRuns = Math.max(0, amount - penalty);
                         currentInnings.extras.noBalls = (currentInnings.extras.noBalls || 0) + penalty;
@@ -1374,7 +1374,7 @@ const AdminDashboard = () => {
                             ballCounts = false;
                             updatedMatch.score.freeHit = true;
                             // Update last ball in thisOver if it was an NB, or push if it's the base ball
-                            const ovString = `NB+${batterRuns + 1}`;
+                            const ovString = batterRuns > 0 ? `NB+${batterRuns}` : 'NB';
                             if (updatedMatch.score.thisOver.length > 0) {
                                 const last = updatedMatch.score.thisOver[updatedMatch.score.thisOver.length - 1].toString();
                                 if (last.startsWith('NB')) {
@@ -1414,11 +1414,11 @@ const AdminDashboard = () => {
                         currentInnings.runs += (totalRuns + nbPenalty);
                         currentInnings.extras.noBalls = (currentInnings.extras.noBalls || 0) + (totalRuns + nbPenalty);
                         currentInnings.extras.total = (currentInnings.extras.total || 0) + (totalRuns + nbPenalty);
-                        currentBowling.bowling[bIdx].runs += (totalBowling.bowling[bIdx].runs || 0) + (totalRuns + nbPenalty);
+                        currentBowling.bowling[bIdx].runs += (totalRuns + nbPenalty);
                         currentBowling.bowling[bIdx].noBalls = (currentBowling.bowling[bIdx].noBalls || 0) + 1;
                         ballCounts = false;
                         updatedMatch.score.freeHit = true;
-                        const ovString = `NB+${totalRuns + nbPenalty}`;
+                        const ovString = totalRuns > 0 ? `NB+${totalRuns}` : 'NB';
                         if (updatedMatch.score.thisOver.length > 0) {
                             const last = updatedMatch.score.thisOver[updatedMatch.score.thisOver.length - 1].toString();
                             if (last.startsWith('NB')) {
@@ -1438,7 +1438,7 @@ const AdminDashboard = () => {
                         currentBowling.bowling[bIdx].runs += (currentBowling.bowling[bIdx].runs || 0) + (totalRuns + widePenalty);
                         currentBowling.bowling[bIdx].wides = (currentBowling.bowling[bIdx].wides || 0) + 1;
                         ballCounts = false;
-                        updatedMatch.score.thisOver.push('W+' + (totalRuns + widePenalty));
+                        updatedMatch.score.thisOver.push(totalRuns > 0 ? 'W+' + totalRuns : 'WD');
                     } else if (ballType === 'b' || ballType === 'lb') {
                         // Bye/Leg Bye + Runs
                         currentInnings.runs += totalRuns;
@@ -2963,8 +2963,8 @@ const AdminDashboard = () => {
                                                                         <div className="d-flex gap-2">
                                                                             {selectedMatch.score.thisOver.map((ball, idx) => {
                                                                                 const bStr = ball.toString().toUpperCase();
-                                                                                const isWicket = (bStr.startsWith('W') && !bStr.startsWith('W+')) || bStr === 'OUT';
-                                                                                const isExtra = bStr.startsWith('W+') || bStr.startsWith('WD') || bStr.startsWith('NB') || bStr.startsWith('LB') || bStr.startsWith('B');
+                                                                                const isWicket = bStr === 'W' || bStr === 'OUT';
+                                                                                const isExtra = bStr.includes('+') ? (bStr.startsWith('W+') || bStr.startsWith('NB+') || bStr.startsWith('B+') || bStr.startsWith('LB+')) : (bStr === 'WD' || bStr === 'NB' || bStr === 'LB' || bStr === 'B');
                                                                                 const isBound = bStr === '4' || bStr === '6';
 
                                                                                 let bgClass = 'bg-white border';
