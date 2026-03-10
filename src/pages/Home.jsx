@@ -81,7 +81,7 @@ const Home = () => {
         const badgeText = isTournament ? 'TOURNAMENT' : isSeries ? 'SERIES' : 'HEAD-TO-HEAD';
 
         const handleCardClick = () => {
-            navigate(`/match/${match._id || match.id}`);
+            navigate(`/scorecard/${match._id || match.id}`);
         };
 
         return (
@@ -199,38 +199,45 @@ const Home = () => {
                         <div className="border-top pt-2">
                             <div className="small fw-bold text-primary">
                                 {isCompleted ? (
-                                    <div className="d-flex align-items-center justify-content-between">
-                                        <span>{(() => {
-                                            const innings = match.innings || [];
-                                            if (innings.length < 2) return "COMPLETED";
-                                            let inn1, inn2;
-                                            if (innings.length >= 4) {
-                                                const lastIdx = innings.length - 1;
-                                                inn2 = innings[lastIdx];
-                                                inn1 = innings[lastIdx - 1];
-
-                                                if (inn1.runs > inn2.runs) return `${inn1.team.toUpperCase()} WON VIA SUPER OVER`;
-                                                if (inn2.runs > inn1.runs) return `${inn2.team.toUpperCase()} WON VIA SUPER OVER`;
-                                                return "SUPER OVER TIED";
-                                            } else {
-                                                inn1 = innings[0];
-                                                inn2 = innings[1];
-                                                if (inn1.runs > inn2.runs) {
-                                                    const diff = inn1.runs - inn2.runs;
-                                                    return `${inn1.team} won by ${pluralize(diff, 'Run')}`;
-                                                } else if (inn2.runs > inn1.runs) {
-                                                    const wicketsRemaining = 10 - inn2.wickets;
-                                                    return `${inn2.team} won by ${pluralize(wicketsRemaining, 'Wicket')}`;
-                                                }
-                                                return "Match Drawn";
-                                            }
-                                        })().toUpperCase()}</span>
-                                        <span className="x-small text-muted fw-black bg-light px-2 py-1 rounded border d-flex align-items-center">
-                                            <div className="d-inline-flex align-items-center justify-content-center rounded-circle me-1" style={{ backgroundColor: '#FBBF24', width: '20px', height: '20px' }}>
-                                                <i className="bi bi-medal-fill" style={{ color: '#111827', fontSize: '0.8rem' }}></i>
+                                    <div className="d-flex align-items-center justify-content-between p-2 rounded-3" style={{ backgroundColor: '#FFF7D6', border: '1px solid #FDE68A' }}>
+                                        <div className="d-flex align-items-center gap-2">
+                                            <div className="d-inline-flex align-items-center justify-content-center rounded-circle border border-warning" style={{ backgroundColor: '#FFF7D6', width: '28px', height: '28px' }}>
+                                                <i className="bi bi-trophy-fill" style={{ color: '#F59E0B', fontSize: '1rem' }}></i>
                                             </div>
-                                            <span style={{ lineHeight: '1' }}>{match.manOfTheMatch.toUpperCase()}</span>
-                                        </span>
+                                            <span className="fw-black text-dark x-small letter-spacing-1">{(() => {
+                                                const innings = match.innings || [];
+                                                if (innings.length < 2) return "COMPLETED";
+                                                let inn1, inn2;
+                                                if (innings.length >= 4) {
+                                                    const lastIdx = innings.length - 1;
+                                                    inn2 = innings[lastIdx];
+                                                    inn1 = innings[lastIdx - 1];
+
+                                                    if (inn1.runs > inn2.runs) return `${inn1.team.toUpperCase()} WON VIA SUPER OVER`;
+                                                    if (inn2.runs > inn1.runs) return `${inn2.team.toUpperCase()} WON VIA SUPER OVER`;
+                                                    return "SUPER OVER TIED";
+                                                } else {
+                                                    inn1 = innings[0];
+                                                    inn2 = innings[1];
+                                                    if (inn1.runs > inn2.runs) {
+                                                        const diff = inn1.runs - inn2.runs;
+                                                        return `${inn1.team} won by ${pluralize(diff, 'Run')}`;
+                                                    } else if (inn2.runs > inn1.runs) {
+                                                        const wicketsRemaining = 10 - inn2.wickets;
+                                                        return `${inn2.team} won by ${pluralize(wicketsRemaining, 'Wicket')}`;
+                                                    }
+                                                    return "Match Drawn";
+                                                }
+                                            })().toUpperCase()}</span>
+                                        </div>
+                                        {match.manOfTheMatch && (
+                                            <span className="x-small text-muted fw-black bg-white px-2 py-1 rounded border d-flex align-items-center shadow-sm">
+                                                <div className="d-inline-flex align-items-center justify-content-center rounded-circle me-1" style={{ backgroundColor: '#FBBF24', width: '18px', height: '18px' }}>
+                                                    <i className="bi bi-medal-fill" style={{ color: '#111827', fontSize: '0.7rem' }}></i>
+                                                </div>
+                                                <span style={{ lineHeight: '1' }}>{match.manOfTheMatch.toUpperCase()}</span>
+                                            </span>
+                                        )}
                                     </div>
                                 ) : isLive ? (
                                     <div className="d-flex align-items-center gap-2">
@@ -284,7 +291,7 @@ const Home = () => {
 
                         const handleCardClick = () => {
                             if (!isLocked && !isCancelled) {
-                                navigate(`/match/${m._id || m.id}`);
+                                navigate(`/scorecard/${m._id || m.id}`);
                             }
                         };
 
@@ -384,11 +391,14 @@ const Home = () => {
                                         </div>
                                     )}
 
-                                    <div className="border-top pt-2">
-                                        <div className="small fw-bold text-primary">
-                                            {isCompleted ? (
-                                                <div className="d-flex align-items-center justify-content-between">
-                                                    <span>{(() => {
+                                    <div className="bg-white rounded-3 shadow-sm border p-2 mt-2" style={{ backgroundColor: '#FFF7D6' }}>
+                                        {isCompleted ? (
+                                            <div className="d-flex align-items-center justify-content-between">
+                                                <div className="d-flex align-items-center gap-2">
+                                                    <div className="d-inline-flex align-items-center justify-content-center rounded-circle border border-warning" style={{ backgroundColor: '#FFF7D6', width: '28px', height: '28px' }}>
+                                                        <i className="bi bi-trophy-fill" style={{ color: '#F59E0B', fontSize: '1rem' }}></i>
+                                                    </div>
+                                                    <span className="fw-black text-dark x-small letter-spacing-1">{(() => {
                                                         const innings = m.innings || [];
                                                         if (innings.length < 2) return "COMPLETED";
                                                         let inn1, inn2;
@@ -412,37 +422,37 @@ const Home = () => {
                                                             return "Match Drawn";
                                                         }
                                                     })().toUpperCase()}</span>
-                                                    {m.manOfTheMatch && (
-                                                        <span className="x-small text-muted fw-black bg-light px-2 py-1 rounded border d-flex align-items-center" style={{ width: 'fit-content' }}>
-                                                            <div className="d-inline-flex align-items-center justify-content-center rounded-circle me-1" style={{ backgroundColor: '#FBBF24', width: '20px', height: '20px' }}>
-                                                                <i className="bi bi-medal-fill" style={{ color: '#111827', fontSize: '0.8rem' }}></i>
-                                                            </div>
-                                                            <span style={{ lineHeight: '1' }}>{m.manOfTheMatch.toUpperCase()}</span>
-                                                        </span>
-                                                    )}
                                                 </div>
-                                            ) : isLive ? (
-                                                <div className="d-flex align-items-center gap-2">
-                                                    <span className="text-danger animate-pulse">●</span>
-                                                    <span>{(() => {
-                                                        if (m.score?.isPaused) return `PAUSED: ${m.score.pauseReason}`;
-                                                        if (m.score?.target) {
-                                                            const runsNeeded = m.score.target - (m.score?.runs || 0);
-                                                            return runsNeeded > 0
-                                                                ? `Target: ${pluralize(runsNeeded, 'Run')} Required`
-                                                                : 'Scores Level';
-                                                        }
-                                                        return m.innings && m.innings.length > 2 ? 'Super Over in progress' : 'Match in progress';
-                                                    })()}</span>
-                                                </div>
-                                            ) : isLocked ? (
-                                                <span className="text-secondary"><i className="bi bi-lock-fill me-1"></i>Waiting for previous match result</span>
-                                            ) : isCancelled ? (
-                                                <span className="text-secondary"><i className="bi bi-x-circle me-1"></i>Cancelled (Series already won)</span>
-                                            ) : (
-                                                <span className="text-dark fw-bold"><i className="bi bi-geo-alt-fill text-danger me-1"></i> {formatTime(m.date)} • {(m.venue || 'TBA').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}</span>
-                                            )}
-                                        </div>
+                                                {m.manOfTheMatch && (
+                                                    <span className="x-small text-muted fw-black bg-white px-2 py-1 rounded border d-flex align-items-center shadow-sm">
+                                                        <div className="d-inline-flex align-items-center justify-content-center rounded-circle me-1" style={{ backgroundColor: '#FBBF24', width: '18px', height: '18px' }}>
+                                                            <i className="bi bi-medal-fill" style={{ color: '#111827', fontSize: '0.7rem' }}></i>
+                                                        </div>
+                                                        <span style={{ lineHeight: '1' }}>{m.manOfTheMatch.toUpperCase()}</span>
+                                                    </span>
+                                                )}
+                                            </div>
+                                        ) : isLive ? (
+                                            <div className="d-flex align-items-center gap-2">
+                                                <span className="text-danger animate-pulse">●</span>
+                                                <span>{(() => {
+                                                    if (m.score?.isPaused) return `PAUSED: ${m.score.pauseReason}`;
+                                                    if (m.score?.target) {
+                                                        const runsNeeded = m.score.target - (m.score?.runs || 0);
+                                                        return runsNeeded > 0
+                                                            ? `Target: ${pluralize(runsNeeded, 'Run')} Required`
+                                                            : 'Scores Level';
+                                                    }
+                                                    return m.innings && m.innings.length > 2 ? 'Super Over in progress' : 'Match in progress';
+                                                })()}</span>
+                                            </div>
+                                        ) : isLocked ? (
+                                            <span className="text-secondary"><i className="bi bi-lock-fill me-1"></i>Waiting for previous match result</span>
+                                        ) : isCancelled ? (
+                                            <span className="text-secondary"><i className="bi bi-x-circle me-1"></i>Cancelled (Series already won)</span>
+                                        ) : (
+                                            <span className="text-dark fw-bold"><i className="bi bi-geo-alt-fill text-danger me-1"></i> {formatTime(m.date)} • {(m.venue || 'TBA').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}</span>
+                                        )}
                                     </div>
                                 </div>
                             </div>

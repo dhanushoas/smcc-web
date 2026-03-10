@@ -43,6 +43,7 @@ function App() {
                 <Route path="/login" element={<AdminLogin />} />
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/match/:id" element={<FullScorecard />} />
+                <Route path="/scorecard/:id" element={<FullScorecard />} />
                 <Route path="/google-auth" element={<GoogleAuth />} />
 
                 {/* Footer Pages */}

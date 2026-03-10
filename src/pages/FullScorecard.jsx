@@ -435,7 +435,7 @@ const FullScorecard = () => {
                                                         return (
                                                             <Link
                                                                 key={sm._id || sm.id}
-                                                                to={`/match/${sm._id || sm.id}`}
+                                                                to={`/scorecard/${sm._id || sm.id}`}
                                                                 className={`btn btn-sm px-4 fw-bold rounded-pill border shadow-sm ${isCurrent ? 'btn-primary border-primary' : 'btn-white text-secondary'}`}
                                                                 style={{ minWidth: 'max-content' }}
                                                             >
@@ -474,31 +474,36 @@ const FullScorecard = () => {
                                                         <span className="badge bg-success bg-opacity-10 text-success p-1 px-2 rounded-pill letter-spacing-2 fw-black x-small">MATCH RESULT</span>
                                                         <i className="bi bi-star-fill text-warning x-small"></i>
                                                     </div>
-                                                    <h5 className="fw-black text-dark mb-3 text-nowrap">
-                                                        {(() => {
-                                                            const innings = match.innings || [];
-                                                            let inn1, inn2;
-                                                            if (innings.length >= 4) {
-                                                                const lastIdx = innings.length - 1;
-                                                                inn2 = innings[lastIdx];
-                                                                inn1 = innings[lastIdx - 1];
-                                                                if (inn1.runs > inn2.runs) return `${inn1.team.toUpperCase()} WON VIA SUPER OVER`;
-                                                                if (inn2.runs > inn1.runs) return `${inn2.team.toUpperCase()} WON VIA SUPER OVER`;
-                                                                return "SUPER OVER TIED";
-                                                            } else {
-                                                                inn1 = innings[0];
-                                                                inn2 = innings[1];
-                                                                if (inn1.runs > inn2.runs) {
-                                                                    const diff = inn1.runs - inn2.runs;
-                                                                    return `${inn1.team} won by ${pluralize(diff, 'Run')}`;
-                                                                } else if (inn2.runs > inn1.runs) {
-                                                                    const wicketsRemaining = 10 - inn2.wickets;
-                                                                    return `${inn2.team} won by ${pluralize(wicketsRemaining, 'Wicket')}`;
+                                                    <div className="d-flex align-items-center gap-3 mb-3">
+                                                        <div className="d-inline-flex align-items-center justify-content-center rounded-circle border border-warning" style={{ backgroundColor: '#FFF7D6', width: '48px', height: '48px' }}>
+                                                            <i className="bi bi-trophy-fill" style={{ color: '#F59E0B', fontSize: '1.75rem' }}></i>
+                                                        </div>
+                                                        <h4 className="fw-black text-dark mb-0 letter-spacing-1">
+                                                            {(() => {
+                                                                const innings = match.innings || [];
+                                                                let inn1, inn2;
+                                                                if (innings.length >= 4) {
+                                                                    const lastIdx = innings.length - 1;
+                                                                    inn2 = innings[lastIdx];
+                                                                    inn1 = innings[lastIdx - 1];
+                                                                    if (inn1.runs > inn2.runs) return `${inn1.team.toUpperCase()} WON VIA SUPER OVER`;
+                                                                    if (inn2.runs > inn1.runs) return `${inn2.team.toUpperCase()} WON VIA SUPER OVER`;
+                                                                    return "SUPER OVER TIED";
+                                                                } else {
+                                                                    inn1 = innings[0];
+                                                                    inn2 = innings[1];
+                                                                    if (inn1.runs > inn2.runs) {
+                                                                        const diff = inn1.runs - inn2.runs;
+                                                                        return `${inn1.team} won by ${pluralize(diff, 'Run')}`;
+                                                                    } else if (inn2.runs > inn1.runs) {
+                                                                        const wicketsRemaining = 10 - inn2.wickets;
+                                                                        return `${inn2.team} won by ${pluralize(wicketsRemaining, 'Wicket')}`;
+                                                                    }
+                                                                    return "Match Drawn";
                                                                 }
-                                                                return "Match Drawn";
-                                                            }
-                                                        })().toUpperCase()}
-                                                    </h5>
+                                                            })().toUpperCase()}
+                                                        </h4>
+                                                    </div>
 
                                                     {match.manOfTheMatch && (
                                                         <div className="mt-1 pt-3 border-top d-flex align-items-center gap-3">
