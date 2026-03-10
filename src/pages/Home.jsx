@@ -81,13 +81,7 @@ const Home = () => {
         const badgeText = isTournament ? 'TOURNAMENT' : isSeries ? 'SERIES' : 'HEAD-TO-HEAD';
 
         const handleCardClick = () => {
-            if (isSeries && match.seriesId) {
-                navigate(`/series/${match.seriesId}`);
-            } else if (isTournament && match.tournamentId) {
-                navigate(`/tournaments/${match.tournamentId}`);
-            } else {
-                navigate(`/match/${match._id || match.id}`);
-            }
+            navigate(`/match/${match._id || match.id}`);
         };
 
         return (
@@ -291,20 +285,12 @@ const Home = () => {
 
     const renderFeed = (matchesArray) => {
         const grouped = [];
-        const seenSeries = new Set();
-        const seenTournaments = new Set();
 
         matchesArray.forEach(m => {
             if (m.competitionType === 'series' && m.seriesId) {
-                if (!seenSeries.has(m.seriesId)) {
-                    seenSeries.add(m.seriesId);
-                    grouped.push({ type: 'series', match: m });
-                }
+                grouped.push({ type: 'series', match: m });
             } else if (m.competitionType === 'tournament' && m.tournamentId) {
-                if (!seenTournaments.has(m.tournamentId)) {
-                    seenTournaments.add(m.tournamentId);
-                    grouped.push({ type: 'tournament', match: m });
-                }
+                grouped.push({ type: 'tournament', match: m });
             } else {
                 grouped.push({ type: 'head-to-head', match: m });
             }
