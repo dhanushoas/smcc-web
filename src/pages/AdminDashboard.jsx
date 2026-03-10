@@ -605,6 +605,57 @@ const AdminDashboard = () => {
         }
     };
 
+    const handleReductionUpdate = (field, value) => {
+        if (!selectedMatch) return;
+        const updatedMatch = JSON.parse(JSON.stringify(selectedMatch));
+        const currentScore = updatedMatch.score || {};
+
+        // Ensure default overs limits exist
+        if (!updatedMatch.firstInningsOvers) updatedMatch.firstInningsOvers = updatedMatch.overs_per_match || updatedMatch.totalOvers;
+        if (!updatedMatch.secondInningsOvers) updatedMatch.secondInningsOvers = updatedMatch.overs_per_match || updatedMatch.totalOvers;
+
+        let shouldRecalcTarget = false;
+        if (field === 'totalOvers') {
+            const newTotal = parseInt(value) || 20;
+            updatedMatch.totalOvers = newTotal;
+            updatedMatch.overs_per_match = newTotal;
+            updatedMatch.firstInningsOvers = newTotal;
+            updatedMatch.secondInningsOvers = newTotal;
+            shouldRecalcTarget = true;
+        } else if (field === 'firstInningsOvers') {
+            updatedMatch.firstInningsOvers = parseFloat(value) || updatedMatch.totalOvers;
+            shouldRecalcTarget = true;
+        } else if (field === 'secondInningsOvers') {
+            updatedMatch.secondInningsOvers = parseFloat(value) || updatedMatch.totalOvers;
+            shouldRecalcTarget = true;
+        } else if (field === 'customTarget') {
+            currentScore.target = parseInt(value) || null;
+        }
+
+        // Target Recalculation (Rain Rule)
+        if (shouldRecalcTarget && updatedMatch.innings && updatedMatch.innings.length > 0) {
+            const firstInn = updatedMatch.innings[0];
+            // Only recalculate target if 1st innings is actually done or has score and we have a target active
+            if (currentScore.target || (firstInn.runs > 0 && firstInn.overs > 0)) {
+                // Formula: target = (team1Score / team1Overs) * newSecondInningsOvers + 1
+                const t1Score = firstInn.runs || 0;
+                const t1OversPlayed = Math.max(parseFloat(firstInn.overs) || updatedMatch.firstInningsOvers, 1);
+                const newT2Overs = updatedMatch.secondInningsOvers;
+
+                // Only proportionally adjust if 2nd innings overs are less than 1st
+                if (newT2Overs < t1OversPlayed) {
+                    const proportionalObj = Math.floor((t1Score / t1OversPlayed) * newT2Overs) + 1;
+                    currentScore.target = proportionalObj;
+                } else {
+                    currentScore.target = t1Score + 1;
+                }
+            }
+        }
+
+        updatedMatch.score = currentScore;
+        handleUpdate('manual', updatedMatch);
+    };
+
     const handleSquadSave = async () => {
         const cleanedA = squadA.map(v => toCamelCase(v));
         const cleanedB = squadB.map(v => toCamelCase(v));
@@ -1801,7 +1852,7 @@ const AdminDashboard = () => {
         return ((runsNeeded / ballsRemaining) * BALLS_PER_OVER).toFixed(2);
     };
 
-    const handleSaveDateTime = () => {
+    const handleSaveDateTime = async () => {
         if (!selectedMatch) return;
 
         const isPast24h = (Date.now() - new Date(selectedMatch.date).getTime()) > 24 * 60 * 60 * 1000;
@@ -1817,8 +1868,17 @@ const AdminDashboard = () => {
         }
 
         const newDate = new Date(`${editDate}T${parsedTime}`);
-        handleUpdate('manual', { ...selectedMatch, date: newDate.toISOString() });
-        toast.success("Match start time updated!");
+        try {
+            const res = await axios.put(`${API_URL}/api/matches/${selectedMatch._id || selectedMatch.id}/datetime`, {
+                matchDateTime: newDate.toISOString()
+            }, config);
+
+            const updatedMatch = res.data.success ? res.data.data : res.data;
+            setSelectedMatch(updatedMatch);
+            toast.success("Match start time updated!");
+        } catch (err) {
+            toast.error(err.response?.data?.message || err.response?.data?.msg || "Failed to update date & time");
+        }
     };
 
     const handlePauseToggle = async (reason = '') => {
@@ -3046,7 +3106,24 @@ const AdminDashboard = () => {
                                                         <Form.Label className="x-small fw-black text-uppercase text-muted">Overs Bowled</Form.Label>
                                                         <Form.Control size="sm" className="fw-bold" type="number" step="0.1" min="0" max={selectedMatch.overs_per_match || selectedMatch.totalOvers} value={selectedMatch.score.overs} onChange={e => handleUpdate('manual', { ...selectedMatch, score: { ...selectedMatch.score, overs: Math.min((selectedMatch.overs_per_match || selectedMatch.totalOvers), Math.max(0, parseFloat(e.target.value) || 0)) } })} />
                                                     </Col>
-                                                    <Col md={6}>
+                                                    <Col md={4}>
+                                                        <Form.Label className="x-small fw-black text-uppercase text-muted">Total Overs</Form.Label>
+                                                        <Form.Control size="sm" className="fw-bold" type="number" min="1" max="50" value={selectedMatch.overs_per_match || selectedMatch.totalOvers || ''} onChange={e => handleReductionUpdate('totalOvers', e.target.value)} />
+                                                    </Col>
+                                                    <Col md={4}>
+                                                        <Form.Label className="x-small fw-black text-uppercase text-muted">1st Inn Overs</Form.Label>
+                                                        <Form.Control size="sm" className="fw-bold" type="number" min="1" max={selectedMatch.totalOvers} value={selectedMatch.firstInningsOvers || selectedMatch.totalOvers || ''} onChange={e => handleReductionUpdate('firstInningsOvers', e.target.value)} />
+                                                    </Col>
+                                                    <Col md={4}>
+                                                        <Form.Label className="x-small fw-black text-uppercase text-muted">2nd Inn Overs</Form.Label>
+                                                        <Form.Control size="sm" className="fw-bold" type="number" min="1" max={selectedMatch.totalOvers} value={selectedMatch.secondInningsOvers || selectedMatch.totalOvers || ''} onChange={e => handleReductionUpdate('secondInningsOvers', e.target.value)} />
+                                                    </Col>
+                                                    <Col md={12}>
+                                                        <Form.Label className="x-small fw-black text-uppercase text-muted">Target Override</Form.Label>
+                                                        <Form.Control size="sm" className="fw-bold text-danger border-danger" type="number" value={selectedMatch.score?.target || ''} onChange={e => handleReductionUpdate('customTarget', e.target.value)} placeholder="Only edit if applying custom DLS/Reduction penalty. Leave blank for auto" />
+                                                    </Col>
+
+                                                    <Col md={6} className="pt-2">
                                                         <Form.Label className="x-small fw-black text-uppercase text-muted">Match Title Override</Form.Label>
                                                         <Form.Control size="sm" value={selectedMatch.title} onChange={e => handleUpdate('manual', { ...selectedMatch, title: e.target.value })} placeholder="Match Title" />
                                                     </Col>
