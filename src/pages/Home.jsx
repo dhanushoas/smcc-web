@@ -141,12 +141,8 @@ const Home = () => {
                                         <div className="fw-black text-dark x-small text-uppercase mb-1">Batting</div>
                                         {match.currentBatsmen.map((b, idx) => (
                                             <div key={idx} className="text-truncate fw-bold text-dark d-flex align-items-center mb-1">
-                                                <div className="d-inline-flex align-items-center justify-content-center rounded-circle me-1 border"
-                                                    style={{ width: '22px', height: '22px', backgroundColor: '#f1f5f9', fontSize: '0.8rem' }}>
-                                                    {b.onStrike ? <span title="Striker">🏏</span> : <span style={{ opacity: 0 }}>🏏</span>}
-                                                </div>
                                                 <span className="text-truncate">
-                                                    {b.name} {b.onStrike ? '*' : ''} <span className="fw-black text-primary ms-1">{b.runs || 0} <span className="text-muted small fw-bold">({pluralize(b.balls || 0, 'Ball')})</span></span>
+                                                    {b.name} {b.onStrike ? '*' : ''} <span className="fw-black text-primary ms-1">{b.runs || 0} <span className="text-muted small fw-bold">({b.balls || 0})</span></span>
                                                 </span>
                                             </div>
                                         ))}
@@ -154,8 +150,8 @@ const Home = () => {
                                     <Col xs={6} className="border-start ps-2">
                                         <div className="fw-black text-dark x-small text-uppercase mb-1">Bowling</div>
                                         <div className="text-truncate fw-bold text-dark mb-1 d-flex align-items-center">
-                                            <div className="d-inline-flex align-items-center justify-content-center rounded-circle me-1 border shadow-sm"
-                                                style={{ width: '22px', height: '22px', backgroundColor: '#fff7ed', fontSize: '0.8rem' }}>
+                                            <div className="d-inline-flex align-items-center justify-content-center rounded-circle me-1 border"
+                                                style={{ width: '22px', height: '22px', backgroundColor: '#f1f5f9', fontSize: '0.8rem' }}>
                                                 <span title="Bowler">⚾</span>
                                             </div>
                                             <span className="text-truncate">{match.currentBowler || '...'}</span>
@@ -261,6 +257,196 @@ const Home = () => {
         );
     };
 
+    const renderSeriesGroup = (ps) => {
+        return (
+            <div key={ps.seriesId} className="mb-4 bg-white rounded-3 shadow-sm border overflow-hidden">
+                <div className="p-3 bg-light border-bottom text-center">
+                    <h6 className="fw-black text-primary mb-1 text-uppercase letter-spacing-1">SERIES: {ps.teamA} VS {ps.teamB} ({ps.totalMatches} Matches)</h6>
+                    {ps.seriesWinner ? (
+                        <div className="bg-success text-white fw-bold py-2 px-3 rounded d-inline-block mt-2 font-monospace">
+                            🏆 {ps.seriesWinner} won the series {Math.max(ps.teamAWins, ps.teamBWins)}-{Math.min(ps.teamAWins, ps.teamBWins)}
+                        </div>
+                    ) : (
+                        <div className="text-dark fw-bold small mt-1">
+                            Series Lead: {ps.teamAWins === ps.teamBWins ? 'Tied ' + ps.teamAWins + '-' + ps.teamBWins : (ps.teamAWins > ps.teamBWins ? ps.teamA : ps.teamB) + ' ' + Math.max(ps.teamAWins, ps.teamBWins) + '-' + Math.min(ps.teamAWins, ps.teamBWins)}
+                        </div>
+                    )}
+                </div>
+                <div className="p-3 bg-light">
+                    {ps.matches.map(m => {
+                        const isLive = m.computedStatus === 'live';
+                        const isCompleted = m.computedStatus === 'completed';
+                        const isUpcoming = m.computedStatus === 'upcoming';
+                        const isLocked = m.computedStatus === 'LOCKED';
+                        const isCancelled = m.computedStatus === 'CANCELLED';
+
+                        const handleCardClick = () => {
+                            if (!isLocked && !isCancelled) {
+                                navigate(`/match/${m._id || m.id}`);
+                            }
+                        };
+
+                        return (
+                            <div key={m._id || m.id} onClick={handleCardClick} className={`mb-3 bg-white border rounded-3 overflow-hidden shadow-sm ${!isLocked && !isCancelled ? 'hover-shadow transition-all' : ''}`} style={{ cursor: (!isLocked && !isCancelled) ? 'pointer' : 'default', opacity: isCancelled ? 0.6 : 1 }}>
+                                <div className="px-3 py-2 border-bottom bg-light d-flex justify-content-between align-items-center">
+                                    <span className="x-small fw-black text-muted text-uppercase letter-spacing-1">
+                                        Match {m.matchNumber} {m.date ? ' • ' + new Date(m.date).toLocaleDateString([], { month: 'short', day: 'numeric' }) : ''}
+                                    </span>
+                                    <div>
+                                        {isLive && <Badge bg="danger" className="animate-pulse x-small px-2"><i className="bi bi-broadcast me-1"></i>LIVE</Badge>}
+                                        {isCompleted && <Badge bg="success" className="x-small px-2"><i className="bi bi-check-circle me-1"></i>COMPLETED</Badge>}
+                                        {isUpcoming && <Badge bg="info" className="x-small px-2"><i className="bi bi-clock me-1"></i>UPCOMING</Badge>}
+                                        {isLocked && <Badge bg="secondary" className="x-small px-2"><i className="bi bi-lock-fill me-1"></i>LOCKED</Badge>}
+                                        {isCancelled && <Badge bg="dark" className="x-small px-2"><i className="bi bi-x-circle me-1"></i>CANCELLED</Badge>}
+                                    </div>
+                                </div>
+
+                                <div className="p-3">
+                                    <div className="d-flex justify-content-between align-items-center mb-2">
+                                        <span className={`fw-black fs-5 ${isCancelled || isLocked ? 'text-muted' : 'text-dark'}`}>{m.teamA}</span>
+                                        <span className={`fw-black fs-5 ${isCancelled || isLocked ? 'text-muted' : ''}`}>
+                                            {(isLive || isCompleted) ? (m.innings?.[0]?.runs || 0) + ' / ' + (m.innings?.[0]?.wickets || 0) : ''}
+                                            <small className="ms-2 x-small fw-bold">{(isLive || isCompleted) ? '(' + pluralize(m.innings?.[0]?.overs || 0, 'Over') + ')' : ''}</small>
+                                        </span>
+                                    </div>
+                                    <div className="d-flex justify-content-between align-items-center mb-3">
+                                        <span className={`fw-black fs-5 ${isCancelled || isLocked ? 'text-muted' : 'text-dark'}`}>{m.teamB}</span>
+                                        <span className={`fw-black fs-5 ${isCancelled || isLocked ? 'text-muted' : ''}`}>
+                                            {(isLive || isCompleted) ? (m.innings?.[1]?.runs || 0) + ' / ' + (m.innings?.[1]?.wickets || 0) : ''}
+                                            <small className="ms-2 x-small fw-bold">{(isLive || isCompleted) ? '(' + pluralize(m.innings?.[1]?.overs || 0, 'Over') + ')' : ''}</small>
+                                        </span>
+                                    </div>
+
+                                    {isLive && m.currentBatsmen && m.currentBatsmen.length > 0 && (
+                                        <div className="mb-3 small bg-light p-2 rounded border shadow-sm">
+                                            {m.score?.freeHit && (
+                                                <div className="bg-danger text-white text-center fw-black x-small rounded py-1 mb-2 animate-pulse" style={{ letterSpacing: '1px' }}>🚀 FREE HIT ACTIVE</div>
+                                            )}
+                                            <Row className="g-2">
+                                                <Col xs={6}>
+                                                    <div className="fw-black text-dark x-small text-uppercase mb-1">Batting</div>
+                                                    {m.currentBatsmen.map((b, idx) => (
+                                                        <div key={idx} className="text-truncate fw-bold text-dark d-flex align-items-center mb-1">
+                                                            <span className="text-truncate">
+                                                                {b.name} {b.onStrike ? '*' : ''} <span className="fw-black text-primary ms-1">{b.runs || 0} <span className="text-muted small fw-bold">({b.balls || 0})</span></span>
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </Col>
+                                                <Col xs={6} className="border-start ps-2">
+                                                    <div className="fw-black text-dark x-small text-uppercase mb-1">Bowling</div>
+                                                    <div className="text-truncate fw-bold text-dark mb-1 d-flex align-items-center">
+                                                        <div className="d-inline-flex align-items-center justify-content-center rounded-circle me-1 border"
+                                                            style={{ width: '22px', height: '22px', backgroundColor: '#f1f5f9', fontSize: '0.8rem' }}>
+                                                            <span title="Bowler">⚾</span>
+                                                        </div>
+                                                        <span className="text-truncate">{m.currentBowler || '...'}</span>
+                                                    </div>
+                                                    {m.score?.thisOver && m.score.thisOver.length > 0 && (
+                                                        <div className="d-flex gap-1 overflow-auto no-scrollbar pb-1">
+                                                            {m.score.thisOver.map((ball, bIdx) => {
+                                                                const ballStr = ball.toString().toUpperCase();
+                                                                const isFour = ballStr === '4';
+                                                                const isSix = ballStr === '6';
+                                                                const isWicket = ballStr.startsWith('W') || ballStr === 'OUT';
+                                                                const isExtra = ballStr.startsWith('WD') || ballStr.startsWith('NB') || ballStr.startsWith('LB') || ballStr.startsWith('B');
+
+                                                                let badgeClass = 'bg-white text-dark border';
+                                                                if (isSix) badgeClass = 'bg-primary text-white border-primary';
+                                                                else if (isFour) badgeClass = 'bg-success text-white border-success';
+                                                                else if (isWicket) badgeClass = 'bg-danger text-white border-danger';
+                                                                else if (isExtra) badgeClass = 'bg-warning text-dark border-warning';
+
+                                                                let initialAnim = { scale: 0.8, opacity: 0 };
+                                                                if (isSix) initialAnim = { scale: 1.8, rotate: [0, 360, 0], filter: 'brightness(1.5)' };
+                                                                else if (isFour) initialAnim = { scale: 1.5, rotate: [0, 15, -15, 0], filter: 'brightness(1.5)' };
+
+                                                                return (
+                                                                    <motion.span
+                                                                        key={bIdx}
+                                                                        initial={initialAnim}
+                                                                        animate={{ scale: 1, rotate: 0, opacity: 1, filter: 'brightness(1)' }}
+                                                                        transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+                                                                        className={`badge fw-bold d-inline-flex align-items-center justify-content-center p-0 ${badgeClass}`}
+                                                                        style={{ minWidth: '20px', height: '20px', fontSize: '0.65rem' }}
+                                                                    >
+                                                                        {ball}
+                                                                    </motion.span>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
+                                                </Col>
+                                            </Row>
+                                        </div>
+                                    )}
+
+                                    <div className="border-top pt-2">
+                                        <div className="small fw-bold text-primary">
+                                            {isCompleted ? (
+                                                <div className="d-flex align-items-center justify-content-between">
+                                                    <span>{(() => {
+                                                        const innings = m.innings || [];
+                                                        if (innings.length < 2) return "COMPLETED";
+                                                        let inn1, inn2;
+                                                        if (innings.length >= 4) {
+                                                            const lastIdx = innings.length - 1;
+                                                            inn2 = innings[lastIdx];
+                                                            inn1 = innings[lastIdx - 1];
+                                                            if (inn1.runs > inn2.runs) return `${inn1.team.toUpperCase()} WON VIA SUPER OVER`;
+                                                            if (inn2.runs > inn1.runs) return `${inn2.team.toUpperCase()} WON VIA SUPER OVER`;
+                                                            return "SUPER OVER TIED";
+                                                        } else {
+                                                            inn1 = innings[0];
+                                                            inn2 = innings[1];
+                                                            if (inn1.runs > inn2.runs) {
+                                                                const diff = inn1.runs - inn2.runs;
+                                                                return `${inn1.team} won by ${pluralize(diff, 'Run')}`;
+                                                            } else if (inn2.runs > inn1.runs) {
+                                                                const wicketsRemaining = 10 - inn2.wickets;
+                                                                return `${inn2.team} won by ${pluralize(wicketsRemaining, 'Wicket')}`;
+                                                            }
+                                                            return "Match Drawn";
+                                                        }
+                                                    })().toUpperCase()}</span>
+                                                    {m.manOfTheMatch && (
+                                                        <span className="x-small text-muted fw-black bg-light px-2 py-1 rounded border">
+                                                            🥇 {m.manOfTheMatch.toUpperCase()}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            ) : isLive ? (
+                                                <div className="d-flex align-items-center gap-2">
+                                                    <span className="text-danger animate-pulse">●</span>
+                                                    <span>{(() => {
+                                                        if (m.score?.isPaused) return `PAUSED: ${m.score.pauseReason}`;
+                                                        if (m.score?.target) {
+                                                            const runsNeeded = m.score.target - (m.score?.runs || 0);
+                                                            return runsNeeded > 0
+                                                                ? `Target: ${pluralize(runsNeeded, 'Run')} Required`
+                                                                : 'Scores Level';
+                                                        }
+                                                        return m.innings && m.innings.length > 2 ? 'Super Over in progress' : 'Match in progress';
+                                                    })()}</span>
+                                                </div>
+                                            ) : isLocked ? (
+                                                <span className="text-secondary"><i className="bi bi-lock-fill me-1"></i>Waiting for previous match result</span>
+                                            ) : isCancelled ? (
+                                                <span className="text-secondary"><i className="bi bi-x-circle me-1"></i>Cancelled (Series already won)</span>
+                                            ) : (
+                                                <span className="text-dark fw-bold"><i className="bi bi-geo-alt-fill text-danger me-1"></i> {formatTime(m.date)} • {(m.venue || 'TBA').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    };
+
     if (loading) return (
         <Container className="d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
             <Spinner animation="border" variant="primary" />
@@ -279,24 +465,115 @@ const Home = () => {
             return new Date(a.date).getTime() - new Date(b.date).getTime();
         });
 
-    const completedMatches = filteredBySeries
-        .filter(m => m.status === 'completed')
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const activeItems = [];
+    const completedItems = [];
 
-    const renderFeed = (matchesArray) => {
-        const grouped = [];
+    const seriesGroups = {};
+    filteredBySeries.forEach(m => {
+        if (m.competitionType === 'series' && m.seriesId) {
+            if (!seriesGroups[m.seriesId]) seriesGroups[m.seriesId] = [];
+            seriesGroups[m.seriesId].push(m);
+        }
+    });
 
-        matchesArray.forEach(m => {
-            if (m.competitionType === 'series' && m.seriesId) {
-                grouped.push({ type: 'series', match: m });
-            } else if (m.competitionType === 'tournament' && m.tournamentId) {
-                grouped.push({ type: 'tournament', match: m });
-            } else {
-                grouped.push({ type: 'head-to-head', match: m });
+    const processedSeries = Object.values(seriesGroups).map(seriesMatches => {
+        const sorted = [...seriesMatches].sort((a, b) => (a.matchNumber || 0) - (b.matchNumber || 0));
+        let teamAWins = 0;
+        let teamBWins = 0;
+        let seriesWinner = null;
+        let prevCompleted = true;
+        const totalMatches = sorted.length;
+        const winsRequired = Math.floor(totalMatches / 2) + 1;
+
+        let teamA = sorted[0]?.teamA || 'Team A';
+        let teamB = sorted[0]?.teamB || 'Team B';
+        let seriesName = sorted[0]?.series || 'Series';
+
+        const processedMatches = sorted.map(m => {
+            let status = m.status; // live, upcoming, completed
+            let computedStatus = status;
+
+            if (seriesWinner) {
+                if (computedStatus !== 'completed') computedStatus = 'CANCELLED';
+            } else if (computedStatus === 'upcoming') {
+                if (!prevCompleted) {
+                    computedStatus = 'LOCKED';
+                }
             }
+
+            if (computedStatus === 'completed' || computedStatus === 'CANCELLED') {
+                if (computedStatus === 'completed' && m.winner) {
+                    if (m.winner !== 'Draw' && m.winner !== 'Tie' && m.winner !== 'Abandoned') {
+                        if (m.winner === m.teamA) teamAWins++;
+                        if (m.winner === m.teamB) teamBWins++;
+                    }
+                }
+            }
+
+            if (!seriesWinner) {
+                if (teamAWins >= winsRequired) seriesWinner = teamA;
+                else if (teamBWins >= winsRequired) seriesWinner = teamB;
+            }
+
+            if (computedStatus === 'completed' || computedStatus === 'CANCELLED') {
+                prevCompleted = true;
+            } else {
+                prevCompleted = false;
+            }
+
+            return { ...m, computedStatus };
         });
 
-        return grouped.map(g => renderMatchCard(g.match, g.type));
+        const isFinished = seriesWinner != null || processedMatches.every(m => m.computedStatus === 'completed' || m.computedStatus === 'CANCELLED');
+
+        return {
+            seriesId: sorted[0].seriesId,
+            seriesName, teamA, teamB,
+            totalMatches, teamAWins, teamBWins, seriesWinner,
+            matches: processedMatches, isFinished
+        };
+    });
+
+    processedSeries.forEach(ps => {
+        if (ps.isFinished) {
+            completedItems.push({ type: 'series-group', data: ps });
+        } else {
+            activeItems.push({ type: 'series-group', data: ps });
+        }
+    });
+
+    filteredBySeries.forEach(m => {
+        if (m.competitionType !== 'series' || !m.seriesId) {
+            if (m.status === 'live' || m.status === 'upcoming') {
+                activeItems.push({ type: 'single', match: m, groupType: m.competitionType || 'head-to-head' });
+            } else if (m.status === 'completed') {
+                completedItems.push({ type: 'single', match: m, groupType: m.competitionType || 'head-to-head' });
+            }
+        }
+    });
+
+    activeItems.sort((a, b) => {
+        const aLive = a.type === 'series-group' ? a.data.matches.some(m => m.computedStatus === 'live') : a.match.status === 'live';
+        const bLive = b.type === 'series-group' ? b.data.matches.some(m => m.computedStatus === 'live') : b.match.status === 'live';
+        if (aLive && !bLive) return -1;
+        if (!aLive && bLive) return 1;
+
+        const aTime = a.type === 'series-group' ? new Date(a.data.matches[0].date).getTime() : new Date(a.match.date).getTime();
+        const bTime = b.type === 'series-group' ? new Date(b.data.matches[0].date).getTime() : new Date(b.match.date).getTime();
+        return aTime - bTime;
+    });
+
+    completedItems.sort((a, b) => {
+        const aTime = a.type === 'series-group' ? new Date(a.data.matches[a.data.matches.length - 1].date).getTime() : new Date(a.match.date).getTime();
+        const bTime = b.type === 'series-group' ? new Date(b.data.matches[b.data.matches.length - 1].date).getTime() : new Date(b.match.date).getTime();
+        return bTime - aTime;
+    });
+
+    const renderFeed = (itemsArray) => {
+        return itemsArray.map(item => {
+            if (item.type === 'series-group') return renderSeriesGroup(item.data);
+            return renderMatchCard(item.match, item.groupType);
+        });
     };
 
     return (
@@ -309,8 +586,8 @@ const Home = () => {
                                 <span className="p-1 px-2 bg-danger text-white rounded x-small">LIVE</span>
                                 Match Feed
                             </h5>
-                            {liveMatches.length > 0 ? (
-                                renderFeed(liveMatches)
+                            {activeItems.length > 0 ? (
+                                renderFeed(activeItems)
                             ) : (
                                 <div className="bg-white p-5 rounded-3 border text-center mb-4 shadow-sm">
                                     <h5 className="fw-black text-primary mb-2">NO ACTIVE MATCHES</h5>
@@ -321,8 +598,8 @@ const Home = () => {
 
                         <div>
                             <h5 className="fw-black text-uppercase letter-spacing-2 mb-3">Recently Completed</h5>
-                            {completedMatches.length > 0 ? (
-                                renderFeed(completedMatches)
+                            {completedItems.length > 0 ? (
+                                renderFeed(completedItems)
                             ) : (
                                 <div className="text-muted small">No recently completed matches.</div>
                             )}
