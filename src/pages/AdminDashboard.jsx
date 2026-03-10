@@ -601,7 +601,7 @@ const AdminDashboard = () => {
             fetchMatches();
             toast.success("Last action reversed");
         } catch (err) {
-            toast.error(err.response?.data?.msg || "Failed to reverse last action");
+            toast.error(err.response?.data?.message || err.response?.data?.msg || "Failed to reverse last action");
         }
     };
 
@@ -808,7 +808,7 @@ const AdminDashboard = () => {
             // Create snapshot from the ALREADY cloned updatedMatch (before modification)
             const { history, ...snapshot } = updatedMatch;
             updatedMatch.history.push(snapshot);
-            if (updatedMatch.history.length > 20) updatedMatch.history.shift();
+            // Cap removed for infinite undo
         }
 
         if (type === 'manual') {
