@@ -116,7 +116,8 @@ const PublicRegistration = () => {
             >
                 {/* QR CODE SECTION */}
                 <div className="text-center mb-5 mt-4">
-                    <h5 className="fw-black text-uppercase letter-spacing-2 text-primary mb-3">Scan QR to Register</h5>
+                    <h1 className="fw-black text-uppercase letter-spacing-1 text-primary mb-4">Tournament Registration</h1>
+                    <h5 className="fw-black text-uppercase letter-spacing-2 text-muted mb-3">Scan QR to Register</h5>
                     <div className="bg-white p-4 rounded-4 shadow-sm d-inline-block border">
                         <QRCode
                             value={registrationUrl}
@@ -126,10 +127,6 @@ const PublicRegistration = () => {
                         />
                     </div>
                     <div className="mt-3">
-                        <p className="text-muted small mb-1 fw-bold">or open link</p>
-                        <a href={registrationUrl} className="text-primary fw-black text-decoration-none small transition-all hover-opacity-75 d-block mb-3">
-                            {registrationUrl}
-                        </a>
 
                         {!showForm && !message && (
                             <div className="mt-4">
@@ -138,7 +135,7 @@ const PublicRegistration = () => {
                                     onClick={(e) => { e.preventDefault(); setShowForm(true); }}
                                     className="text-primary fw-black text-decoration-underline text-uppercase letter-spacing-1 small"
                                 >
-                                    Register Form
+                                    Click and Register Tournament
                                 </a>
                                 <div className="mt-3">
                                     <motion.button
@@ -149,7 +146,7 @@ const PublicRegistration = () => {
                                         onClick={() => setShowForm(true)}
                                         className="btn btn-primary rounded-pill px-4 py-2 fw-black shadow-sm premium-gradient border-0 text-uppercase x-small letter-spacing-1"
                                     >
-                                        <i className="bi bi-pencil-square me-2"></i> Open Registration Form
+                                        <i className="bi bi-pencil-square me-2"></i> Click and Register Tournament
                                     </motion.button>
                                 </div>
                             </div>
@@ -169,7 +166,7 @@ const PublicRegistration = () => {
                             {/* FORM CARD */}
                             <div className="cric-card shadow-lg border-0 rounded-4 overflow-hidden mb-5">
                                 <div className="bg-primary py-4 px-4 text-center text-white premium-gradient">
-                                    <h3 className="fw-black mb-1 letter-spacing-1 text-uppercase">Team Registration</h3>
+                                    <h3 className="fw-black mb-1 letter-spacing-1 text-uppercase">Tournament Registration</h3>
                                     <p className="small opacity-75 mb-0 text-uppercase fw-bold letter-spacing-1">Join the Village Tournament</p>
                                 </div>
 
