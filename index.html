@@ -21,7 +21,44 @@
 </head>
 
 <body>
-  <div id="root"></div>
+  <div id="root">
+    <div
+      style="height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #032333; color: white; font-family: 'Outfit', sans-serif;">
+      <img src="/logo.png" alt="SMCC"
+        style="height: 80px; width: 80px; border-radius: 50%; margin-bottom: 20px; animation: smcc-pulse 2s infinite; box-shadow: 0 0 20px rgba(255,255,255,0.2);">
+      <h2 style="font-weight: 900; letter-spacing: 4px; margin: 0;">SMCC LIVE</h2>
+      <p style="font-size: 10px; opacity: 0.5; letter-spacing: 2px; margin-top: 5px; text-transform: uppercase;">
+        Professional Cricket Scoring</p>
+      <div
+        style="width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #00D1FF; border-radius: 50%; animation: smcc-spin 1s linear infinite; margin-top: 30px;">
+      </div>
+      <style>
+        @keyframes smcc-spin {
+          0% {
+            transform: rotate(0deg);
+          }
+
+          100% {
+            transform: rotate(360deg);
+          }
+        }
+
+        @keyframes smcc-pulse {
+
+          0%,
+          100% {
+            transform: scale(1);
+            opacity: 1;
+          }
+
+          50% {
+            transform: scale(1.05);
+            opacity: 0.9;
+          }
+        }
+      </style>
+    </div>
+  </div>
   <script type="module" src="/src/main.jsx"></script>
 </body>
 

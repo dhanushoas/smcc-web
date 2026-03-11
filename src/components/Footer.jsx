@@ -4,10 +4,36 @@ import { Container, Row, Col } from 'react-bootstrap';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 
+const STATIC_FALLBACKS = {
+    quick_links: [
+        { title: 'Live Matches', route: '/' },
+        { title: 'Register Team', route: '/register' },
+        { title: 'Upcoming Schedule', route: '/schedule' },
+        { title: 'Points Table', route: '/points-table' },
+    ],
+    support: [
+        { title: 'Contact Us', route: '/contact' },
+        { title: 'Share Feedback', route: '/feedback' },
+        { title: 'Report Issues', route: '/report' },
+    ],
+    community: [
+        { title: 'Improvements', route: '/improvements' },
+        { title: 'Join Council', route: '/join' },
+        { title: 'Sponsorship', route: '/sponsorship' },
+        { title: 'Console', route: '/login' },
+    ]
+};
+
 const Footer = () => {
-    const [links, setLinks] = useState({ quick_links: [], support: [], community: [] });
-    const [socials, setSocials] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [links, setLinks] = useState(() => {
+        const cached = localStorage.getItem('smcc_footer_links');
+        return cached ? JSON.parse(cached) : STATIC_FALLBACKS;
+    });
+    const [socials, setSocials] = useState(() => {
+        const cached = localStorage.getItem('smcc_social_links');
+        return cached ? JSON.parse(cached) : [];
+    });
+    const [loading, setLoading] = useState(false); // No more blocking UI loader
 
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -19,37 +45,16 @@ const Footer = () => {
                     axios.get(`${API_URL}/api/footer/socials`)
                 ]);
 
-                // Only bind if the grouped structure returns safely
                 if (linksRes.data && linksRes.data.quick_links) {
                     setLinks(linksRes.data);
+                    localStorage.setItem('smcc_footer_links', JSON.stringify(linksRes.data));
                 }
                 if (socialsRes.data) {
                     setSocials(socialsRes.data);
+                    localStorage.setItem('smcc_social_links', JSON.stringify(socialsRes.data));
                 }
             } catch (error) {
                 console.error('Failed to load dynamic footer data:', error);
-
-                // Fallback static links if backend is unreachable 
-                setLinks({
-                    quick_links: [
-                        { title: 'Live Matches', route: '/' },
-                        { title: 'Upcoming Schedule', route: '/schedule' },
-                        { title: 'Points Table', route: '/points-table' },
-                    ],
-                    support: [
-                        { title: 'Contact Us', route: '/contact' },
-                        { title: 'Share Feedback', route: '/feedback' },
-                        { title: 'Report Issues', route: '/report' },
-                    ],
-                    community: [
-                        { title: 'Improvements', route: '/improvements' },
-                        { title: 'Join Council', route: '/join' },
-                        { title: 'Sponsorship', route: '/sponsorship' },
-                        { title: 'Console', route: '/login' },
-                    ]
-                });
-            } finally {
-                setLoading(false);
             }
         };
 

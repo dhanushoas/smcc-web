@@ -13,10 +13,13 @@ const socket = io(API_URL);
 const Home = () => {
     const navigate = useNavigate();
     const { t } = useApp();
-    const [matches, setMatches] = useState([]); // Array of match objects from API
-    const [loading, setLoading] = useState(true); // Initial load state
-    const [activeSeries, setActiveSeries] = useState('ALL'); // Series filter state
-    const [completedFilter, setCompletedFilter] = useState('ALL'); // Completed section competition type filter
+    const [matches, setMatches] = useState(() => {
+        const cached = localStorage.getItem('smcc_matches_cache');
+        return cached ? JSON.parse(cached) : [];
+    });
+    const [loading, setLoading] = useState(matches.length === 0);
+    const [activeSeries, setActiveSeries] = useState('ALL');
+    const [completedFilter, setCompletedFilter] = useState('ALL');
 
     const [blastValue, setBlastValue] = useState(0);
     const [blastMatchId, setBlastMatchId] = useState(null);
@@ -24,10 +27,12 @@ const Home = () => {
     const fetchMatches = async () => {
         try {
             const res = await axios.get(`${API_URL}/api/matches`);
-            setMatches(Array.isArray(res.data) ? res.data : []);
+            const data = Array.isArray(res.data) ? res.data : [];
+            setMatches(data);
+            localStorage.setItem('smcc_matches_cache', JSON.stringify(data));
         } catch (err) {
             console.error("Error fetching matches:", err);
-            setMatches([]);
+            if (matches.length === 0) setMatches([]);
         } finally {
             setLoading(false);
         }
@@ -472,8 +477,20 @@ const Home = () => {
     };
 
     if (loading) return (
-        <Container className="d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
-            <Spinner animation="border" variant="primary" />
+        <Container className="d-flex flex-column justify-content-center align-items-center" style={{ minHeight: '60vh' }}>
+            <div className="premium-spinner mb-3"></div>
+            <p className="fw-black text-muted x-small letter-spacing-2 text-uppercase animate-pulse">Fetching Live Scores...</p>
+            <style>{`
+                .premium-spinner {
+                    width: 40px;
+                    height: 40px;
+                    border: 3px solid rgba(0,0,0,0.05);
+                    border-top: 3px solid #ff4b2b;
+                    border-radius: 50%;
+                    animation: spin 0.8s linear infinite;
+                }
+                @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+            `}</style>
         </Container>
     );
 
