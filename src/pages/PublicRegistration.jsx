@@ -215,7 +215,7 @@ const PublicRegistration = () => {
                                                     <Form onSubmit={handleSubmit} noValidate>
                                                         <Form.Group className="mb-4">
                                                             <Form.Label className="x-small fw-black text-muted text-uppercase ms-1 mb-2">
-                                                                Team Name
+                                                                <i className="bi bi-shield-shaded me-2 text-primary"></i>Team Name
                                                             </Form.Label>
                                                             <Form.Control
                                                                 type="text"
@@ -235,7 +235,7 @@ const PublicRegistration = () => {
 
                                                         <Form.Group className="mb-4">
                                                             <Form.Label className="x-small fw-black text-muted text-uppercase ms-1 mb-2">
-                                                                Captain Name
+                                                                <i className="bi bi-person-badge-fill me-2 text-primary"></i>Captain Name
                                                             </Form.Label>
                                                             <Form.Control
                                                                 type="text"
@@ -255,7 +255,7 @@ const PublicRegistration = () => {
 
                                                         <Form.Group className="mb-4">
                                                             <Form.Label className="x-small fw-black text-muted text-uppercase ms-1 mb-2">
-                                                                Mobile Number
+                                                                <i className="bi bi-telephone-fill me-2 text-primary"></i>Mobile Number
                                                             </Form.Label>
                                                             <Form.Control
                                                                 type="tel"
@@ -276,7 +276,7 @@ const PublicRegistration = () => {
 
                                                         <Form.Group className="mb-4">
                                                             <Form.Label className="x-small fw-black text-muted text-uppercase ms-1 mb-2">
-                                                                Village / Area
+                                                                <i className="bi bi-geo-alt-fill me-2 text-primary"></i>Village / Area
                                                             </Form.Label>
                                                             <Form.Control
                                                                 type="text"
