@@ -37,7 +37,7 @@ const AdminLogin = () => {
                 return;
             }
 
-            toast.success('✅ Logged in as Admin (Web)');
+            toast.success('Logged in as Admin (Web)');
             navigate('/admin');
         } catch (err) {
             const msg = err.response?.data?.msg || 'Login failed. Check your credentials.';

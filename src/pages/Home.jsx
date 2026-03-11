@@ -77,7 +77,7 @@ const Home = () => {
         };
     }, []);
 
-    const renderMatchCard = (match, groupType = 'head-to-head') => {
+    const renderMatchCard = (match, groupType = 'head-to-head', isNested = false) => {
         const isLive = match.status === 'live';
         const isCompleted = match.status === 'completed';
         const isUpcoming = match.status === 'upcoming';
@@ -98,10 +98,10 @@ const Home = () => {
         return (
             <div
                 key={match._id || match.id}
-                className="cric-card mb-3 bg-white rounded-3 shadow-sm border overflow-hidden"
+                className="cric-card mb-3 bg-white rounded-3 shadow-sm border overflow-hidden cursor-pointer transition-all w-100"
                 onClick={handleCardClick}
             >
-                <div className="px-3 py-2 border-bottom d-flex justify-content-between align-items-center bg-white">
+                <div className="px-4 py-3 border-bottom d-flex justify-content-between align-items-center bg-white">
                     <span className="text-muted fw-bold x-small text-uppercase letter-spacing-1">
                         {match.series || 'SMCC LIVE'} {match.matchNumber ? `• Match ${match.matchNumber}` : ''}
                     </span>
@@ -113,32 +113,32 @@ const Home = () => {
                     </div>
                 </div>
 
-                <div className="p-3">
-                    <div className="d-flex justify-content-between align-items-center mb-2">
-                        <div className="d-flex align-items-center gap-2">
-                            <div className="team-initial bg-light rounded-circle border d-flex align-items-center justify-content-center fw-black" style={{ width: '32px', height: '32px', fontSize: '10px' }}>
+                <div className="p-4">
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                        <div className="d-flex align-items-center gap-3">
+                            <div className="team-initial bg-light rounded-circle border d-flex align-items-center justify-content-center fw-black" style={{ width: '40px', height: '40px', fontSize: '11px' }}>
                                 {team1?.substring(0, 2).toUpperCase() || '??'}
                             </div>
                             <span className={`fw-black fs-5 ${match.winner === team1 ? 'text-dark' : 'text-dark opacity-75'}`}>{team1}</span>
                         </div>
                         {score1 !== null && (
                             <div className="text-end">
-                                <span className="fw-black fs-5">{score1}</span>
+                                <span className="fw-black fs-4">{score1}</span>
                                 <span className="text-muted small ms-2">({overs1})</span>
                             </div>
                         )}
                     </div>
 
                     <div className="d-flex justify-content-between align-items-center mb-3">
-                        <div className="d-flex align-items-center gap-2">
-                            <div className="team-initial bg-light rounded-circle border d-flex align-items-center justify-content-center fw-black" style={{ width: '32px', height: '32px', fontSize: '10px' }}>
+                        <div className="d-flex align-items-center gap-3">
+                            <div className="team-initial bg-light rounded-circle border d-flex align-items-center justify-content-center fw-black" style={{ width: '40px', height: '40px', fontSize: '11px' }}>
                                 {team2?.substring(0, 2).toUpperCase() || '??'}
                             </div>
                             <span className={`fw-black fs-5 ${match.winner === team2 ? 'text-dark' : 'text-dark opacity-75'}`}>{team2}</span>
                         </div>
                         {score2 !== null && (
                             <div className="text-end">
-                                <span className="fw-black fs-5">{score2}</span>
+                                <span className="fw-black fs-4">{score2}</span>
                                 <span className="text-muted small ms-2">({overs2})</span>
                             </div>
                         )}
@@ -189,19 +189,19 @@ const Home = () => {
 
     const renderSeriesGroup = (ps) => {
         return (
-            <div key={ps.seriesId} className="mb-4 bg-white rounded-3 shadow-sm border overflow-hidden">
-                <div className="p-3 bg-light border-bottom text-center">
-                    <h6 className="fw-black text-primary mb-0 text-uppercase letter-spacing-1 small">
-                        {ps.teamA} VS {ps.teamB} SERIES ({ps.totalMatches} MATCHES)
-                    </h6>
-                    {ps.seriesWinner && (
-                        <div className="badge bg-success mt-2 text-uppercase fw-black" style={{ fontSize: '10px' }}>🏆 {ps.seriesWinner} WON THE SERIES</div>
-                    )}
+            <React.Fragment key={ps.seriesId}>
+                <div className="cric-card mb-3 overflow-hidden bg-white rounded-3 shadow-sm border">
+                    <div className="p-4 bg-light text-center">
+                        <h6 className="fw-black text-primary mb-0 text-uppercase letter-spacing-1">
+                            {ps.teamA} VS {ps.teamB} SERIES ({ps.totalMatches} MATCHES)
+                        </h6>
+                        {ps.seriesWinner && (
+                            <div className="badge bg-success mt-2 text-uppercase fw-black px-3 py-2 rounded-pill shadow-sm" style={{ fontSize: '11px' }}>🏆 {ps.seriesWinner} WON THE SERIES</div>
+                        )}
+                    </div>
                 </div>
-                <div className="p-3 bg-light bg-opacity-10">
-                    {ps.matches.map(m => renderMatchCard(m, 'series'))}
-                </div>
-            </div>
+                {ps.matches.map(m => renderMatchCard(m, 'series'))}
+            </React.Fragment>
         );
     };
 
@@ -378,7 +378,7 @@ const Home = () => {
         <div className="main-page-wrapper bg-light min-vh-100 pb-5">
             <div className="global-container py-4">
                 <style>{`
-                    .cric-card { cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+                    .cric-card { cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; width: 100%; }
                     .cric-card:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0,0,0,0.08) !important; }
                      .filter-btn {
                         white-space: nowrap;
@@ -418,7 +418,7 @@ const Home = () => {
 
                 <div className="mb-5">
                     {activeItems.length > 0 ? renderFeed(activeItems) : (
-                        <div className="bg-white p-5 rounded-3 border text-center shadow-sm">
+                        <div className="bg-white p-5 rounded-3 border text-center shadow-sm w-100">
                             <h6 className="fw-black text-primary mb-2">NO ACTIVE MATCHES</h6>
                             <p className="text-muted x-small mb-0 text-uppercase letter-spacing-1">Stay tuned for upcoming live coverage</p>
                         </div>
@@ -442,7 +442,7 @@ const Home = () => {
                     </div>
 
                     {filteredCompletedItems.length > 0 ? renderFeed(filteredCompletedItems) : (
-                        <div className="bg-white p-5 rounded-3 border text-center shadow-sm">
+                        <div className="bg-white p-5 rounded-3 border text-center shadow-sm w-100">
                             <i className="bi bi-info-circle fs-4 text-muted mb-3 d-block"></i>
                             <h6 className="fw-black text-muted text-uppercase small">No Matches Found</h6>
                             <p className="text-muted x-small mb-0">Try a different filter</p>

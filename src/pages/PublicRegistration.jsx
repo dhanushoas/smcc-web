@@ -116,7 +116,8 @@ const PublicRegistration = () => {
             >
                 {/* QR CODE SECTION */}
                 <div className="text-center mb-4 mt-4">
-                    <h1 className="fw-black text-uppercase letter-spacing-1 text-primary mb-3">Tournament Registration</h1>
+                    <h1 className="fw-black text-uppercase letter-spacing-1 text-primary mb-2">Tournament Registration</h1>
+                    <p className="fw-bold text-muted small mb-3">Scan to register through Mobile, iOS etc.</p>
                     <div className="bg-white p-4 rounded-4 shadow-sm d-inline-block border">
                         <QRCode
                             value={registrationUrl}
