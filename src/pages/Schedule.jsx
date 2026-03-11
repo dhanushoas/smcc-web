@@ -26,13 +26,13 @@ const Schedule = () => {
     }, []);
 
     if (loading) return (
-        <Container className="d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
+        <div className="global-container d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
             <Spinner animation="grow" variant="primary" />
-        </Container>
+        </div>
     );
 
     return (
-        <Container className="py-5">
+        <div className="global-container py-5">
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -43,24 +43,24 @@ const Schedule = () => {
                 </div>
 
                 {matches.length === 0 ? (
-                    <Card className="glass-card border-0 shadow-sm p-5 text-center">
+                    <div className="cric-card glass-card border-0 shadow-sm p-5 text-center">
                         <i className="bi bi-calendar-x fs-1 text-muted mb-3"></i>
                         <h4 className="text-muted">No upcoming matches scheduled yet.</h4>
                         <p className="text-muted small">Stay tuned for updates!</p>
-                    </Card>
+                    </div>
                 ) : (
                     <Row className="gy-4">
                         {matches.map((match, idx) => (
                             <Col key={idx} md={6} lg={4}>
                                 <motion.div whileHover={{ y: -5 }} transition={{ duration: 0.2 }}>
-                                    <Card className="glass-card border-0 shadow-lg h-100 overflow-hidden">
+                                    <div className="cric-card glass-card border-0 shadow-lg h-100 overflow-hidden">
                                         <div className="bg-primary bg-opacity-10 p-3 text-center border-bottom border-primary border-opacity-10">
                                             <div className="x-small fw-black text-primary text-uppercase mb-1">{match.series || 'SMCC LIVE'}</div>
                                             <div className="small fw-bold text-muted">
                                                 <i className="bi bi-geo-alt-fill me-1"></i>{match.venue}
                                             </div>
                                         </div>
-                                        <Card.Body className="p-4">
+                                        <div className="p-4">
                                             <div className="d-flex justify-content-between align-items-center mb-4">
                                                 <div className="text-center" style={{ width: '40%' }}>
                                                     <div className="fw-black fs-5 text-uppercase">{match.teamA}</div>
@@ -82,18 +82,19 @@ const Schedule = () => {
                                                     <span className="small fw-black">{formatTime(match.date)}</span>
                                                 </div>
                                             </div>
-                                        </Card.Body>
+                                        </div>
                                         <div className="bg-dark text-white p-2 text-center x-small fw-black text-uppercase letter-spacing-1">
                                             {pluralize(match.totalOvers || 20, 'Over').toUpperCase()} FORMAT
                                         </div>
-                                    </Card>
+                                    </div>
                                 </motion.div>
                             </Col>
                         ))}
                     </Row>
-                )}
+                )
+                }
             </motion.div>
-        </Container>
+        </div>
     );
 };
 

@@ -370,7 +370,7 @@ const Home = () => {
 
     return (
         <div className="main-page-wrapper bg-light min-vh-100 pb-5">
-            <Container style={{ maxWidth: '1100px' }} className="py-4 px-3 px-md-4">
+            <div className="global-container py-4">
                 <style>{`
                     .cric-card { cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; }
                     .cric-card:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0,0,0,0.08) !important; }
@@ -443,7 +443,7 @@ const Home = () => {
                         </div>
                     )}
                 </div>
-            </Container>
+            </div>
 
             <AnimatePresence>
                 {blastMatchId && (

@@ -148,7 +148,7 @@ const SeriesView = () => {
     };
 
     return (
-        <Container className="py-5 min-vh-100">
+        <div className="global-container py-5 min-vh-100">
             <Toaster position="top-right" />
 
             {/* Go Back Button */}
@@ -158,8 +158,8 @@ const SeriesView = () => {
 
             {/* Header / Score Board */}
             <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-4">
-                <Card className="border-0 shadow-sm rounded-4 overflow-hidden bg-primary text-white">
-                    <Card.Body className="p-4 p-md-5 position-relative">
+                <div className="cric-card border-0 shadow-sm rounded-4 overflow-hidden bg-primary text-white">
+                    <div className="p-4 p-md-5 position-relative">
                         <div className="text-center mb-4">
                             <Badge bg="warning" text="dark" className="px-3 py-2 rounded-pill fw-black letter-spacing-1 mb-3 shadow-sm border border-warning border-opacity-50">
                                 {series.type.replace(/_/g, ' ').toUpperCase()} SERIES
@@ -195,8 +195,8 @@ const SeriesView = () => {
                                 )}
                             </div>
                         </div>
-                    </Card.Body>
-                </Card>
+                    </div>
+                </div>
             </motion.div>
 
             {/* Match List */}
@@ -214,7 +214,7 @@ const SeriesView = () => {
                     </Col>
                 )}
             </Row>
-        </Container>
+        </div>
     );
 };
 

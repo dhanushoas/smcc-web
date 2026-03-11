@@ -64,7 +64,7 @@ function App() {
                 <Route path="/tournaments" element={<TournamentDashboard />} />
                 <Route path="/tournaments/:id" element={<TournamentView />} />
                 <Route path="/series/:id" element={<SeriesView />} />
-                <Route path="/register" element={<PublicRegistration />} />
+                <Route path="/tournament-registration" element={<PublicRegistration />} />
                 <Route path="/admin/registrations" element={<TournamentRegistrations />} />
               </Routes>
             </React.Suspense>

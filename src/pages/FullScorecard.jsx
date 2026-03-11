@@ -318,21 +318,21 @@ const FullScorecard = () => {
     };
 
     if (loading) return (
-        <Container className="d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
+        <div className="global-container d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
             <Spinner animation="grow" variant="primary" />
-        </Container>
+        </div>
     );
 
-    if (!match) return <Container className="py-5 text-center"><h3>Match not found</h3></Container>;
+    if (!match) return <div className="global-container py-5 text-center"><h3>Match not found</h3></div>;
 
     return (
-        <Container fluid="lg" className="py-4 py-md-5">
+        <div className="global-container py-4 py-md-5">
             <motion.div
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.4 }}
             >
-                <Card className="glass-card border-0 shadow-lg overflow-hidden">
+                <div className="cric-card border-0 shadow-lg overflow-hidden mb-4">
                     <div className="bg-primary bg-opacity-10 px-4 py-5 d-flex flex-column flex-md-row align-items-center justify-content-between gap-4">
                         <div className="d-flex align-items-center gap-4">
                             <motion.div
@@ -342,13 +342,13 @@ const FullScorecard = () => {
                                 <img
                                     src="/logo.png"
                                     alt="SMCC"
-                                    height="70"
+                                    height="80"
                                     className="rounded-circle border border-3 border-white shadow-lg"
                                 />
                             </motion.div>
                             <div>
                                 <div className="d-flex align-items-center flex-wrap gap-2">
-                                    <h2 className="fw-black mb-0 premium-gradient-text letter-spacing-1">{t('full_scorecard')}</h2>
+                                    <h1 className="fw-black mb-0 premium-gradient-text letter-spacing-1 fluid-text-h2 text-uppercase">{t('full_scorecard')}</h1>
                                     <span className="mx-1 opacity-25 d-none d-md-inline">|</span>
                                     <div className="d-flex align-items-center gap-2 text-muted fw-bold small text-uppercase">
                                         <i className="bi bi-shield-check text-primary"></i>
@@ -360,16 +360,17 @@ const FullScorecard = () => {
                                 </div>
                             </div>
                         </div>
-                        <div className="d-flex gap-3 w-100 w-md-auto">
+                        <div className="d-flex gap-2 flex-wrap justify-content-center w-100 w-md-auto">
                             {['completed', 'abandoned', 'cancelled'].includes(match.status) && (
-                                <Button variant="primary" size="lg" onClick={downloadPDF} className="premium-btn px-4 shadow-sm border-0">
-                                    <i className="bi bi-file-earmark-pdf-fill me-2"></i> Export PDF
+                                <Button variant="primary" size="lg" onClick={downloadPDF} className="premium-btn shadow-sm border-0 d-flex align-items-center gap-2">
+                                    <i className="bi bi-file-earmark-pdf-fill"></i>
+                                    <span>EXPORT PDF</span>
                                 </Button>
                             )}
                         </div>
                     </div>
 
-                    <Card.Body className="p-0">
+                    <div className="p-0">
                         <div className="p-4 p-md-5 border-bottom bg-light bg-opacity-50">
                             <Row className="align-items-center text-center text-md-start">
                                 <Col lg={7} className="text-center text-lg-start mb-4 mb-lg-0">
@@ -577,7 +578,7 @@ const FullScorecard = () => {
                                             <>
                                                 <div className="bg-light p-3 rounded-4 mb-4 border shadow-inner">
                                                     <div className="fw-black text-uppercase x-small text-muted letter-spacing-2 mb-3 px-1">Match Phases</div>
-                                                    <div className="d-flex flex-wrap gap-2">
+                                                    <div className="flex-wrap-gap">
                                                         {match.innings.map((inn, idx) => {
                                                             // Hide empty ghost innings (abandoned/glitched middle innings)
                                                             if (idx >= 2 && inn.runs === 0 && inn.wickets === 0 && (!inn.batting || inn.batting.length === 0)) return null;
@@ -588,7 +589,7 @@ const FullScorecard = () => {
                                                                 <Button
                                                                     key={idx}
                                                                     variant={activeInnings === idx ? 'primary' : 'white'}
-                                                                    className={`flex-fill py-2 px-3 transition-all border shadow-sm ${activeInnings === idx ? 'bg-primary text-white border-primary shadow-lg' : 'text-primary bg-white border-primary border-opacity-10'}`}
+                                                                    className={`flex-grow-1 py-2 px-3 transition-all border shadow-sm ${activeInnings === idx ? 'bg-primary text-white border-primary shadow-lg' : 'text-primary bg-white border-primary border-opacity-10'}`}
                                                                     onClick={() => setActiveInnings(idx)}
                                                                     style={{ minWidth: '140px' }}
                                                                 >
@@ -839,10 +840,10 @@ const FullScorecard = () => {
                                     </motion.div>
                                 )}
                             </AnimatePresence>
-                        </div >
-                    </Card.Body >
-                </Card >
-            </motion.div >
+                        </div>
+                    </div>
+                </div>
+            </motion.div>
             <AnimatePresence>
                 {showBlast && (
                     <motion.div
@@ -868,7 +869,7 @@ const FullScorecard = () => {
                     </motion.div>
                 )}
             </AnimatePresence>
-        </Container >
+        </div>
     );
 };
 

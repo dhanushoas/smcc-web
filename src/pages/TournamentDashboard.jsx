@@ -81,7 +81,7 @@ const TournamentDashboard = () => {
     const TYPE_LABELS = { league: 'League', knockout: 'Knockout', league_knockout: 'Group + KO' };
 
     return (
-        <Container className="py-5 min-vh-100">
+        <div className="global-container py-5 min-vh-100">
             <Toaster position="top-right" />
             <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="d-flex justify-content-between align-items-center mb-5">
                 <div>
@@ -267,7 +267,7 @@ const TournamentDashboard = () => {
                     </Form>
                 </Modal.Body>
             </Modal>
-        </Container>
+        </div>
     );
 };
 

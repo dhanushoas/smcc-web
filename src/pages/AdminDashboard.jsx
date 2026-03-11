@@ -1918,7 +1918,7 @@ const AdminDashboard = () => {
 
     return (
         <>
-            <Container fluid="lg" className="py-4">
+            <div className="py-2">
                 <Toaster position="top-right" />
 
                 {/* SQUAD MODAL */}
@@ -2242,43 +2242,47 @@ const AdminDashboard = () => {
                     </Modal.Footer>
                 </Modal>
 
-                <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-5">
-                    <div className="d-flex gap-3 align-items-center">
-                        <h2 className="fw-black premium-gradient-text m-0">Admin Dashboard</h2>
+                <div className="global-container">
+                    <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-5">
+                        <div className="d-flex gap-3 align-items-center">
+                            <h1 className="fw-black premium-gradient-text m-0 fluid-text-h2">ADMIN DASHBOARD</h1>
+                        </div>
+                        <div className="d-flex gap-2 flex-wrap">
+                            <Button variant="outline-primary" className="rounded-pill shadow-sm px-4 py-2 fw-bold d-flex align-items-center gap-2" onClick={() => navigate('/admin/registrations')}>
+                                <i className="bi bi-people-fill"></i>
+                                <span>REGISTRATIONS</span>
+                            </Button>
+                            <Button variant="primary" className="rounded-pill shadow-sm px-4 py-2 fw-bold d-flex align-items-center gap-2" onClick={() => { setIsCreating(true); setIsEditingMode(false); setSelectedMatch(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+                                <i className="bi bi-plus-lg"></i>
+                                <span>NEW MATCH</span>
+                            </Button>
+                        </div>
                     </div>
-                    <div className="d-flex gap-2">
-                        <Button variant="outline-primary" className="rounded-pill shadow-sm px-4 py-2 fw-bold" onClick={() => navigate('/admin/registrations')}>
-                            <i className="bi bi-people-fill me-2"></i>Registrations
-                        </Button>
-                        <Button variant="primary" className="rounded-pill shadow-sm px-4 py-2 fw-bold" onClick={() => { setIsCreating(true); setIsEditingMode(false); setSelectedMatch(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
-                            <i className="bi bi-plus-lg me-2"></i>New Match
-                        </Button>
-                    </div>
-                </div>
 
-                <div style={{ maxWidth: '1600px', margin: '0 auto' }}>
-                    <Row>
-                        <Col lg={4} className="mb-4">
-                            <Card className="shadow-sm border-0">
-                                <Card.Header className="bg-white fw-bold d-flex justify-content-between"><span>Matches</span><Badge bg="secondary">{matches.length}</Badge></Card.Header>
-                                <ListGroup variant="flush" className="overflow-auto" style={{ maxHeight: '75vh' }}>
+                    <div className="admin-grid">
+                        <div className="admin-left-col">
+                            <div className="cric-card border-0 shadow-sm mb-4">
+                                <div className="p-3 bg-white border-bottom fw-bold d-flex justify-content-between align-items-center">
+                                    <span className="text-uppercase letter-spacing-1 small">Matches</span>
+                                    <Badge bg="primary" className="rounded-pill">{matches.length}</Badge>
+                                </div>
+                                <ListGroup variant="flush" className="overflow-auto border-0" style={{ maxHeight: '75vh' }}>
                                     {matches.map(m => (
-                                        <ListGroup.Item key={m._id || m.id} className="d-flex justify-content-between align-items-center py-3 border-start border-4 p-0 pointer-event" style={{ borderLeftColor: m.status === 'live' ? '#ff4b2b' : m.status === 'cancelled' ? '#6c757d' : '#333', opacity: m.status === 'cancelled' ? 0.6 : 1 }}>
-                                            <div className={`flex-grow-1 p-3 ${selectedMatch?._id === m._id || selectedMatch?.id === m.id ? 'bg-primary text-white' : ''}`} style={{ cursor: m.status === 'cancelled' ? 'default' : 'pointer' }} onClick={() => m.status !== 'cancelled' && handleEdit(m)}>
-                                                <div className="fw-bold fs-6">
-                                                    {m.teamA.toUpperCase()} vs {m.teamB.toUpperCase()}
-                                                    <Badge bg={m.status === 'cancelled' ? 'secondary' : m.competitionType === 'tournament' ? 'warning' : m.competitionType === 'series' ? 'primary' : 'secondary'} className="ms-2 font-size-10 text-uppercase fw-normal" style={{ fontSize: '9px' }}>
+                                        <ListGroup.Item key={m._id || m.id} className="d-flex justify-content-between align-items-center py-3 border-start border-4 p-0 pointer-event border-0" style={{ borderLeft: `4px solid ${m.status === 'live' ? '#ff4b2b' : m.status === 'cancelled' ? '#6c757d' : '#333'}`, opacity: m.status === 'cancelled' ? 0.6 : 1, borderBottom: '1px solid #f0f0f0' }}>
+                                            <div className={`flex-grow-1 p-3 ${selectedMatch?._id === m._id || selectedMatch?.id === m.id ? 'bg-primary text-white shadow-sm' : 'hover-bg-light'}`} style={{ cursor: m.status === 'cancelled' ? 'default' : 'pointer' }} onClick={() => m.status !== 'cancelled' && handleEdit(m)}>
+                                                <div className="fw-bold fs-6 d-flex align-items-center flex-wrap gap-2">
+                                                    {m.teamA.toUpperCase()} <span className={selectedMatch?._id === m._id || selectedMatch?.id === m.id ? 'text-white-50' : 'text-primary'}>VS</span> {m.teamB.toUpperCase()}
+                                                    <Badge bg={m.status === 'cancelled' ? 'secondary' : m.competitionType === 'tournament' ? 'warning' : m.competitionType === 'series' ? 'primary' : 'secondary'} className="x-small text-uppercase">
                                                         {m.status === 'cancelled' ? 'Not Required' : m.competitionType === 'series' && m.matchNumber ? `Match ${m.matchNumber}` : (m.competitionType || 'Head-to-Head')}
                                                     </Badge>
                                                 </div>
-                                                <small className={selectedMatch?._id === m._id || selectedMatch?.id === m.id ? 'text-white-50' : 'text-muted'}>
-                                                    {m.status.toUpperCase()} | {new Date(m.date).toLocaleDateString()} | {formatTime(m.date)} • {(m.venue || 'TBA').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}
-                                                </small>
+                                                <div className={`small mt-1 ${selectedMatch?._id === m._id || selectedMatch?.id === m.id ? 'text-white-50' : 'text-muted'}`}>
+                                                    <span className="fw-bold text-uppercase" style={{ fontSize: '0.7rem' }}>{m.status}</span> • {new Date(m.date).toLocaleDateString()} • {formatTime(m.date)}
+                                                </div>
                                             </div>
-                                            <div className="d-flex align-items-center">
+                                            <div className="d-flex align-items-center pe-2">
                                                 {(m.status === 'completed' || m.status === 'abandoned' || m.status === 'cancelled') && (
-
-                                                    <Button variant="link" className="text-secondary px-2" title="Copy Match & Squads" onClick={(e) => {
+                                                    <Button variant="link" className="text-secondary p-2 hover-scale" title="Copy Match & Squads" onClick={(e) => {
                                                         e.stopPropagation();
                                                         setCreateForm({
                                                             title: '', teamA: m.teamA, teamB: m.teamB, status: 'upcoming',
@@ -2294,21 +2298,21 @@ const AdminDashboard = () => {
                                                     </Button>
                                                 )}
                                                 {m.status !== 'completed' && m.status !== 'abandoned' && (
-                                                    <Button variant="link" className="text-danger px-3 border-start ms-2" onClick={(e) => handleDelete(e, m._id || m.id)}>
-                                                        <span className="fs-4">×</span>
+                                                    <Button variant="link" className="text-danger p-2 border-start ms-2 hover-scale" onClick={(e) => handleDelete(e, m._id || m.id)}>
+                                                        <i className="bi bi-trash fs-5"></i>
                                                     </Button>
                                                 )}
                                             </div>
                                         </ListGroup.Item>
                                     ))}
                                 </ListGroup>
-                            </Card>
-                        </Col>
+                            </div>
+                        </div>
 
-                        <Col lg={8}>
+                        <div className="admin-right-col">
                             {isCreating ? (
-                                <Card className="shadow-lg border-0">
-                                    <Card.Body className="p-4">
+                                <div className="cric-card shadow-sm border-0">
+                                    <div className="p-4">
                                         <div className="d-flex align-items-center justify-content-between mb-4">
                                             <h4 className="fw-bold mb-0">{isEditingMode ? 'Edit Match Configurations' : 'New Match'}</h4>
                                             {isEditingMode && createForm.status !== 'upcoming' && (
@@ -2455,11 +2459,11 @@ const AdminDashboard = () => {
                                                 <Button variant="light" disabled={isSaving} onClick={() => { setIsCreating(false); setIsEditingMode(false); }}>Cancel</Button>
                                             </div>
                                         </Form>
-                                    </Card.Body>
-                                </Card>
+                                    </div>
+                                </div>
                             ) : selectedMatch ? (
-                                <Card className="shadow-lg border-0 overflow-hidden">
-                                    <Card.Header className="bg-dark text-white d-flex justify-content-between align-items-center py-3 px-4">
+                                <div className="cric-card shadow-sm border-0 overflow-hidden">
+                                    <div className="bg-dark text-white d-flex justify-content-between align-items-center py-3 px-4">
                                         <h5 className="m-0 fw-bold">{selectedMatch.teamA.toUpperCase()} vs {selectedMatch.teamB.toUpperCase()}</h5>
                                         <div className="d-flex align-items-center gap-2">
                                             <Button variant="outline-light" size="sm" onClick={() => handleEditMatchForm(selectedMatch)}>
@@ -2470,8 +2474,8 @@ const AdminDashboard = () => {
                                             </Badge>
                                             <Badge bg={selectedMatch.status === 'live' ? 'danger' : 'info'}>{selectedMatch.status.toUpperCase()}</Badge>
                                         </div>
-                                    </Card.Header>
-                                    <Card.Body className="p-4">
+                                    </div>
+                                    <div className="p-4">
                                         <div className="text-center mb-4 bg-light rounded-4 p-4 border">
 
 
@@ -2666,7 +2670,7 @@ const AdminDashboard = () => {
                                                 );
 
                                                 return (
-                                                    <>
+                                                    <div>
                                                         {selectedMatch.status === 'live' && ((!selectedMatch.currentBatsmen || selectedMatch.currentBatsmen.length === 0) || isComplete) && (
                                                             (() => {
                                                                 const targetIdx = isComplete ? selectedMatch.innings.length : currentInnIdx;
@@ -2720,56 +2724,59 @@ const AdminDashboard = () => {
 
                                                         {/* SCORING PANEL - 5 ROW LAYOUT */}
                                                         {selectedMatch.status === 'live' && selectedMatch.currentBatsmen?.length > 0 && selectedMatch.currentBowler && !isComplete && (
-                                                            <div className="scoring-panel-container d-grid gap-3 justify-content-center w-100">
+                                                            <div className="scoring-panel-container d-grid gap-4 w-100">
                                                                 {selectedMatch.toss?.winner && (
-                                                                    <div className="alert alert-warning text-center fw-bold py-2 mb-0 border-0 shadow-sm rounded-pill">
-                                                                        🪙 Toss: {selectedMatch.toss.winner} won & elected to {selectedMatch.toss.decision} first.
+                                                                    <div className="bg-warning bg-opacity-10 text-dark text-center fw-bold py-3 mb-0 border border-warning border-opacity-20 rounded-pill shadow-sm">
+                                                                        <i className="bi bi-coin me-2"></i>
+                                                                        Toss: {selectedMatch.toss.winner} won & elected to {selectedMatch.toss.decision} first.
                                                                     </div>
                                                                 )}
 
                                                                 {/* ROW 1 – MATCH CONTROLS */}
-                                                                <div className="d-flex flex-wrap gap-2 justify-content-center">
-                                                                    <Button variant="outline-primary" size="lg" className="px-3 fw-bold shadow-sm" onClick={() => setShowSquadModal(true)}>
+                                                                <div className="flex-wrap-gap justify-content-center">
+                                                                    <Button variant="outline-primary" className="flex-grow-1 px-3 fw-bold shadow-sm py-2" onClick={() => setShowSquadModal(true)}>
                                                                         <i className="bi bi-people-fill me-2"></i>SQUADS
                                                                     </Button>
-                                                                    <Button variant="outline-primary" size="lg" className="px-3 fw-bold shadow-sm" onClick={() => setShowDlsModal(true)}>
+                                                                    <Button variant="outline-primary" className="flex-grow-1 px-3 fw-bold shadow-sm py-2" onClick={() => setShowDlsModal(true)}>
                                                                         <i className="bi bi-cloud-rain-fill me-2"></i>DLS
                                                                     </Button>
-                                                                    <Button variant="outline-warning" size="lg" className="px-3 fw-bold shadow-sm" onClick={undoLastBall} disabled={!selectedMatch.history || selectedMatch.history.length === 0}>
-                                                                        <i className="bi bi-arrow-counterclockwise me-2"></i>Reverse Last Action
+                                                                    <Button variant="outline-warning" className="flex-grow-1 px-3 fw-bold shadow-sm py-2" onClick={undoLastBall} disabled={!selectedMatch.history || selectedMatch.history.length === 0}>
+                                                                        <i className="bi bi-arrow-counterclockwise me-2"></i>REVERSE
                                                                     </Button>
                                                                     {selectedMatch.score?.isPaused ? (
-                                                                        <Button variant="success" size="lg" className="px-3 fw-bold shadow-sm" onClick={() => handlePauseToggle()}>
-                                                                            <i className="bi bi-play-fill me-2"></i>RESUME MATCH
+                                                                        <Button variant="success" className="flex-grow-1 px-3 fw-bold shadow-sm py-2" onClick={() => handlePauseToggle()}>
+                                                                            <i className="bi bi-play-fill me-2"></i>RESUME
                                                                         </Button>
                                                                     ) : (
-                                                                        <Button variant="danger" size="lg" className="px-3 fw-bold shadow-sm" onClick={() => setShowPauseModal(true)}>
-                                                                            <i className="bi bi-pause-fill me-2"></i>Temporarily Pause Match
+                                                                        <Button variant="danger" className="flex-grow-1 px-3 fw-bold shadow-sm py-2" onClick={() => setShowPauseModal(true)}>
+                                                                            <i className="bi bi-pause-fill me-2"></i>PAUSE
                                                                         </Button>
                                                                     )}
                                                                 </div>
 
                                                                 {/* ROW 2 – PRIMARY SCORING */}
-                                                                <div className="d-flex flex-wrap gap-2 justify-content-center">
+                                                                <div className="flex-wrap-gap justify-content-center">
                                                                     {[0, 1, 2, 3, 4, 6].map(r => (
-                                                                        <Button key={r} disabled={isUpdating || selectedMatch.score?.isPaused} variant="outline-primary" size="lg" className="px-4 fw-bold shadow-sm" onClick={() => {
+                                                                        <Button key={r} disabled={isUpdating || selectedMatch.score?.isPaused} variant="outline-primary" className="flex-grow-1 text-center py-3 px-4 fw-black shadow-sm fs-5" onClick={() => {
                                                                             if (currentInn && currentInn.overs >= limit) return toast.error(`Over limit reached!`);
                                                                             handleUpdate('runs', r);
-                                                                        }}>{r} {r === 1 ? 'Run' : 'Runs'}</Button>
+                                                                        }}>
+                                                                            {r}
+                                                                        </Button>
                                                                     ))}
-                                                                    <Button variant="danger" size="lg" className="px-4 fw-bold shadow-sm" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => {
+                                                                    <Button variant="danger" className="flex-grow-1 py-3 px-4 fw-black shadow-sm fs-5" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => {
                                                                         setWicketDetails(prev => ({ ...prev, type: 'caught', fielder: '', runs: 0, whomOut: 'striker' }));
                                                                         setShowWicketModal(true);
-                                                                    }}>Wicket</Button>
+                                                                    }}>WKT</Button>
                                                                 </div>
 
                                                                 {/* ROW 3 – EXTRAS */}
-                                                                <div className="d-flex flex-wrap gap-2 justify-content-center">
-                                                                    <Dropdown as={ButtonGroup}>
-                                                                        <Button variant="outline-warning" size="lg" className="px-3 fw-bold shadow-sm" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => {
+                                                                <div className="flex-wrap-gap justify-content-center">
+                                                                    <Dropdown as={ButtonGroup} className="flex-grow-1">
+                                                                        <Button variant="outline-warning" className="px-3 fw-bold shadow-sm py-2 h-100" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => {
                                                                             if (currentInn && currentInn.overs >= limit) return toast.error(`Over limit reached!`);
                                                                             handleUpdate('extra', 'w', { amount: 1 });
-                                                                        }}>Wide Ball</Button>
+                                                                        }}>WIDE</Button>
                                                                         <Dropdown.Toggle split variant="outline-warning" id="dropdown-wide" disabled={isUpdating || selectedMatch.score?.isPaused} />
                                                                         <Dropdown.Menu className="border-0 shadow-lg p-2">
                                                                             <Dropdown.Item onClick={() => handleUpdate('extra', 'w', { amount: 2 })}>Wide + 1 (2 Runs)</Dropdown.Item>
@@ -2778,65 +2785,65 @@ const AdminDashboard = () => {
                                                                         </Dropdown.Menu>
                                                                     </Dropdown>
 
-                                                                    <Dropdown as={ButtonGroup}>
-                                                                        <Button variant="outline-warning" size="lg" className="px-3 fw-bold shadow-sm" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => {
+                                                                    <Dropdown as={ButtonGroup} className="flex-grow-1">
+                                                                        <Button variant="outline-warning" className="px-3 fw-bold shadow-sm py-2 h-100" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => {
                                                                             if (currentInn && currentInn.overs >= limit) return toast.error(`Over limit reached!`);
                                                                             handleUpdate('extra', 'nb', { amount: 1, isBat: false });
-                                                                        }}>No Ball</Button>
+                                                                        }}>NB</Button>
                                                                         <Dropdown.Toggle split variant="outline-warning" id="dropdown-noball" disabled={isUpdating || selectedMatch.score?.isPaused} />
                                                                         <Dropdown.Menu className="border-0 shadow-lg p-3" style={{ minWidth: '250px' }}>
                                                                             <div className="fw-bold small text-muted mb-2 text-uppercase">Hit by Bat (Striker)</div>
-                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'nb', { amount: 2, isBat: true })}>No Ball + 1 Run (2)</Dropdown.Item>
-                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'nb', { amount: 3, isBat: true })}>No Ball + 2 Runs (3)</Dropdown.Item>
-                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'nb', { amount: 5, isBat: true })}>No Ball + 4 Runs (5)</Dropdown.Item>
-                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'nb', { amount: 7, isBat: true })}>No Ball + 6 Runs (7)</Dropdown.Item>
+                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'nb', { amount: 2, isBat: true })}>NB + 1 Run (2)</Dropdown.Item>
+                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'nb', { amount: 3, isBat: true })}>NB + 2 Runs (3)</Dropdown.Item>
+                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'nb', { amount: 5, isBat: true })}>NB + 4 Runs (5)</Dropdown.Item>
+                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'nb', { amount: 7, isBat: true })}>NB + 6 Runs (7)</Dropdown.Item>
                                                                             <Dropdown.Divider />
-                                                                            <div className="fw-bold small text-muted mb-2 text-uppercase">Not Hit (Byes/Leg Byes)</div>
-                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'nb', { amount: 2, isBat: false })}>No Ball + 1 Extra (2)</Dropdown.Item>
-                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'nb', { amount: 5, isBat: false })}>No Ball + 4 Extras (5)</Dropdown.Item>
+                                                                            <div className="fw-bold small text-muted mb-2 text-uppercase">Not Hit (Byes/LB)</div>
+                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'nb', { amount: 2, isBat: false })}>NB + 1 Extra (2)</Dropdown.Item>
+                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'nb', { amount: 5, isBat: false })}>NB + 4 Extras (5)</Dropdown.Item>
                                                                         </Dropdown.Menu>
                                                                     </Dropdown>
 
-                                                                    <Dropdown as={ButtonGroup}>
-                                                                        <Button variant="outline-warning" size="lg" className="px-3 fw-bold text-dark shadow-sm" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => {
+                                                                    <Dropdown as={ButtonGroup} className="flex-grow-1">
+                                                                        <Button variant="outline-warning" className="px-3 fw-bold shadow-sm py-2 h-100 text-dark" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => {
                                                                             if (currentInn && currentInn.overs >= limit) return toast.error(`Over limit reached!`);
                                                                             handleUpdate('extra', 'lb', { amount: 1 });
-                                                                        }}>Leg Bye</Button>
+                                                                        }}>LB</Button>
                                                                         <Dropdown.Toggle split variant="outline-warning" id="dropdown-legbye" disabled={isUpdating || selectedMatch.score?.isPaused} className="text-dark" />
                                                                         <Dropdown.Menu className="border-0 shadow-lg p-2">
-                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'lb', { amount: 1 })}>1 Leg Bye</Dropdown.Item>
-                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'lb', { amount: 2 })}>2 Leg Byes</Dropdown.Item>
-                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'lb', { amount: 4 })}>4 Leg Byes</Dropdown.Item>
+                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'lb', { amount: 1 })}>1 LB</Dropdown.Item>
+                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'lb', { amount: 2 })}>2 LB</Dropdown.Item>
+                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'lb', { amount: 4 })}>4 LB</Dropdown.Item>
                                                                         </Dropdown.Menu>
                                                                     </Dropdown>
 
-                                                                    <Dropdown as={ButtonGroup}>
-                                                                        <Button variant="outline-warning" size="lg" className="px-3 fw-bold text-dark shadow-sm" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => {
+                                                                    <Dropdown as={ButtonGroup} className="flex-grow-1">
+                                                                        <Button variant="outline-warning" className="px-3 fw-bold shadow-sm py-2 h-100 text-dark" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => {
                                                                             if (currentInn && currentInn.overs >= limit) return toast.error(`Over limit reached!`);
                                                                             handleUpdate('extra', 'b', { amount: 1 });
-                                                                        }}>Bye</Button>
+                                                                        }}>BYE</Button>
                                                                         <Dropdown.Toggle split variant="outline-warning" id="dropdown-bye" disabled={isUpdating || selectedMatch.score?.isPaused} className="text-dark" />
                                                                         <Dropdown.Menu className="border-0 shadow-lg p-2">
-                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'b', { amount: 1 })}>1 Bye</Dropdown.Item>
-                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'b', { amount: 2 })}>2 Byes</Dropdown.Item>
-                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'b', { amount: 4 })}>4 Byes</Dropdown.Item>
+                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'b', { amount: 1 })}>1 BYE</Dropdown.Item>
+                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'b', { amount: 2 })}>2 BYES</Dropdown.Item>
+                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'b', { amount: 4 })}>4 BYES</Dropdown.Item>
                                                                         </Dropdown.Menu>
                                                                     </Dropdown>
 
-                                                                    <Button variant="outline-dark" size="lg" className="px-3 fw-bold shadow-sm"
+                                                                    <Button variant="outline-dark" className="flex-grow-1 px-3 fw-bold shadow-sm py-2"
                                                                         disabled={isUpdating || selectedMatch.score?.isPaused || !selectedMatch.score?.thisOver?.length}
                                                                         onClick={() => {
                                                                             if (currentInn && currentInn.overs >= limit) return toast.error(`Over limit reached!`);
                                                                             setOverthrowData({ ballType: 'normal', runsCompleted: 0, crossedOnThrow: false, resultType: 'boundary', manualRuns: 0 });
                                                                             setShowOverthrowModal(true);
-                                                                        }}>⚡ Overthrow</Button>
+                                                                        }}>⚡ OVERTHROW</Button>
                                                                 </div>
 
                                                                 {/* ROW 4 – PLAYER ACTIONS */}
-                                                                <div className="d-flex flex-wrap gap-2 justify-content-center">
-                                                                    <Button variant="outline-info" size="lg" className="px-3 fw-bold shadow-sm" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => handleUpdate('swap_strike')}>Change Strike</Button>
-                                                                    <Button variant="outline-dark" size="lg" className="px-3 fw-bold shadow-sm" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => { setBatsmanModalType('retire'); setShowBatsmanModal(true); }}>Retire Batter</Button>
-                                                                    <Button variant="outline-success" size="lg" className="px-3 fw-bold shadow-sm" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => {
+                                                                <div className="flex-wrap-gap justify-content-center">
+                                                                    <Button variant="outline-info" className="flex-grow-1 px-3 fw-bold shadow-sm py-2" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => handleUpdate('swap_strike')}>STRIKE</Button>
+                                                                    <Button variant="outline-dark" className="flex-grow-1 px-3 fw-bold shadow-sm py-2" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => { setBatsmanModalType('retire'); setShowBatsmanModal(true); }}>RETIRE</Button>
+                                                                    <Button variant="outline-success" className="flex-grow-1 px-3 fw-bold shadow-sm py-2" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => {
                                                                         if (selectedMatch?.score?.thisOver?.length > 0) {
                                                                             const overBalls = selectedMatch.score.thisOver;
                                                                             const legalBalls = overBalls.filter(b => !/(W\+|WD|NB)/i.test(b.toString())).length;
@@ -2846,10 +2853,9 @@ const AdminDashboard = () => {
                                                                             }
                                                                         }
                                                                         setShowBowlerModal(true);
-                                                                    }}>Replace Bowler Due to Injury</Button>
-                                                                    {/* Free Hit Toggle moved here to maintain Row 5 as indicator only */}
-                                                                    <Button variant={selectedMatch?.score?.freeHit ? "danger" : "outline-secondary"} size="lg" className="px-3 fw-bold shadow-sm" onClick={() => handleUpdate('manual', { ...selectedMatch, score: { ...selectedMatch.score, freeHit: !selectedMatch.score.freeHit } })}>
-                                                                        {selectedMatch?.score?.freeHit ? '🚀 DISABLE FREE HIT' : '🚀 ENABLE FREE HIT'}
+                                                                    }}>INJURY</Button>
+                                                                    <Button variant={selectedMatch?.score?.freeHit ? "danger" : "outline-secondary"} className="flex-grow-1 px-3 fw-bold shadow-sm py-2" onClick={() => handleUpdate('manual', { ...selectedMatch, score: { ...selectedMatch.score, freeHit: !selectedMatch.score.freeHit } })}>
+                                                                        {selectedMatch?.score?.freeHit ? '🚀 DISABLE FH' : '🚀 FREE HIT'}
                                                                     </Button>
                                                                 </div>
 
@@ -2861,7 +2867,7 @@ const AdminDashboard = () => {
                                                                 </div>
                                                             </div>
                                                         )}
-                                                    </>
+                                                    </div >
                                                 );
                                             })()}
                                             {selectedMatch.status === 'completed' && (
@@ -2924,8 +2930,8 @@ const AdminDashboard = () => {
                                             selectedMatch.status === 'live' && (
                                                 <Row className="g-3 mb-4">
                                                     <Col md={6}>
-                                                        <Card className="border-0 bg-info bg-opacity-10 shadow-sm">
-                                                            <Card.Body className="py-3 px-4">
+                                                        <div className="cric-card border-0 bg-info bg-opacity-10 shadow-sm">
+                                                            <div className="py-3 px-4">
                                                                 <div className="d-flex justify-content-between align-items-center mb-2">
                                                                     <small className="text-info fw-bold text-uppercase d-block mb-1">Batting</small>
                                                                     <Button variant="link" size="sm" className="text-info p-0 text-decoration-none fw-bold" onClick={() => handleUpdate('swap_strike')}>
@@ -2945,12 +2951,12 @@ const AdminDashboard = () => {
                                                                         ))}
                                                                     </div>
                                                                 </div>
-                                                            </Card.Body>
-                                                        </Card>
+                                                            </div>
+                                                        </div>
                                                     </Col>
                                                     <Col md={6}>
-                                                        <Card className="border-0 bg-success bg-opacity-10 shadow-sm">
-                                                            <Card.Body className="py-3 px-4">
+                                                        <div className="cric-card border-0 bg-success bg-opacity-10 shadow-sm">
+                                                            <div className="py-3 px-4">
                                                                 <small className="text-success fw-bold text-uppercase d-block mb-1">Bowling</small>
                                                                 <div className="d-flex justify-content-between align-items-center">
                                                                     <div className="fw-bold fs-5">⚾ {bowler || '...'}</div>
@@ -2988,8 +2994,8 @@ const AdminDashboard = () => {
                                                                         </div>
                                                                     </div>
                                                                 )}
-                                                            </Card.Body>
-                                                        </Card>
+                                                            </div>
+                                                        </div>
                                                     </Col>
                                                 </Row>
                                             )
@@ -2998,11 +3004,11 @@ const AdminDashboard = () => {
                                         {/* Batting Summary Table */}
                                         {
                                             selectedMatch.status === 'live' && (
-                                                <Card className="border-0 shadow-sm mt-0 mb-4 overflow-hidden">
-                                                    <Card.Header className="bg-primary text-white py-2 small fw-bold text-uppercase d-flex justify-content-between align-items-center">
+                                                <div className="cric-card border-0 shadow-sm mt-0 mb-4 overflow-hidden">
+                                                    <div className="bg-primary text-white py-2 px-3 small fw-bold text-uppercase d-flex justify-content-between align-items-center">
                                                         <span><i className="bi bi-person-fill me-2"></i>Batting Summary: {selectedMatch.score.battingTeam}</span>
                                                         <Badge bg="white" text="primary" className="x-small">CRR: {getCRR()}</Badge>
-                                                    </Card.Header>
+                                                    </div>
                                                     <Table hover responsive size="sm" className="mb-0">
                                                         <thead className="bg-light x-small text-uppercase">
                                                             <tr>
@@ -3034,17 +3040,17 @@ const AdminDashboard = () => {
                                                             })()}
                                                         </tbody>
                                                     </Table>
-                                                </Card>
+                                                </div>
                                             )
                                         }
 
                                         {/* Bowling Summary Table */}
                                         {
                                             selectedMatch.status === 'live' && (
-                                                <Card className="border-0 shadow-sm mt-0 mb-4 overflow-hidden">
-                                                    <Card.Header className="bg-dark text-white py-2 small fw-bold text-uppercase">
+                                                <div className="cric-card border-0 shadow-sm mt-0 mb-4 overflow-hidden">
+                                                    <div className="bg-dark text-white py-2 px-3 small fw-bold text-uppercase">
                                                         <i className="bi bi-bullseye me-2"></i>Bowling Summary: {selectedMatch.innings[selectedMatch.score.battingTeam === selectedMatch.teamA ? (selectedMatch.innings.length > 2 ? 3 : 1) : (selectedMatch.innings.length > 2 ? 2 : 0)]?.team || 'N/A'}
-                                                    </Card.Header>
+                                                    </div>
                                                     <Table hover responsive size="sm" className="mb-0">
                                                         <thead className="bg-light x-small text-uppercase">
                                                             <tr>
@@ -3092,7 +3098,7 @@ const AdminDashboard = () => {
                                                             })()}
                                                         </tbody>
                                                     </Table>
-                                                </Card>
+                                                </div>
                                             )
                                         }
 
@@ -3247,14 +3253,14 @@ const AdminDashboard = () => {
                                                 </Row>
                                             </div>
                                         </details>
-                                    </Card.Body>
-                                </Card>
+                                    </div>
+                                </div>
                             ) : (<div className="text-center py-5 bg-white rounded-4 shadow-sm d-flex flex-column align-items-center border"><Spinner animation="grow" variant="primary" className="mb-4" /><h4>Ready to Score?</h4><p className="text-muted">Select a match to start updates.</p></div>)
                             }
-                        </Col >
-                    </Row >
-                </div >
-            </Container >
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             {/* Pause Modal */}
             < Modal show={showPauseModal} onHide={() => { setShowPauseModal(false); setPauseReason(''); setCustomPauseReason(''); }} centered >

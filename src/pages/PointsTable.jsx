@@ -128,9 +128,9 @@ const PointsTable = () => {
     }, []);
 
     if (loading) return (
-        <Container className="d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
+        <div className="global-container d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
             <Spinner animation="grow" variant="primary" />
-        </Container>
+        </div>
     );
 
     const seriesList = [...new Set(matches.map(m => m.series || 'SMCC LIVE'))];
@@ -138,7 +138,7 @@ const PointsTable = () => {
     const stats = calculateStats(filteredMatches);
 
     return (
-        <Container className="py-4 py-md-5">
+        <div className="global-container py-4 py-md-5">
             <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -163,14 +163,14 @@ const PointsTable = () => {
                     )}
                 </div>
 
-                <Card className="border-0 shadow-sm rounded-3 overflow-hidden">
+                <div className="cric-card border-0 shadow-sm rounded-3 overflow-hidden">
                     <div className="bg-light px-4 py-3 border-bottom d-flex justify-content-between align-items-center">
                         <span className="fw-black text-uppercase x-small text-muted letter-spacing-2">
                             {activeSeries} • Points Table
                         </span>
                         <Badge bg="success" className="x-small px-2 py-1 shadow-sm">REAL-TIME</Badge>
                     </div>
-                    <Card.Body className="p-0">
+                    <div className="p-0">
                         <Table hover responsive className="mb-0">
                             <thead className="bg-white">
                                 <tr className="text-muted x-small text-uppercase fw-black letter-spacing-1 border-bottom">
@@ -223,8 +223,8 @@ const PointsTable = () => {
                                 </AnimatePresence>
                             </tbody>
                         </Table>
-                    </Card.Body>
-                </Card>
+                    </div>
+                </div>
 
                 <div className="mt-4 p-4 border rounded-3 bg-white shadow-sm x-small text-muted">
                     <p className="mb-2 fw-black text-uppercase letter-spacing-1 text-dark">NRR Rules & Calculation</p>
@@ -236,7 +236,7 @@ const PointsTable = () => {
                     </p>
                 </div>
             </motion.div>
-        </Container>
+        </div>
     );
 };
 

@@ -20,6 +20,24 @@ const Navbar = () => {
 
                 <div className="d-flex align-items-center gap-2">
                     <Button
+                        variant="primary"
+                        className="d-flex align-items-center gap-2 border-0"
+                        style={{
+                            padding: '6px 12px',
+                            fontSize: '11px',
+                            background: 'linear-gradient(45deg, #1e3c72, #2a5298)',
+                            color: 'white',
+                            borderRadius: '4px',
+                            fontWeight: '900'
+                        }}
+                        onClick={() => navigate('/tournament-registration')}
+                    >
+                        <i className="bi bi-pencil-square"></i>
+                        <span className="d-none d-sm-inline">REGISTRATION</span>
+                        <span className="d-inline d-sm-none">REGISTER</span>
+                    </Button>
+
+                    <Button
                         variant="success"
                         className="d-flex align-items-center gap-2 border-0"
                         style={{
@@ -34,12 +52,8 @@ const Navbar = () => {
                     >
                         <i className="bi bi-android2"></i>
                         <span className="d-none d-sm-inline">DOWNLOAD APP</span>
-                        <span className="d-inline d-sm-none">APP</span>
+                        <span className="d-inline d-sm-none">DOWNLOAD</span>
                     </Button>
-
-                    <button className="btn text-white ps-2 pe-0 border-0" style={{ fontSize: '20px' }}>
-                        <i className="bi bi-list"></i>
-                    </button>
                 </div>
             </Container>
         </nav>

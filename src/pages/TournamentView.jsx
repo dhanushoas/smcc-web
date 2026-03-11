@@ -33,7 +33,20 @@ const TournamentView = () => {
 
     // Team Registration
     const [showTeamModal, setShowTeamModal] = useState(false);
+    const [poolTeams, setPoolTeams] = useState([]);
+    const [selectedPoolTeamId, setSelectedPoolTeamId] = useState('');
     const [newTeam, setNewTeam] = useState({ name: '', captain: '', captainMobile: '', district: '', manager: '' });
+
+    const fetchPoolTeams = async () => {
+        try {
+            const res = await axios.get(`${API_URL}/api/tournaments/teams/pool`);
+            if (res.data.success) setPoolTeams(res.data.data);
+        } catch (err) { }
+    };
+
+    useEffect(() => {
+        if (showTeamModal) fetchPoolTeams();
+    }, [showTeamModal]);
 
     // Player Registration
     const [showPlayersModal, setShowPlayersModal] = useState(false);
@@ -63,13 +76,20 @@ const TournamentView = () => {
     // ── Register Team ──────────────────────────────────────────────────────────
     const handleRegisterTeam = async (e) => {
         e.preventDefault();
-        if (!newTeam.name.trim()) return toast.error("Team name is required");
         setIsSaving(true);
         try {
-            await axios.post(`${API_URL}/api/tournaments/${id}/teams`, newTeam);
-            toast.success("Team registered!");
+            if (selectedPoolTeamId) {
+                // Link existing team to this tournament
+                await axios.put(`${API_URL}/api/tournaments/${id}/teams/${selectedPoolTeamId}`, { tournamentId: id });
+                toast.success("Team added from pool!");
+            } else {
+                if (!newTeam.name.trim()) return toast.error("Team name is required");
+                await axios.post(`${API_URL}/api/tournaments/${id}/teams`, newTeam);
+                toast.success("New team registered!");
+            }
             setShowTeamModal(false);
             setNewTeam({ name: '', captain: '', captainMobile: '', district: '', manager: '' });
+            setSelectedPoolTeamId('');
             fetchTournament();
         } catch (err) {
             toast.error(err.response?.data?.message || "Registration failed");
@@ -125,7 +145,7 @@ const TournamentView = () => {
     const TYPE_LABELS = { league: 'League', knockout: 'Knockout', league_knockout: 'Group + KO' };
 
     return (
-        <Container className="py-4 min-vh-100" style={{ maxWidth: '1400px' }}>
+        <div className="global-container py-4 min-vh-100">
             <Toaster position="top-right" />
 
             {/* ── Header ───────────────────────────────────────────────────────── */}
@@ -459,39 +479,63 @@ const TournamentView = () => {
                 <Modal.Body className="p-4">
                     <Form onSubmit={handleRegisterTeam}>
                         <Row className="g-3">
+                            {poolTeams.length > 0 && (
+                                <Col md={12}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label className="small fw-black text-primary text-uppercase letter-spacing-1">Select Approved Team</Form.Label>
+                                        <Form.Select
+                                            value={selectedPoolTeamId}
+                                            onChange={e => setSelectedPoolTeamId(e.target.value)}
+                                            className="py-2 border-primary border-opacity-25 rounded-3 fw-bold bg-primary bg-opacity-10"
+                                        >
+                                            <option value="">-- Create New Team Instead --</option>
+                                            {poolTeams.map(t => (
+                                                <option key={t.id} value={t.id}>{t.name} ({titleCase(t.district)})</option>
+                                            ))}
+                                        </Form.Select>
+                                        <div className="x-small text-muted mt-1 fw-bold">Selecting from this list will import an approved team.</div>
+                                    </Form.Group>
+                                    <div className="d-flex align-items-center gap-2 my-3">
+                                        <hr className="flex-grow-1" />
+                                        <span className="x-small fw-black text-muted opacity-50">OR</span>
+                                        <hr className="flex-grow-1" />
+                                    </div>
+                                </Col>
+                            )}
+
                             <Col md={12}>
                                 <Form.Group>
                                     <Form.Label className="small fw-bold">Team Name <span className="text-danger">*</span></Form.Label>
-                                    <Form.Control required placeholder="E.g. Methur Warriors" value={newTeam.name} onChange={e => setNewTeam({ ...newTeam, name: e.target.value })} />
+                                    <Form.Control disabled={!!selectedPoolTeamId} required={!selectedPoolTeamId} placeholder="E.g. Methur Warriors" value={newTeam.name} onChange={e => setNewTeam({ ...newTeam, name: e.target.value })} />
                                 </Form.Group>
                             </Col>
                             <Col md={6}>
                                 <Form.Group>
                                     <Form.Label className="small fw-bold">Captain Name</Form.Label>
-                                    <Form.Control placeholder="Captain" value={newTeam.captain} onChange={e => setNewTeam({ ...newTeam, captain: e.target.value })} />
+                                    <Form.Control disabled={!!selectedPoolTeamId} placeholder="Captain" value={newTeam.captain} onChange={e => setNewTeam({ ...newTeam, captain: e.target.value })} />
                                 </Form.Group>
                             </Col>
                             <Col md={6}>
                                 <Form.Group>
                                     <Form.Label className="small fw-bold">Captain Mobile</Form.Label>
-                                    <Form.Control placeholder="9876543210" value={newTeam.captainMobile} onChange={e => setNewTeam({ ...newTeam, captainMobile: e.target.value })} />
+                                    <Form.Control disabled={!!selectedPoolTeamId} placeholder="9876543210" value={newTeam.captainMobile} onChange={e => setNewTeam({ ...newTeam, captainMobile: e.target.value })} />
                                 </Form.Group>
                             </Col>
                             <Col md={6}>
                                 <Form.Group>
                                     <Form.Label className="small fw-bold">District</Form.Label>
-                                    <Form.Control placeholder="E.g. Salem" value={newTeam.district} onChange={e => setNewTeam({ ...newTeam, district: e.target.value })} />
+                                    <Form.Control disabled={!!selectedPoolTeamId} placeholder="E.g. Salem" value={newTeam.district} onChange={e => setNewTeam({ ...newTeam, district: e.target.value })} />
                                 </Form.Group>
                             </Col>
                             <Col md={6}>
                                 <Form.Group>
                                     <Form.Label className="small fw-bold">Manager Name</Form.Label>
-                                    <Form.Control placeholder="Team Manager" value={newTeam.manager} onChange={e => setNewTeam({ ...newTeam, manager: e.target.value })} />
+                                    <Form.Control disabled={!!selectedPoolTeamId} placeholder="Team Manager" value={newTeam.manager} onChange={e => setNewTeam({ ...newTeam, manager: e.target.value })} />
                                 </Form.Group>
                             </Col>
                             <Col md={12}>
-                                <Button variant="primary" type="submit" className="w-100 rounded-pill fw-bold py-3" disabled={isSaving}>
-                                    {isSaving ? <Spinner animation="border" size="sm" /> : "CONFIRM REGISTRATION"}
+                                <Button variant="primary" type="submit" className="w-100 rounded-pill fw-black py-3 mt-3 shadow-lg premium-gradient border-0" disabled={isSaving}>
+                                    {isSaving ? <Spinner animation="border" size="sm" /> : (selectedPoolTeamId ? "IMPORT SELECTED TEAM" : "CONFIRM NEW REGISTRATION")}
                                 </Button>
                             </Col>
                         </Row>
@@ -549,7 +593,7 @@ const TournamentView = () => {
                     </Form>
                 </Modal.Body>
             </Modal>
-        </Container>
+        </div>
     );
 };
 
