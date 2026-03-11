@@ -69,24 +69,23 @@ const CustomTimePicker = ({ label, value, onChange, size = 'lg', editDisplay = f
                     <Badge bg="secondary" className="ms-1">{time24h}</Badge>
                 </Form.Label>
             )}
-            <InputGroup size={size} className="shadow-sm border rounded-3 overflow-hidden bg-white">
+            <InputGroup size={size} className="shadow-sm border rounded-3 overflow-hidden bg-white" style={{ height: size === 'sm' ? '36px' : 'auto' }}>
                 <Form.Select
-                    className="border-0 bg-transparent text-center fw-bold shadow-none"
+                    className="border-0 bg-transparent text-center fw-bold shadow-none px-1"
                     value={h}
                     onChange={e => onChange(`${e.target.value}:${m} ${ampm}`)}
-                    style={{ flex: '1 1 25%', appearance: 'none' }}
+                    style={{ flex: '1 1 25%', appearance: 'none', borderRight: '1px solid #eee' }}
                 >
                     {Array.from({ length: 12 }, (_, i) => {
                         const val = (i + 1).toString().padStart(2, '0');
                         return <option key={`h-${val}`} value={val}>{val}</option>;
                     })}
                 </Form.Select>
-                <InputGroup.Text className="border-0 bg-transparent fw-black px-1 text-muted">:</InputGroup.Text>
                 <Form.Select
-                    className="border-0 bg-transparent text-center fw-bold shadow-none"
+                    className="border-0 bg-transparent text-center fw-bold shadow-none px-1"
                     value={m}
                     onChange={e => onChange(`${h}:${e.target.value} ${ampm}`)}
-                    style={{ flex: '1 1 25%', appearance: 'none' }}
+                    style={{ flex: '1 1 25%', appearance: 'none', borderRight: '1px solid #eee' }}
                 >
                     {Array.from({ length: 60 }, (_, i) => {
                         const val = i.toString().padStart(2, '0');
@@ -94,15 +93,15 @@ const CustomTimePicker = ({ label, value, onChange, size = 'lg', editDisplay = f
                     })}
                 </Form.Select>
                 <Form.Select
-                    className="border-0 bg-light text-center fw-black text-primary shadow-none"
+                    className="border-0 bg-light text-center fw-black text-primary shadow-none px-1"
                     value={ampm}
                     onChange={e => onChange(`${h}:${m} ${e.target.value}`)}
-                    style={{ flex: '1 1 35%' }}
+                    style={{ flex: '1 1 30%' }}
                 >
                     <option value="AM">AM</option>
                     <option value="PM">PM</option>
                 </Form.Select>
-                <InputGroup.Text className="border-0 bg-light text-muted ps-2 pe-3">
+                <InputGroup.Text className="border-0 bg-light text-muted px-2">
                     <i className="bi bi-clock"></i>
                 </InputGroup.Text>
             </InputGroup>
@@ -3310,15 +3309,16 @@ const AdminDashboard = () => {
                                                     <Col md={12} className="pt-2">
                                                         <div className="bg-light p-3 rounded-4 border">
                                                             <h6 className="fw-black x-small text-uppercase text-dark mb-3"><i className="bi bi-calendar-event me-1"></i> Match Date & Time</h6>
-                                                            <Row className="g-2">
+                                                            <Row className="g-2 align-items-end">
                                                                 <Col md={4}>
-                                                                    <Form.Control size="sm" type="date" value={editDate} onChange={e => setEditDate(e.target.value)} className="border-2 fw-bold" />
+                                                                    <Form.Label className="x-small fw-black text-uppercase text-muted" style={{ height: '18px' }}>Date</Form.Label>
+                                                                    <Form.Control size="sm" type="date" value={editDate} onChange={e => setEditDate(e.target.value)} className="border-2 fw-bold" style={{ height: '36px' }} />
                                                                 </Col>
                                                                 <Col md={5}>
                                                                     <CustomTimePicker label="Time" value={editTime} onChange={(newTime) => setEditTime(newTime)} size="sm" editDisplay={true} />
                                                                 </Col>
                                                                 <Col md={3}>
-                                                                    <Button variant="dark" size="sm" className="w-100 fw-black h-100" onClick={handleSaveDateTime}>SAVE</Button>
+                                                                    <Button variant="dark" size="sm" className="w-100 fw-black" style={{ height: '36px' }} onClick={handleSaveDateTime}>SAVE</Button>
                                                                 </Col>
                                                             </Row>
                                                         </div>

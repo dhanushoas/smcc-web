@@ -16,7 +16,7 @@ const PublicRegistration = () => {
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState(null);
-    const [showForm, setShowForm] = useState(false);
+    const [showForm, setShowForm] = useState(true);
 
     const validateField = (name, value) => {
         let error = '';
@@ -115,9 +115,8 @@ const PublicRegistration = () => {
                 style={{ maxWidth: '500px' }}
             >
                 {/* QR CODE SECTION */}
-                <div className="text-center mb-5 mt-4">
-                    <h1 className="fw-black text-uppercase letter-spacing-1 text-primary mb-4">Tournament Registration</h1>
-                    <h5 className="fw-black text-uppercase letter-spacing-2 text-muted mb-3">Scan QR to Register</h5>
+                <div className="text-center mb-4 mt-4">
+                    <h1 className="fw-black text-uppercase letter-spacing-1 text-primary mb-3">Tournament Registration</h1>
                     <div className="bg-white p-4 rounded-4 shadow-sm d-inline-block border">
                         <QRCode
                             value={registrationUrl}
@@ -127,30 +126,6 @@ const PublicRegistration = () => {
                         />
                     </div>
                     <div className="mt-3">
-
-                        {!showForm && !message && (
-                            <div className="mt-4">
-                                <a
-                                    href="#register"
-                                    onClick={(e) => { e.preventDefault(); setShowForm(true); }}
-                                    className="text-primary fw-black text-decoration-underline text-uppercase letter-spacing-1 small"
-                                >
-                                    Click and Register Tournament
-                                </a>
-                                <div className="mt-3">
-                                    <motion.button
-                                        initial={{ scale: 0.9, opacity: 0 }}
-                                        animate={{ scale: 1, opacity: 1 }}
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        onClick={() => setShowForm(true)}
-                                        className="btn btn-primary rounded-pill px-4 py-2 fw-black shadow-sm premium-gradient border-0 text-uppercase x-small letter-spacing-1"
-                                    >
-                                        <i className="bi bi-pencil-square me-2"></i> Click and Register Tournament
-                                    </motion.button>
-                                </div>
-                            </div>
-                        )}
                     </div>
                 </div>
 
