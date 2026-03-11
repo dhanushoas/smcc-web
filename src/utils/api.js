@@ -44,6 +44,12 @@ axios.interceptors.response.use(
         // Automatically unwrap the unified response format { success, message, data }
         if (response.data && typeof response.data === 'object' && response.data.hasOwnProperty('success')) {
             const originalData = response.data;
+
+            // Preserve top-level stats object from being unwrapped
+            if (originalData.hasOwnProperty('stats')) {
+                return { ...response, data: originalData };
+            }
+
             const unwrappedData = originalData.data;
 
             // Maintain 'msg' compatibility for toast notifications in components
