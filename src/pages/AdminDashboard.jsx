@@ -2330,14 +2330,16 @@ const AdminDashboard = () => {
                                     {matches.map(m => (
                                         <ListGroup.Item key={m._id || m.id} className="d-flex justify-content-between align-items-center py-3 border-start border-4 p-0 pointer-event border-0" style={{ borderLeft: `4px solid ${m.status === 'live' ? '#ff4b2b' : m.status === 'cancelled' ? '#6c757d' : '#333'}`, opacity: m.status === 'cancelled' ? 0.6 : 1, borderBottom: '1px solid #f0f0f0' }}>
                                             <div className={`flex-grow-1 p-3 ${selectedMatch?._id === m._id || selectedMatch?.id === m.id ? 'bg-primary text-white shadow-sm' : 'hover-bg-light'}`} style={{ cursor: m.status === 'cancelled' ? 'default' : 'pointer' }} onClick={() => m.status !== 'cancelled' && handleEdit(m)}>
-                                                <div className="fw-bold fs-6 d-flex align-items-center flex-wrap gap-2">
+                                                <div className="fw-bold fs-6">
                                                     {m.teamA.toUpperCase()} <span className={selectedMatch?._id === m._id || selectedMatch?.id === m.id ? 'text-white-50' : 'text-primary'}>VS</span> {m.teamB.toUpperCase()}
+                                                </div>
+                                                <div className="d-flex align-items-center gap-2 my-1">
                                                     <Badge bg={m.status === 'cancelled' ? 'secondary' : m.competitionType === 'tournament' ? 'warning' : m.competitionType === 'series' ? 'primary' : 'secondary'} className="x-small text-uppercase">
-                                                        {m.status === 'cancelled' ? 'Not Required' : m.competitionType === 'series' && m.matchNumber ? `Match ${m.matchNumber}` : (m.competitionType || 'Head-to-Head')}
+                                                        {m.status === 'cancelled' ? 'Not Required' : m.competitionType === 'series' && m.matchNumber ? `Match ${m.matchNumber}` : (m.competitionType === 'head-to-head' ? 'Head-to-Head' : (m.competitionType || 'Head-to-Head'))}
                                                     </Badge>
                                                 </div>
-                                                <div className={`small mt-1 ${selectedMatch?._id === m._id || selectedMatch?.id === m.id ? 'text-white-50' : 'text-muted'}`}>
-                                                    <span className="fw-bold text-uppercase" style={{ fontSize: '0.7rem' }}>{m.status}</span> • {new Date(m.date).toLocaleDateString()} • {formatTime(m.date)}
+                                                <div className={`small ${selectedMatch?._id === m._id || selectedMatch?.id === m.id ? 'text-white-50' : 'text-muted'}`} style={{ fontSize: '0.75rem' }}>
+                                                    <span className="fw-black text-uppercase">{m.status}</span> • {new Date(m.date).toLocaleDateString()} • {formatTime(m.date)}
                                                 </div>
                                             </div>
                                             <div className="d-flex align-items-center pe-2">

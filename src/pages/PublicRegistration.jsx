@@ -114,43 +114,55 @@ const PublicRegistration = () => {
                 className="mx-auto"
                 style={{ maxWidth: '500px' }}
             >
-                {/* QR CODE SECTION */}
-                <div className="text-center mb-4 mt-4">
-                    <h1 className="fw-black text-uppercase letter-spacing-1 text-primary mb-2">Tournament Registration</h1>
-                    <p className="fw-bold text-muted small mb-3">Scan to register through Mobile, iOS etc.</p>
-                    <div className="bg-white p-4 rounded-4 shadow-sm d-inline-block border">
-                        <QRCode
-                            value={registrationUrl}
-                            size={180}
-                            style={{ height: "auto", maxWidth: "100%", width: "100%" }}
-                            viewBox={`0 0 256 256`}
-                        />
-                    </div>
-                    <div className="mt-4">
-                        <Button
-                            variant="primary"
-                            className="rounded-pill px-5 py-3 fw-black text-uppercase letter-spacing-1 shadow-sm border-0"
-                            onClick={() => setShowForm(true)}
-                        >
-                            <i className="bi bi-pencil-square me-2"></i> Click and Register Tournament
-                        </Button>
-                    </div>
-                </div>
-
-                <AnimatePresence>
-                    {showForm || message ? (
+                <AnimatePresence mode="wait">
+                    {!showForm && !message ? (
                         <motion.div
-                            initial={{ opacity: 0, height: 0, y: 20 }}
-                            animate={{ opacity: 1, height: 'auto', y: 0 }}
-                            exit={{ opacity: 0, height: 0, y: 20 }}
-                            transition={{ duration: 0.4, ease: "easeOut" }}
+                            key="qr-view"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            className="text-center mb-4 mt-4"
+                        >
+                            <h1 className="fw-black text-uppercase letter-spacing-1 text-primary mb-2">Tournament Registration</h1>
+                            <p className="fw-bold text-muted small mb-3">Scan the QR code to register via your smartphone</p>
+                            <div className="bg-white p-4 rounded-4 shadow-sm d-inline-block border">
+                                <QRCode
+                                    value={registrationUrl}
+                                    size={180}
+                                    style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                                    viewBox={`0 0 256 256`}
+                                />
+                            </div>
+                            <div className="mt-4">
+                                <a
+                                    href="#register"
+                                    onClick={(e) => { e.preventDefault(); setShowForm(true); window.scrollTo(0, 0); }}
+                                    className="text-primary fw-black text-uppercase letter-spacing-1 text-decoration-none hover-underline small"
+                                >
+                                    <i className="bi bi-pencil-square me-2"></i> Click and Register Tournament
+                                </a>
+                            </div>
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="form-view"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
                             className="w-100"
                         >
                             {/* FORM CARD */}
                             <div className="cric-card shadow-lg border-0 rounded-4 overflow-hidden mb-5">
-                                <div className="bg-primary py-4 px-4 text-center text-white premium-gradient">
+                                <div className="bg-primary py-4 px-4 text-center text-white premium-gradient position-relative">
+                                    <Button
+                                        variant="link"
+                                        className="text-white position-absolute start-0 top-50 translate-middle-y ms-2 text-decoration-none p-0"
+                                        onClick={() => { setShowForm(false); window.scrollTo(0, 0); }}
+                                    >
+                                        <i className="bi bi-chevron-left fs-4"></i>
+                                    </Button>
                                     <h3 className="fw-black mb-1 letter-spacing-1 text-uppercase">Tournament Registration</h3>
-                                    <p className="small opacity-75 mb-0 text-uppercase fw-bold letter-spacing-1">Join the Village Tournament</p>
+                                    <p className="small opacity-75 mb-0 text-uppercase fw-bold letter-spacing-1">Join the Tournament</p>
                                 </div>
 
                                 <div className="p-4 p-md-5 bg-white">
@@ -266,11 +278,11 @@ const PublicRegistration = () => {
                                     </AnimatePresence>
                                 </div>
                                 <div className="bg-light py-3 px-4 text-center border-top">
-                                    <p className="x-small text-muted mb-0 fw-bold letter-spacing-1">QUESTIONS? CONTACT US DIRECTLY</p>
+                                    <p className="x-small text-muted mb-0 fw-bold letter-spacing-1">QUESTIONS? CONTACT US DIRECTLY +91 77085 22584</p>
                                 </div>
                             </div>
                         </motion.div>
-                    ) : null}
+                    )}
                 </AnimatePresence>
             </motion.div>
         </div>
