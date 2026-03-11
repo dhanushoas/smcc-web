@@ -83,7 +83,7 @@ const Footer = () => {
 
     return (
         <footer className="py-5 mt-auto border-top bg-light bg-opacity-75 backdrop-blur">
-            <Container>
+            <Container style={{ maxWidth: '1100px' }}>
                 <Row className="gy-5">
                     <Col lg={4} className="text-center text-lg-start">
                         <div className="d-flex align-items-center justify-content-center justify-content-lg-start gap-2 mb-3">

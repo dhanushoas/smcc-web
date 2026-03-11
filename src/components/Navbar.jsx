@@ -11,34 +11,38 @@ const Navbar = () => {
     const { t } = useApp();
 
     return (
-        <BsNavbar expand="lg" variant="dark" className="nav-espn py-0 shadow-sm sticky-top" style={{ backgroundColor: '#032333' }}>
-            <Container fluid="lg" className="d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 py-2">
-                <BsNavbar.Brand as={Link} to="/" className="d-flex align-items-center gap-2 py-0">
-                    <img src="/logo.png" alt="SMCC" height="35" className="rounded-circle shadow-sm" />
-                    <span className="fw-black fs-5 text-white letter-spacing-2">SMCC LIVE</span>
-                </BsNavbar.Brand>
+        <nav className="shadow-sm sticky-top" style={{ backgroundColor: '#032333', zIndex: 1000 }}>
+            <Container style={{ maxWidth: '1100px' }} className="d-flex justify-content-between align-items-center py-2 px-3">
+                <Link to="/" className="d-flex align-items-center gap-2 text-decoration-none">
+                    <img src="/logo.png" alt="SMCC" height="32" className="rounded-circle" />
+                    <span className="fw-black text-white" style={{ fontSize: '16px', letterSpacing: '1px' }}>SMCC LIVE</span>
+                </Link>
 
-                <BsNavbar.Toggle aria-controls="basic-navbar-nav" />
-                <BsNavbar.Collapse id="basic-navbar-nav">
-                    <Nav className="ms-auto me-3 align-items-center gap-3">
-                    </Nav>
+                <div className="d-flex align-items-center gap-2">
                     <Button
                         variant="success"
-                        className="premium-btn d-flex align-items-center gap-2 border-0 shadow-sm hover-glow"
+                        className="d-flex align-items-center gap-2 border-0"
                         style={{
-                            padding: '0.4rem 1rem',
-                            fontSize: '12px',
+                            padding: '6px 12px',
+                            fontSize: '11px',
                             background: 'linear-gradient(45deg, #2e7d32, #43a047)',
-                            color: 'white'
+                            color: 'white',
+                            borderRadius: '4px',
+                            fontWeight: '900'
                         }}
                         onClick={() => window.open(APK_DOWNLOAD_URL, '_blank')}
                     >
-                        <i className="bi bi-android2 fs-6"></i>
-                        <span className="fw-black">DOWNLOAD</span>
+                        <i className="bi bi-android2"></i>
+                        <span className="d-none d-sm-inline">DOWNLOAD APP</span>
+                        <span className="d-inline d-sm-none">APP</span>
                     </Button>
-                </BsNavbar.Collapse>
+
+                    <button className="btn text-white ps-2 pe-0 border-0" style={{ fontSize: '20px' }}>
+                        <i className="bi bi-list"></i>
+                    </button>
+                </div>
             </Container>
-        </BsNavbar>
+        </nav>
     );
 };
 
