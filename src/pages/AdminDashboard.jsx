@@ -148,6 +148,8 @@ const AdminDashboard = () => {
     const [runOutOutType, setRunOutOutType] = useState('striker');
 
     const [showWicketModal, setShowWicketModal] = useState(false);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [confirmConfig, setConfirmConfig] = useState({ title: '', message: '', onConfirm: null, variant: 'primary' });
     const [wicketDetails, setWicketDetails] = useState({
         type: 'caught',
         fielder: '',
@@ -1583,6 +1585,22 @@ const AdminDashboard = () => {
 
             setSelectedMatch(newMatchState);
             setScorecardData(newMatchState.innings);
+
+            // SUCCESS TOASTS - Short and clear as requested
+            if (type === 'manual') {
+                if (params.toastMsg) toast.success(params.toastMsg);
+                else toast.success("Match updated");
+            } else if (type === 'runs') {
+                toast.success(`${value} Run${value !== 1 ? 's' : ''}`);
+            } else if (type === 'wicket') {
+                toast.success("Wicket!");
+            } else if (type === 'extra') {
+                toast.success(`Extra: ${value.toUpperCase()}`);
+            } else if (type === 'swap_strike') {
+                toast.success("Strike Swapped");
+            } else if (type === 'overthrow') {
+                toast.success("Overthrow recorded");
+            }
         } catch (err) {
             const errorMsg = err.response?.data?.msg || err.response?.data?.error || "Update sync failed";
             if (err.response?.status === 401) {
@@ -3102,63 +3120,106 @@ const AdminDashboard = () => {
                                             )
                                         }
 
-                                        <details className="mt-4 border rounded-3 overflow-hidden">
-                                            <summary className="btn btn-sm btn-light w-100 text-start fw-black py-3 px-4 border-0 rounded-0 d-flex justify-content-between align-items-center">
+                                        <details className="mt-4 border rounded-3 overflow-hidden shadow-sm">
+                                            <summary className="btn btn-sm btn-light w-100 text-start fw-black py-3 px-4 border-0 rounded-0 d-flex justify-content-between align-items-center bg-white">
                                                 <span><i className="bi bi-wrench-adjustable me-2 text-primary"></i> ADVANCED CORRECTION PANEL</span>
                                                 <i className="bi bi-chevron-down small"></i>
                                             </summary>
                                             <div className="bg-white p-4 border-top">
-                                                <Alert variant="info" className="small py-2 border-0 shadow-sm mb-4">
-                                                    <i className="bi bi-info-circle-fill me-2"></i> Use this panel ONLY for manual scoring corrections. All changes are synced in real-time.
+                                                <Alert variant="warning" className="small py-2 border-0 shadow-sm mb-4 bg-opacity-10 border-start border-4 border-warning">
+                                                    <i className="bi bi-info-circle-fill me-2"></i> <strong>ADMIN ONLY:</strong> Use this panel for manual corrections. Changes are synced instantly.
                                                 </Alert>
+
                                                 <Row className="g-3">
+                                                    {/* Row 1: Key Scores */}
                                                     <Col md={4}>
                                                         <Form.Label className="x-small fw-black text-uppercase text-muted">Runs Scored</Form.Label>
-                                                        <Form.Control size="sm" className="fw-bold" type="number" min="0" value={selectedMatch.score.runs} onChange={e => handleUpdate('manual', { ...selectedMatch, score: { ...selectedMatch.score, runs: Math.max(0, parseInt(e.target.value) || 0) } })} />
+                                                        <Form.Control
+                                                            size="sm"
+                                                            className="fw-bold border-2"
+                                                            type="number"
+                                                            min="0"
+                                                            value={selectedMatch.score.runs}
+                                                            onChange={e => {
+                                                                const runs = Math.max(0, parseInt(e.target.value) || 0);
+                                                                handleUpdate('manual', { ...selectedMatch, score: { ...selectedMatch.score, runs } }, { toastMsg: 'Runs updated' });
+                                                            }}
+                                                        />
                                                     </Col>
                                                     <Col md={4}>
                                                         <Form.Label className="x-small fw-black text-uppercase text-muted">Wickets Lost</Form.Label>
-                                                        <Form.Control size="sm" className="fw-bold" type="number" min="0" max="10" value={selectedMatch.score.wickets} onChange={e => handleUpdate('manual', { ...selectedMatch, score: { ...selectedMatch.score, wickets: Math.min(10, Math.max(0, parseInt(e.target.value) || 0)) } })} />
+                                                        <Form.Control
+                                                            size="sm"
+                                                            className="fw-bold border-2"
+                                                            type="number"
+                                                            min="0"
+                                                            max="10"
+                                                            value={selectedMatch.score.wickets}
+                                                            onChange={e => {
+                                                                const wickets = Math.min(10, Math.max(0, parseInt(e.target.value) || 0));
+                                                                handleUpdate('manual', { ...selectedMatch, score: { ...selectedMatch.score, wickets } }, { toastMsg: 'Wickets updated' });
+                                                            }}
+                                                        />
                                                     </Col>
                                                     <Col md={4}>
                                                         <Form.Label className="x-small fw-black text-uppercase text-muted">Overs Bowled</Form.Label>
-                                                        <Form.Control size="sm" className="fw-bold" type="number" step="0.1" min="0" max={selectedMatch.overs_per_match || selectedMatch.totalOvers} value={selectedMatch.score.overs} onChange={e => handleUpdate('manual', { ...selectedMatch, score: { ...selectedMatch.score, overs: Math.min((selectedMatch.overs_per_match || selectedMatch.totalOvers), Math.max(0, parseFloat(e.target.value) || 0)) } })} />
+                                                        <Form.Control
+                                                            size="sm"
+                                                            className="fw-bold border-2"
+                                                            type="number"
+                                                            step="0.1"
+                                                            min="0"
+                                                            placeholder="e.g. 5.2"
+                                                            value={selectedMatch.score.overs}
+                                                            onChange={e => {
+                                                                const val = parseFloat(e.target.value) || 0;
+                                                                // Simple cricket format check: fractional part shouldn't exceed .5
+                                                                const balls = Math.round((val % 1) * 10);
+                                                                if (balls > 5) return;
+                                                                handleUpdate('manual', { ...selectedMatch, score: { ...selectedMatch.score, overs: val } }, { toastMsg: 'Overs updated' });
+                                                            }}
+                                                        />
                                                     </Col>
+
+                                                    {/* Row 2: Match Limits */}
                                                     <Col md={4}>
                                                         <Form.Label className="x-small fw-black text-uppercase text-muted">Total Overs</Form.Label>
-                                                        <Form.Control size="sm" className="fw-bold" type="number" min="1" max="50" value={selectedMatch.overs_per_match || selectedMatch.totalOvers || ''} onChange={e => handleReductionUpdate('totalOvers', e.target.value)} />
+                                                        <Form.Control size="sm" className="fw-bold border-2" type="number" min="1" max="50" value={selectedMatch.overs_per_match || selectedMatch.totalOvers || ''} onChange={e => handleReductionUpdate('totalOvers', e.target.value)} />
                                                     </Col>
                                                     <Col md={4}>
                                                         <Form.Label className="x-small fw-black text-uppercase text-muted">1st Inn Overs</Form.Label>
-                                                        <Form.Control size="sm" className="fw-bold" type="number" min="1" max={selectedMatch.totalOvers} value={selectedMatch.firstInningsOvers || selectedMatch.totalOvers || ''} onChange={e => handleReductionUpdate('firstInningsOvers', e.target.value)} />
+                                                        <Form.Control size="sm" className="fw-bold border-2" type="number" min="1" value={selectedMatch.firstInningsOvers || selectedMatch.totalOvers || ''} onChange={e => handleReductionUpdate('firstInningsOvers', e.target.value)} />
                                                     </Col>
                                                     <Col md={4}>
                                                         <Form.Label className="x-small fw-black text-uppercase text-muted">2nd Inn Overs</Form.Label>
-                                                        <Form.Control size="sm" className="fw-bold" type="number" min="1" max={selectedMatch.totalOvers} value={selectedMatch.secondInningsOvers || selectedMatch.totalOvers || ''} onChange={e => handleReductionUpdate('secondInningsOvers', e.target.value)} />
-                                                    </Col>
-                                                    <Col md={12}>
-                                                        <Form.Label className="x-small fw-black text-uppercase text-muted">Target Override</Form.Label>
-                                                        <Form.Control size="sm" className="fw-bold text-danger border-danger" type="number" value={selectedMatch.score?.target || ''} onChange={e => handleReductionUpdate('customTarget', e.target.value)} placeholder="Only edit if applying custom DLS/Reduction penalty. Leave blank for auto" />
+                                                        <Form.Control size="sm" className="fw-bold border-2" type="number" min="1" value={selectedMatch.secondInningsOvers || selectedMatch.totalOvers || ''} onChange={e => handleReductionUpdate('secondInningsOvers', e.target.value)} />
                                                     </Col>
 
-                                                    <Col md={6} className="pt-2">
+                                                    {/* Row 3: Special Settings */}
+                                                    <Col md={12}>
+                                                        <Form.Label className="x-small fw-black text-uppercase text-muted">Target Override</Form.Label>
+                                                        <Form.Control size="sm" className="fw-bold text-danger border-danger border-2" type="number" value={selectedMatch.score?.target || ''} onChange={e => handleReductionUpdate('customTarget', e.target.value)} placeholder="Only edit for DLS/Reduction penalty. Leave blank for auto" />
+                                                    </Col>
+
+                                                    <Col md={6}>
                                                         <Form.Label className="x-small fw-black text-uppercase text-muted">Match Title Override</Form.Label>
-                                                        <Form.Control size="sm" value={selectedMatch.title} onChange={e => handleUpdate('manual', { ...selectedMatch, title: e.target.value })} placeholder="Match Title" />
+                                                        <Form.Control size="sm" className="border-2" value={selectedMatch.title} onChange={e => handleUpdate('manual', { ...selectedMatch, title: e.target.value }, { toastMsg: 'Title updated' })} placeholder="Match Title" />
                                                     </Col>
                                                     <Col md={6}>
                                                         <Form.Label className="x-small fw-black text-uppercase text-muted">Venue Override</Form.Label>
-                                                        <Form.Control size="sm" value={selectedMatch.venue} onChange={e => handleUpdate('manual', { ...selectedMatch, venue: e.target.value })} placeholder="Match Venue" />
+                                                        <Form.Control size="sm" className="border-2" value={selectedMatch.venue} onChange={e => handleUpdate('manual', { ...selectedMatch, venue: e.target.value }, { toastMsg: 'Venue updated' })} placeholder="Match Venue" />
                                                     </Col>
 
+                                                    {/* Row 4: Players */}
                                                     <Col md={4}>
                                                         <Form.Label className="x-small fw-black text-uppercase text-muted">Striker</Form.Label>
-                                                        <Form.Select size="sm" value={striker} onChange={e => {
+                                                        <Form.Select size="sm" className="border-2 fw-bold" value={striker} onChange={e => {
                                                             const val = e.target.value;
                                                             setStriker(val);
                                                             const cb = [...(selectedMatch.currentBatsmen || [])];
                                                             if (cb.length > 0) cb[0] = { ...cb[0], name: val };
                                                             else cb.push({ name: val, onStrike: true, runs: 0, balls: 0 });
-                                                            handleUpdate('manual', { ...selectedMatch, currentBatsmen: cb });
+                                                            handleUpdate('manual', { ...selectedMatch, currentBatsmen: cb }, { toastMsg: 'Striker updated' });
                                                         }}>
                                                             <option value="">Select</option>
                                                             {(selectedMatch.score.battingTeam === selectedMatch.teamA ? squadA : squadB).filter(p => p && p.trim() !== '').map((p, i) => <option key={`striker_${p}_${i}`} value={p}>{p}</option>)}
@@ -3166,17 +3227,13 @@ const AdminDashboard = () => {
                                                     </Col>
                                                     <Col md={4}>
                                                         <Form.Label className="x-small fw-black text-uppercase text-muted">Non-Striker</Form.Label>
-                                                        <Form.Select size="sm" value={nonStriker} onChange={e => {
+                                                        <Form.Select size="sm" className="border-2 fw-bold" value={nonStriker} onChange={e => {
                                                             const val = e.target.value;
                                                             setNonStriker(val);
                                                             const cb = [...(selectedMatch.currentBatsmen || [])];
                                                             if (cb.length > 1) cb[1] = { ...cb[1], name: val };
                                                             else if (cb.length === 1) cb.push({ name: val, onStrike: false, runs: 0, balls: 0 });
-                                                            else {
-                                                                cb.push({ name: '', onStrike: true, runs: 0, balls: 0 });
-                                                                cb.push({ name: val, onStrike: false, runs: 0, balls: 0 });
-                                                            }
-                                                            handleUpdate('manual', { ...selectedMatch, currentBatsmen: cb });
+                                                            handleUpdate('manual', { ...selectedMatch, currentBatsmen: cb }, { toastMsg: 'Non-Striker updated' });
                                                         }}>
                                                             <option value="">Select</option>
                                                             {(selectedMatch.score.battingTeam === selectedMatch.teamA ? squadA : squadB).filter(p => p && p.trim() !== '').map((p, i) => <option key={`nonstriker_${p}_${i}`} value={p}>{p}</option>)}
@@ -3184,68 +3241,87 @@ const AdminDashboard = () => {
                                                     </Col>
                                                     <Col md={4}>
                                                         <Form.Label className="x-small fw-black text-uppercase text-muted">Current Bowler</Form.Label>
-                                                        <Form.Select size="sm" value={bowler} onChange={e => { setBowler(e.target.value); handleUpdate('manual', { ...selectedMatch, currentBowler: e.target.value }); }}>
+                                                        <Form.Select size="sm" className="border-2 fw-bold" value={bowler} onChange={e => { setBowler(e.target.value); handleUpdate('manual', { ...selectedMatch, currentBowler: e.target.value }, { toastMsg: 'Bowler updated' }); }}>
                                                             <option value="">Select</option>
                                                             {(selectedMatch.score.battingTeam === selectedMatch.teamA ? squadB : squadA).filter(p => p && p.trim() !== '').map((p, i) => <option key={`bowler_${p}_${i}`} value={p}>{p}</option>)}
                                                         </Form.Select>
                                                     </Col>
 
-                                                    <Col md={12} className="pt-3">
-                                                        <hr className="opacity-10" />
-                                                        <h6 className="fw-bold mb-3 d-flex align-items-center gap-2">
-                                                            <i className="bi bi-award-fill text-warning"></i> MAN OF THE MATCH
-                                                        </h6>
-                                                        <Row className="g-3">
-                                                            <Col md={12}>
-                                                                <Form.Label className="x-small fw-black text-uppercase text-muted">Select Player</Form.Label>
-                                                                <Form.Select size="sm" value={selectedMatch.manOfTheMatch || ''} onChange={e => handleUpdate('manual', { ...selectedMatch, manOfTheMatch: e.target.value })}>
-                                                                    <option value="">-- None Selected --</option>
-                                                                    <optgroup label={selectedMatch.teamA}>
-                                                                        {squadA.filter(p => p && p.trim() !== '').map((p, i) => <option key={`mom_A_${p}_${i}`} value={p}>{p}</option>)}
-                                                                    </optgroup>
-                                                                    <optgroup label={selectedMatch.teamB}>
-                                                                        {squadB.filter(p => p && p.trim() !== '').map((p, i) => <option key={`mom_B_${p}_${i}`} value={p}>{p}</option>)}
-                                                                    </optgroup>
-                                                                </Form.Select>
-                                                                <small className="text-muted d-block mt-1">Player of the Match is a subjective choice selected by the admin.</small>
-                                                            </Col>
-                                                        </Row>
+                                                    {/* Row 5: Man of the Match */}
+                                                    <Col md={12} className="pt-2">
+                                                        <div className="bg-light p-3 rounded-4 border">
+                                                            <h6 className="fw-black x-small text-uppercase text-primary mb-3"><i className="bi bi-award-fill me-1"></i> Man of the Match</h6>
+                                                            <Form.Select size="sm" className="fw-bold border-2" value={selectedMatch.manOfTheMatch || ''} onChange={e => handleUpdate('manual', { ...selectedMatch, manOfTheMatch: e.target.value }, { toastMsg: 'Player of match updated' })}>
+                                                                <option value="">-- None Selected --</option>
+                                                                <optgroup label={selectedMatch.teamA}>
+                                                                    {squadA.filter(p => p && p.trim() !== '').map((p, i) => <option key={`mom_A_${p}_${i}`} value={p}>{p}</option>)}
+                                                                </optgroup>
+                                                                <optgroup label={selectedMatch.teamB}>
+                                                                    {squadB.filter(p => p && p.trim() !== '').map((p, i) => <option key={`mom_B_${p}_${i}`} value={p}>{p}</option>)}
+                                                                </optgroup>
+                                                            </Form.Select>
+                                                        </div>
                                                     </Col>
 
-                                                    <Col md={12} className="pt-3">
-                                                        <hr className="opacity-10" />
-                                                        <h6 className="fw-bold mb-3 d-flex align-items-center gap-2">
-                                                            <i className="bi bi-calendar-event text-primary"></i> MATCH DATE & TIME OVERRIDE
-                                                        </h6>
-                                                        <Row className="g-3">
-                                                            <Col md={4}>
-                                                                <Form.Label className="x-small fw-black text-uppercase text-muted">Date</Form.Label>
-                                                                <Form.Control size="sm" type="date" value={editDate} onChange={e => setEditDate(e.target.value)} />
-                                                            </Col>
-                                                            <Col md={4}>
-                                                                <CustomTimePicker
-                                                                    label="Time (Local)"
-                                                                    value={editTime}
-                                                                    onChange={(newTime) => setEditTime(newTime)}
-                                                                    size="sm"
-                                                                    editDisplay={true}
-                                                                />
-                                                            </Col>
-                                                            <Col md={4} className="d-flex align-items-end">
-                                                                <Button variant="primary" size="sm" className="w-100 fw-bold" onClick={handleSaveDateTime}>SAVE DATE & TIME</Button>
-                                                            </Col>
-                                                        </Row>
+                                                    {/* Row 6: Schedule Override */}
+                                                    <Col md={12} className="pt-2">
+                                                        <div className="bg-light p-3 rounded-4 border">
+                                                            <h6 className="fw-black x-small text-uppercase text-dark mb-3"><i className="bi bi-calendar-event me-1"></i> Match Date & Time</h6>
+                                                            <Row className="g-2">
+                                                                <Col md={4}>
+                                                                    <Form.Control size="sm" type="date" value={editDate} onChange={e => setEditDate(e.target.value)} className="border-2 fw-bold" />
+                                                                </Col>
+                                                                <Col md={5}>
+                                                                    <CustomTimePicker label="Time" value={editTime} onChange={(newTime) => setEditTime(newTime)} size="sm" editDisplay={true} />
+                                                                </Col>
+                                                                <Col md={3}>
+                                                                    <Button variant="dark" size="sm" className="w-100 fw-black h-100" onClick={handleSaveDateTime}>SAVE</Button>
+                                                                </Col>
+                                                            </Row>
+                                                        </div>
                                                     </Col>
 
-                                                    <Col md={12} className="pt-4">
+                                                    {/* Row 7: Action Buttons (Responsive Wrapper) */}
+                                                    <Col md={12} className="pt-3">
                                                         <div className="d-flex flex-wrap gap-2">
-                                                            <Button variant="danger" size="sm" className="fw-black flex-grow-1" onClick={() => { if (window.confirm("ARE YOU SURE? This will end the current innings manually.")) handleUpdate('manual', { ...selectedMatch, score: { ...selectedMatch.score, overs: Math.min(20, (selectedMatch.overs_per_match || selectedMatch.totalOvers)) } }); }}>
+                                                            <Button
+                                                                variant="danger"
+                                                                size="sm"
+                                                                className="fw-black flex-fill px-3 py-2"
+                                                                onClick={() => {
+                                                                    setConfirmConfig({
+                                                                        title: 'Force End Innings?',
+                                                                        message: 'This will end the current innings manually. Are you sure?',
+                                                                        variant: 'danger',
+                                                                        onConfirm: () => handleUpdate('manual', { ...selectedMatch, score: { ...selectedMatch.score, overs: Math.min(20, (selectedMatch.overs_per_match || selectedMatch.totalOvers)) } }, { toastMsg: 'Innings ended' })
+                                                                    });
+                                                                    setShowConfirmModal(true);
+                                                                }}
+                                                            >
                                                                 FORCE END INNINGS
                                                             </Button>
-                                                            <Button variant="dark" size="sm" className="fw-black flex-grow-1" onClick={() => handleUpdate('manual', { ...selectedMatch, score: { ...selectedMatch.score, thisOver: [] } })}>
+                                                            <Button
+                                                                variant="dark"
+                                                                size="sm"
+                                                                className="fw-black flex-fill px-3 py-2"
+                                                                onClick={() => handleUpdate('manual', { ...selectedMatch, score: { ...selectedMatch.score, thisOver: [] } }, { toastMsg: 'Over log cleared' })}
+                                                            >
                                                                 CLEAR OVER LOG
                                                             </Button>
-                                                            <Button variant="outline-dark" size="sm" className="fw-black flex-grow-1" onClick={() => handleUpdate('manual', { ...selectedMatch, history: [] })}>
+                                                            <Button
+                                                                variant="outline-danger"
+                                                                size="sm"
+                                                                className="fw-black flex-fill px-3 py-2"
+                                                                onClick={() => {
+                                                                    setConfirmConfig({
+                                                                        title: 'Purge History?',
+                                                                        message: 'All ball-by-ball history for this match will be lost! This cannot be undone.',
+                                                                        variant: 'danger',
+                                                                        onConfirm: () => handleUpdate('manual', { ...selectedMatch, history: [] }, { toastMsg: 'History purged' })
+                                                                    });
+                                                                    setShowConfirmModal(true);
+                                                                }}
+                                                            >
                                                                 PURGE ALL HISTORY
                                                             </Button>
                                                         </div>
@@ -3417,6 +3493,27 @@ const AdminDashboard = () => {
                 </Modal.Footer>
             </Modal>
 
+            <Modal show={showConfirmModal} onHide={() => setShowConfirmModal(false)} centered>
+                <Modal.Header closeButton className={`bg-${confirmConfig.variant} text-white`}>
+                    <Modal.Title className="fw-black text-uppercase letter-spacing-2">{confirmConfig.title}</Modal.Title>
+                </Modal.Header>
+                <Modal.Body className="p-4">
+                    <p className="fw-medium text-muted">{confirmConfig.message}</p>
+                    <div className="d-flex gap-2 mt-4">
+                        <Button variant="light" className="flex-fill fw-bold" onClick={() => setShowConfirmModal(false)}>Cancel</Button>
+                        <Button
+                            variant={confirmConfig.variant}
+                            className="flex-fill fw-black"
+                            onClick={() => {
+                                confirmConfig.onConfirm();
+                                setShowConfirmModal(false);
+                            }}
+                        >
+                            Confirm
+                        </Button>
+                    </div>
+                </Modal.Body>
+            </Modal>
         </>
     );
 };

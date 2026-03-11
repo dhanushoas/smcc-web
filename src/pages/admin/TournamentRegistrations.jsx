@@ -13,7 +13,7 @@ const TournamentRegistrations = () => {
     const fetchRegistrations = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.get(`${API_URL}/api/tournament/registrations`, {
+            const res = await axios.get(`${API_URL}/api/tournaments/registrations`, {
                 headers: { 'x-auth-token': token }
             });
             // The interceptor might unwrap data
@@ -33,7 +33,7 @@ const TournamentRegistrations = () => {
         setActionLoading(id);
         try {
             const token = localStorage.getItem('token');
-            await axios.put(`${API_URL}/api/tournament/registrations/${id}/${action}`, {}, {
+            await axios.put(`${API_URL}/api/tournaments/registrations/${id}/${action}`, {}, {
                 headers: { 'x-auth-token': token }
             });
             toast.success(`Registration ${action} successful!`);
