@@ -26,6 +26,8 @@ const AdminManual = React.lazy(() => import('./pages/AdminManual'));
 const TournamentDashboard = React.lazy(() => import('./pages/TournamentDashboard'));
 const TournamentView = React.lazy(() => import('./pages/TournamentView'));
 const SeriesView = React.lazy(() => import('./pages/SeriesView'));
+const PublicRegistration = React.lazy(() => import('./pages/PublicRegistration'));
+const TournamentRegistrations = React.lazy(() => import('./pages/admin/TournamentRegistrations'));
 
 import { AppProvider } from './AppContext';
 
@@ -62,6 +64,8 @@ function App() {
                 <Route path="/tournaments" element={<TournamentDashboard />} />
                 <Route path="/tournaments/:id" element={<TournamentView />} />
                 <Route path="/series/:id" element={<SeriesView />} />
+                <Route path="/register" element={<PublicRegistration />} />
+                <Route path="/admin/registrations" element={<TournamentRegistrations />} />
               </Routes>
             </React.Suspense>
             <Footer />

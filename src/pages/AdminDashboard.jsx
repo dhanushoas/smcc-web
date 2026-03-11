@@ -2246,9 +2246,14 @@ const AdminDashboard = () => {
                     <div className="d-flex gap-3 align-items-center">
                         <h2 className="fw-black premium-gradient-text m-0">Admin Dashboard</h2>
                     </div>
-                    <Button variant="primary" className="rounded-pill shadow-sm px-4 py-2 fw-bold" onClick={() => { setIsCreating(true); setIsEditingMode(false); setSelectedMatch(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
-                        <i className="bi bi-plus-lg me-2"></i>New Match
-                    </Button>
+                    <div className="d-flex gap-2">
+                        <Button variant="outline-primary" className="rounded-pill shadow-sm px-4 py-2 fw-bold" onClick={() => navigate('/admin/registrations')}>
+                            <i className="bi bi-people-fill me-2"></i>Registrations
+                        </Button>
+                        <Button variant="primary" className="rounded-pill shadow-sm px-4 py-2 fw-bold" onClick={() => { setIsCreating(true); setIsEditingMode(false); setSelectedMatch(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+                            <i className="bi bi-plus-lg me-2"></i>New Match
+                        </Button>
+                    </div>
                 </div>
 
                 <div style={{ maxWidth: '1600px', margin: '0 auto' }}>
