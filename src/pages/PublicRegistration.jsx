@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import QRCode from "react-qr-code";
 import { Toaster, toast } from 'react-hot-toast';
 import API_URL from '../utils/api';
+import { useEffect } from "react";
 
 const PublicRegistration = () => {
     const [formData, setFormData] = useState({
@@ -17,6 +18,13 @@ const PublicRegistration = () => {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState(null);
     const [showForm, setShowForm] = useState(false);
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("form") === "true") {
+            setShowForm(true);
+        }
+    }, []);
 
     const validateField = (name, value) => {
         let error = '';
@@ -144,7 +152,7 @@ const PublicRegistration = () => {
                                 <p className="fw-bold text-muted small mb-3">Scan the QR code to register via your smartphone</p>
                                 <div className="bg-white p-4 rounded-4 shadow-sm d-inline-block border">
                                     <QRCode
-                                        value={registrationUrl}
+                                        value={`${window.location.origin}/tournament-registration?form=true`}
                                         size={180}
                                         style={{ height: "auto", maxWidth: "100%", width: "100%" }}
                                         viewBox={`0 0 256 256`}
