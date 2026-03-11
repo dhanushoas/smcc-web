@@ -16,7 +16,7 @@ const PublicRegistration = () => {
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState(null);
-    const [showForm, setShowForm] = useState(true);
+    const [showForm, setShowForm] = useState(false);
 
     const validateField = (name, value) => {
         let error = '';
@@ -28,8 +28,8 @@ const PublicRegistration = () => {
             if (!value) error = 'Captain name is required';
         }
         if (name === 'mobile') {
-            if (!value) error = 'Enter a valid 10-digit mobile number';
-            else if (!/^[6789]\d{9}$/.test(value)) error = 'Enter a valid 10-digit mobile number';
+            if (!value) error = 'Mobile number is required';
+            else if (!/^[6789]\d{9}$/.test(value)) error = 'Invalid mobile number. Must be 10 digits and start with 6, 7, 8, or 9';
         }
         if (name === 'village') {
             if (!value) error = 'Village or area is required';
@@ -125,7 +125,14 @@ const PublicRegistration = () => {
                             viewBox={`0 0 256 256`}
                         />
                     </div>
-                    <div className="mt-3">
+                    <div className="mt-4">
+                        <Button
+                            variant="primary"
+                            className="rounded-pill px-5 py-3 fw-black text-uppercase letter-spacing-1 shadow-sm border-0"
+                            onClick={() => setShowForm(true)}
+                        >
+                            <i className="bi bi-pencil-square me-2"></i> Click and Register Tournament
+                        </Button>
                     </div>
                 </div>
 
@@ -176,6 +183,7 @@ const PublicRegistration = () => {
                                                             placeholder="e.g. Rising Stars XI"
                                                             value={formData.team_name}
                                                             onChange={handleChange}
+                                                            onBlur={(e) => setErrors({ ...errors, [e.target.name]: validateField(e.target.name, e.target.value) })}
                                                             isInvalid={!!errors.team_name}
                                                             className="py-3 px-4 border-2 bg-light rounded-4 shadow-none fw-bold"
                                                         />
@@ -192,6 +200,7 @@ const PublicRegistration = () => {
                                                             placeholder="Enter full name"
                                                             value={formData.captain_name}
                                                             onChange={handleChange}
+                                                            onBlur={(e) => setErrors({ ...errors, [e.target.name]: validateField(e.target.name, e.target.value) })}
                                                             isInvalid={!!errors.captain_name}
                                                             className="py-3 px-4 border-2 bg-light rounded-4 shadow-none fw-bold"
                                                         />
@@ -208,6 +217,7 @@ const PublicRegistration = () => {
                                                             placeholder="10-digit number"
                                                             value={formData.mobile}
                                                             onChange={handleChange}
+                                                            onBlur={(e) => setErrors({ ...errors, [e.target.name]: validateField(e.target.name, e.target.value) })}
                                                             onKeyDown={handleMobileKeyDown}
                                                             isInvalid={!!errors.mobile}
                                                             className="py-3 px-4 border-2 bg-light rounded-4 shadow-none fw-bold"
@@ -225,6 +235,7 @@ const PublicRegistration = () => {
                                                             placeholder="Enter location"
                                                             value={formData.village}
                                                             onChange={handleChange}
+                                                            onBlur={(e) => setErrors({ ...errors, [e.target.name]: validateField(e.target.name, e.target.value) })}
                                                             isInvalid={!!errors.village}
                                                             className="py-3 px-4 border-2 bg-light rounded-4 shadow-none fw-bold"
                                                         />
