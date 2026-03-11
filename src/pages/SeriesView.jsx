@@ -40,7 +40,7 @@ const SeriesView = () => {
     let teamBWins = 0;
 
     matches.forEach(m => {
-        if (m.status === 'completed' && m.score?.winner) {
+        if ((m.status === 'completed' || m.status === 'cancelled') && m.score?.winner) {
             if (m.score.winner === series.teamA) teamAWins++;
             else if (m.score.winner === series.teamB) teamBWins++;
         }
@@ -73,7 +73,7 @@ const SeriesView = () => {
                             {match.status === 'upcoming' && <Badge bg="info" className="x-small px-2"><i className="bi bi-clock me-1"></i>UPCOMING</Badge>}
                             {isLive && <Badge bg="danger" className="animate-pulse x-small px-2"><i className="bi bi-broadcast me-1"></i>LIVE</Badge>}
                             {isCompleted && <Badge bg="success" className="x-small px-2"><i className="bi bi-check-circle me-1"></i>COMPLETED</Badge>}
-                            {isCancelled && <Badge bg="secondary" className="x-small px-2"><i className="bi bi-slash-circle me-1"></i>NOT REQUIRED</Badge>}
+                            {isCancelled && <Badge bg="secondary" className="x-small px-2"><i className="bi bi-slash-circle me-1"></i>CANCELLED</Badge>}
                         </div>
                     </div>
 
@@ -134,7 +134,10 @@ const SeriesView = () => {
                                         <span>Match in progress</span>
                                     </div>
                                 ) : isCancelled ? (
-                                    <span className="text-muted fw-bold">SERIES DECIDED EARLY</span>
+                                    <div className="d-flex align-items-center gap-2">
+                                        <i className="bi bi-info-circle-fill text-secondary"></i>
+                                        <span className="text-secondary fw-black text-uppercase letter-spacing-1">{match.score?.result || 'MATCH CANCELLED'}</span>
+                                    </div>
                                 ) : (
                                     <span className="text-dark fw-bold"><i className="bi bi-geo-alt-fill text-danger me-1"></i> {formatTime(match.date)} • {titleCaseVenue}</span>
                                 )}

@@ -81,6 +81,7 @@ const Home = () => {
         const isLive = match.status === 'live';
         const isCompleted = match.status === 'completed';
         const isUpcoming = match.status === 'upcoming';
+        const isCancelled = match.status === 'cancelled';
 
         const handleCardClick = () => {
             navigate(`/scorecard/${match._id || match.id}`);
@@ -106,8 +107,8 @@ const Home = () => {
                     </span>
                     <div className="d-flex align-items-center gap-2">
                         {isLive && <span className="live-dot-pulse"></span>}
-                        <Badge bg={isLive ? 'danger' : isCompleted ? 'success' : 'info'} className="x-small px-2 fw-black border-0">
-                            {isLive ? 'LIVE' : isCompleted ? 'COMPLETED' : 'UPCOMING'}
+                        <Badge bg={isLive ? 'danger' : isCompleted ? 'success' : isCancelled ? 'secondary' : 'info'} className="x-small px-2 fw-black border-0">
+                            {isLive ? 'LIVE' : isCompleted ? 'COMPLETED' : isCancelled ? 'CANCELLED' : 'UPCOMING'}
                         </Badge>
                     </div>
                 </div>
@@ -145,10 +146,15 @@ const Home = () => {
 
                     <div className="pt-2 border-top">
                         <p className="mb-0 small fw-bold text-primary d-flex align-items-center gap-2">
-                            {isCompleted ? (
+                            {isCancelled ? (
+                                <>
+                                    <i className="bi bi-x-circle-fill text-danger"></i>
+                                    <span className="text-danger text-uppercase">{match.score?.result || 'MATCH CANCELLED'}</span>
+                                </>
+                            ) : isCompleted ? (
                                 <>
                                     <i className="bi bi-trophy-fill text-warning"></i>
-                                    <span>{(() => {
+                                    <span>{match.score?.result || (() => {
                                         if (innings.length < 2) return "COMPLETED";
                                         const inn1 = innings[0];
                                         const inn2 = innings[1];

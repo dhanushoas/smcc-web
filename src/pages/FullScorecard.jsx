@@ -135,45 +135,53 @@ const FullScorecard = () => {
         }
 
         // Result block FIRST (most prominent)
-        if (match.status === 'completed') {
-            const innings = match.innings || [];
-            if (innings.length >= 2) {
-                let inn1, inn2, winnerString = null;
-                if (innings.length >= 4) {
-                    const lastIdx = innings.length - 1;
-                    inn2 = innings[lastIdx]; inn1 = innings[lastIdx - 1];
-                    if (inn1.runs > inn2.runs) winnerString = `MATCH TIED | ${inn1.team.toUpperCase()} WON VIA SUPER OVER`;
-                    else if (inn2.runs > inn1.runs) winnerString = `MATCH TIED | ${inn2.team.toUpperCase()} WON VIA SUPER OVER`;
-                    else winnerString = 'MATCH DRAWN | SUPER OVER TIED';
-                } else {
-                    inn1 = innings[0]; inn2 = innings[1];
-                    if (inn1.runs > inn2.runs) {
-                        const diff = inn1.runs - inn2.runs;
-                        winnerString = `${inn1.team} won the match by ${pluralize(diff, 'Run')}.`;
-                    } else if (inn2.runs > inn1.runs) {
-                        const wr = 10 - inn2.wickets;
-                        winnerString = `${inn2.team} won the match by ${pluralize(wr, 'Wicket')}.`;
-                    } else if (inn1.runs === inn2.runs && inn1.runs > 0) {
-                        winnerString = 'Match Drawn';
+        if (match.status === 'completed' || match.status === 'cancelled') {
+            if (match.status === 'cancelled') {
+                doc.setFontSize(13);
+                doc.setTextColor(220, 38, 38); // Red color for cancellation
+                doc.setFont(undefined, 'bold');
+                doc.text(`STATUS: ${(match.score?.result || 'MATCH CANCELLED').toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
+                currentY += 8;
+            } else {
+                const innings = match.innings || [];
+                if (innings.length >= 2) {
+                    let inn1, inn2, winnerString = null;
+                    if (innings.length >= 4) {
+                        const lastIdx = innings.length - 1;
+                        inn2 = innings[lastIdx]; inn1 = innings[lastIdx - 1];
+                        if (inn1.runs > inn2.runs) winnerString = `MATCH TIED | ${inn1.team.toUpperCase()} WON VIA SUPER OVER`;
+                        else if (inn2.runs > inn1.runs) winnerString = `MATCH TIED | ${inn2.team.toUpperCase()} WON VIA SUPER OVER`;
+                        else winnerString = 'MATCH DRAWN | SUPER OVER TIED';
+                    } else {
+                        inn1 = innings[0]; inn2 = innings[1];
+                        if (inn1.runs > inn2.runs) {
+                            const diff = inn1.runs - inn2.runs;
+                            winnerString = `${inn1.team} won the match by ${pluralize(diff, 'Run')}.`;
+                        } else if (inn2.runs > inn1.runs) {
+                            const wr = 10 - inn2.wickets;
+                            winnerString = `${inn2.team} won the match by ${pluralize(wr, 'Wicket')}.`;
+                        } else if (inn1.runs === inn2.runs && inn1.runs > 0) {
+                            winnerString = 'Match Drawn';
+                        }
                     }
+                    if (winnerString) {
+                        doc.setFontSize(13);
+                        doc.setTextColor(0, 146, 112);
+                        doc.setFont(undefined, 'bold');
+                        doc.text(`RESULT: ${winnerString.toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
+                        currentY += 5; // 8px after result
+                    }
+                    if (match.manOfTheMatch) {
+                        doc.setFontSize(11);
+                        doc.setTextColor(217, 119, 6); // Amber color for MOM
+                        doc.setFont(undefined, 'bold');
+                        doc.text(`MAN OF THE MATCH: ${match.manOfTheMatch.toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
+                        currentY += 6; // 16px after MOM
+                    } else if (winnerString) {
+                        currentY += 4;
+                    }
+                    doc.setFont(undefined, 'normal');
                 }
-                if (winnerString) {
-                    doc.setFontSize(13);
-                    doc.setTextColor(0, 146, 112);
-                    doc.setFont(undefined, 'bold');
-                    doc.text(`RESULT: ${winnerString.toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
-                    currentY += 5; // 8px after result
-                }
-                if (match.manOfTheMatch) {
-                    doc.setFontSize(11);
-                    doc.setTextColor(217, 119, 6); // Amber color for MOM
-                    doc.setFont(undefined, 'bold');
-                    doc.text(`MAN OF THE MATCH: ${match.manOfTheMatch.toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
-                    currentY += 6; // 16px after MOM
-                } else if (winnerString) {
-                    currentY += 4;
-                }
-                doc.setFont(undefined, 'normal');
             }
         }
 
@@ -473,20 +481,22 @@ const FullScorecard = () => {
                                 </Col>
 
                                 <Col lg={5}>
-                                    {(match.status === 'completed' || (match.status === 'live' && match.score?.target)) && (
+                                    {(match.status === 'completed' || match.status === 'cancelled' || (match.status === 'live' && match.score?.target)) && (
                                         <div className="bg-white p-3 rounded-4 border shadow-sm position-relative overflow-hidden">
-                                            {match.status === 'completed' ? (
+                                            {(match.status === 'completed' || match.status === 'cancelled') ? (
                                                 <div className="position-relative">
                                                     <div className="d-flex align-items-center justify-content-between mb-2">
-                                                        <span className="badge bg-success bg-opacity-10 text-success p-1 px-2 rounded-pill letter-spacing-2 fw-black x-small">MATCH RESULT</span>
-                                                        <i className="bi bi-star-fill text-warning x-small"></i>
+                                                        <span className={`badge ${match.status === 'cancelled' ? 'bg-danger' : 'bg-success'} bg-opacity-10 ${match.status === 'cancelled' ? 'text-danger' : 'text-success'} p-1 px-2 rounded-pill letter-spacing-2 fw-black x-small`}>
+                                                            {match.status === 'cancelled' ? 'MATCH CANCELLED' : 'MATCH RESULT'}
+                                                        </span>
+                                                        <i className={`bi ${match.status === 'cancelled' ? 'bi-x-octagon-fill text-danger' : 'bi-star-fill text-warning'} x-small`}></i>
                                                     </div>
                                                     <div className="d-flex align-items-center gap-3 mb-3">
-                                                        <div className="d-inline-flex align-items-center justify-content-center rounded-circle border border-warning shadow-sm" style={{ backgroundColor: '#FFF7D6', width: '60px', height: '60px' }}>
-                                                            <i className="bi bi-trophy-fill" style={{ color: '#F59E0B', fontSize: '2.4rem' }}></i>
+                                                        <div className="d-inline-flex align-items-center justify-content-center rounded-circle border shadow-sm" style={{ backgroundColor: match.status === 'cancelled' ? '#FEE2E2' : '#FFF7D6', borderColor: match.status === 'cancelled' ? '#EF4444' : '#FBBF24', width: '60px', height: '60px' }}>
+                                                            <i className={`bi ${match.status === 'cancelled' ? 'bi-slash-circle' : 'bi-trophy-fill'}`} style={{ color: match.status === 'cancelled' ? '#DC2626' : '#F59E0B', fontSize: '2.4rem' }}></i>
                                                         </div>
-                                                        <h4 className="fw-black text-dark mb-0 letter-spacing-1">
-                                                            {(() => {
+                                                        <h4 className={`fw-black ${match.status === 'cancelled' ? 'text-danger' : 'text-dark'} mb-0 letter-spacing-1`}>
+                                                            {match.status === 'cancelled' ? (match.score?.result || 'MATCH CANCELLED').toUpperCase() : (() => {
                                                                 const innings = match.innings || [];
                                                                 let inn1, inn2;
                                                                 if (innings.length >= 4) {

@@ -192,6 +192,11 @@ const AdminDashboard = () => {
 
 
 
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [cancelReason, setCancelReason] = useState('');
+    const [customCancelReason, setCustomCancelReason] = useState('');
+    const [cancelWinner, setCancelWinner] = useState('');
+    const cancelOptions = ['Rain', 'Light Interruption', 'Ground Unfit', 'Technical Issue', 'Winner Declared', 'Match Abandoned', 'Other'];
 
     const [editDate, setEditDate] = useState('');
     const [editTime, setEditTime] = useState('');
@@ -1794,6 +1799,44 @@ const AdminDashboard = () => {
         }
     };
 
+    const handleCancelMatch = () => {
+        if (!cancelReason) {
+            toast.error("Please select a cancellation reason");
+            return;
+        }
+
+        let resultText = "";
+        const reason = cancelReason === 'Other' ? customCancelReason : cancelReason;
+
+        if (cancelReason === 'Winner Declared') {
+            if (!cancelWinner) {
+                toast.error("Please select the winner");
+                return;
+            }
+            resultText = `${cancelWinner} won (Match Cancelled)`;
+        } else if (cancelReason === 'Match Abandoned') {
+            resultText = "Match Abandoned without a ball bowled";
+        } else {
+            resultText = `Match Cancelled due to ${reason}`;
+        }
+
+        const updatedMatch = {
+            ...selectedMatch,
+            status: 'cancelled',
+            score: {
+                ...selectedMatch.score,
+                result: resultText,
+                winner: cancelWinner || 'None'
+            }
+        };
+
+        handleUpdate('manual', updatedMatch, { toastMsg: 'Match cancelled successfully' });
+        setShowCancelModal(false);
+        setCancelReason('');
+        setCustomCancelReason('');
+        setCancelWinner('');
+    };
+
     const handleDelete = async (e, id) => {
         e.stopPropagation();
         try {
@@ -3324,6 +3367,19 @@ const AdminDashboard = () => {
                                                             >
                                                                 PURGE ALL HISTORY
                                                             </Button>
+                                                            <Button
+                                                                variant="outline-dark"
+                                                                size="sm"
+                                                                className="fw-black flex-fill px-3 py-2"
+                                                                onClick={() => {
+                                                                    setCancelReason('');
+                                                                    setCustomCancelReason('');
+                                                                    setCancelWinner('');
+                                                                    setShowCancelModal(true);
+                                                                }}
+                                                            >
+                                                                CANCEL MATCH MANUALLY
+                                                            </Button>
                                                         </div>
                                                     </Col>
                                                 </Row>
@@ -3510,6 +3566,69 @@ const AdminDashboard = () => {
                             }}
                         >
                             Confirm
+                        </Button>
+                    </div>
+                </Modal.Body>
+            </Modal>
+
+            {/* Cancel Match Modal */}
+            <Modal show={showCancelModal} onHide={() => setShowCancelModal(false)} centered>
+                <Modal.Header closeButton className="bg-dark text-white">
+                    <Modal.Title className="fw-black text-uppercase letter-spacing-2">Cancel Match</Modal.Title>
+                </Modal.Header>
+                <Modal.Body className="p-4">
+                    <p className="small text-muted mb-4 fw-medium">Choose a reason for cancellation. This will permanently mark the match as <strong>CANCELLED</strong> and stop live scoring.</p>
+
+                    <Form.Group className="mb-3">
+                        <Form.Label className="fw-bold small text-uppercase text-muted">Cancellation Reason <span className="text-danger">*</span></Form.Label>
+                        <Form.Select
+                            className="py-2 fw-bold border-2"
+                            value={cancelReason}
+                            onChange={e => setCancelReason(e.target.value)}
+                        >
+                            <option value="">-- Select Reason --</option>
+                            {cancelOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                        </Form.Select>
+                    </Form.Group>
+
+                    {cancelReason === 'Winner Declared' && (
+                        <Form.Group className="mb-3">
+                            <Form.Label className="fw-bold small text-uppercase text-muted">Award Win To</Form.Label>
+                            <Form.Select
+                                className="py-2 fw-bold border-2 border-primary"
+                                value={cancelWinner}
+                                onChange={e => setCancelWinner(e.target.value)}
+                            >
+                                <option value="">-- Select Winner --</option>
+                                <option value={selectedMatch?.teamA}>{selectedMatch?.teamA}</option>
+                                <option value={selectedMatch?.teamB}>{selectedMatch?.teamB}</option>
+                                <option value="Draw">Draw / No Result</option>
+                            </Form.Select>
+                        </Form.Group>
+                    )}
+
+                    {cancelReason === 'Other' && (
+                        <Form.Group className="mb-3">
+                            <Form.Label className="fw-bold small text-uppercase text-muted">Specify Details</Form.Label>
+                            <Form.Control
+                                type="text"
+                                placeholder="Enter specific reason"
+                                value={customCancelReason}
+                                onChange={e => setCustomCancelReason(e.target.value)}
+                                className="py-2 fw-bold border-2"
+                            />
+                        </Form.Group>
+                    )}
+
+                    <div className="d-flex gap-2 mt-4">
+                        <Button variant="light" className="flex-fill fw-bold" onClick={() => setShowCancelModal(false)}>Keep Match Live</Button>
+                        <Button
+                            variant="danger"
+                            className="flex-fill fw-black"
+                            onClick={handleCancelMatch}
+                            disabled={!cancelReason || (cancelReason === 'Winner Declared' && !cancelWinner)}
+                        >
+                            CONFIRM CANCELLATION
                         </Button>
                     </div>
                 </Modal.Body>
