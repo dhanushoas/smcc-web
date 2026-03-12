@@ -1,61 +1,43 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Navbar as BsNavbar, Nav, Container, Button } from 'react-bootstrap';
+import { Container, Button } from 'react-bootstrap';
 import { useApp } from '../AppContext';
-import { motion } from 'framer-motion';
-
-import { APK_DOWNLOAD_URL } from '../constants/app';
 
 const Navbar = () => {
     const navigate = useNavigate();
     const { t } = useApp();
 
     return (
-        <nav className="shadow-sm sticky-top" style={{ backgroundColor: '#032333', zIndex: 1000 }}>
-            <Container style={{ maxWidth: '1100px' }} className="d-flex justify-content-between align-items-center py-2 px-3">
-                <Link to="/" className="d-flex align-items-center gap-2 text-decoration-none">
-                    <img src="/logo.png" alt="SMCC" height="32" className="rounded-circle" />
-                    <span className="fw-black text-white" style={{ fontSize: '16px', letterSpacing: '1px' }}>SMCC LIVE</span>
-                </Link>
+        <nav className="border-bottom sticky-top bg-white" style={{ zIndex: 1000, height: '64px' }}>
+            <Container fluid className="d-flex justify-content-between align-items-center h-100 px-3">
+                <div className="d-flex align-items-center gap-3">
+                    <button className="btn btn-link p-0 text-dark border-0">
+                        <i className="bi bi-list fs-3"></i>
+                    </button>
 
-                <div className="d-flex align-items-center gap-2">
-                    <Button
-                        variant="primary"
-                        className="d-flex align-items-center gap-2 border-0"
-                        style={{
-                            padding: '6px 12px',
-                            fontSize: '11px',
-                            background: 'linear-gradient(45deg, #1e3c72, #2a5298)',
-                            color: 'white',
-                            borderRadius: '4px',
-                            fontWeight: '900'
-                        }}
-                        onClick={() => navigate('/tournament-registration')}
-                    >
-                        <i className="bi bi-pencil-square"></i>
-                        <span className="d-none d-sm-inline">REGISTRATION</span>
-                        <span className="d-inline d-sm-none">REGISTER</span>
-                    </Button>
+                    <Link to="/" className="d-flex align-items-center gap-2 text-decoration-none">
+                        <div className="bg-dark rounded p-1 d-flex align-items-center justify-content-center" style={{ width: '36px', height: '36px' }}>
+                            <img src="/logo.png" alt="SMCC" height="28" />
+                        </div>
+                        <span className="fw-black text-dark" style={{ fontSize: '18px', letterSpacing: '-0.5px' }}>SMCC LIVE</span>
+                    </Link>
+                </div>
 
-                    <Button
-                        variant="success"
-                        className="d-flex align-items-center gap-2 border-0"
-                        style={{
-                            padding: '6px 12px',
-                            fontSize: '11px',
-                            background: 'linear-gradient(45deg, #2e7d32, #43a047)',
-                            color: 'white',
-                            borderRadius: '4px',
-                            fontWeight: '900'
-                        }}
-                        onClick={() => window.open(APK_DOWNLOAD_URL, '_blank')}
-                    >
-                        <i className="bi bi-android2"></i>
-                        <span className="d-none d-sm-inline">DOWNLOAD APP</span>
-                        <span className="d-inline d-sm-none">DOWNLOAD</span>
-                    </Button>
+                <div className="d-flex align-items-center gap-3">
+                    <button className="btn btn-link p-0 text-muted border-0 d-flex align-items-center gap-1 text-decoration-none" style={{ fontSize: '12px', fontWeight: '800' }}>
+                        <i className="bi bi-box-arrow-right fs-5"></i>
+                        <span className="d-none d-sm-inline text-uppercase">EXIT</span>
+                    </button>
+                    <button className="btn btn-link p-0 text-primary border-0" onClick={() => window.location.reload()}>
+                        <i className="bi bi-globe fs-4"></i>
+                    </button>
                 </div>
             </Container>
+            <style jsx>{`
+                .fw-black {
+                    font-weight: 900;
+                }
+            `}</style>
         </nav>
     );
 };
