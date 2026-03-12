@@ -1,10 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
-import BottomNav from './components/BottomNav';
 import Footer from './components/Footer';
 import LiveScoreStrip from './components/LiveScoreStrip';
-
 const Home = React.lazy(() => import('./pages/Home'));
 const Profile = React.lazy(() => import('./pages/Profile'));
 const AdminDashboard = React.lazy(() => import('./pages/AdminDashboard'));
@@ -71,10 +69,8 @@ function App() {
               </Routes>
             </React.Suspense>
             <Footer />
-            <BottomNav />
           </main>
         </div>
-
       </Router>
     </AppProvider>
   );

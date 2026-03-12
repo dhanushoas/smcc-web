@@ -10,114 +10,6 @@ import API_URL from '../utils/api';
 
 const socket = io(API_URL);
 
-// Memoized Match Card Component
-const MatchCard = React.memo(({ match, groupType, onClick }) => {
-    const isLive = match.status === 'live';
-    const isCompleted = match.status === 'completed';
-    const isUpcoming = match.status === 'upcoming';
-    const isCancelled = match.status === 'cancelled';
-
-    const innings = match.innings || [];
-    const team1 = match.teamA;
-    const team2 = match.teamB;
-    const score1 = (isLive || isCompleted) ? (innings[0]?.runs || 0) + '/' + (innings[0]?.wickets || 0) : null;
-    const overs1 = (isLive || isCompleted) ? innings[0]?.overs || 0 : null;
-    const score2 = (isLive || isCompleted) ? (innings[1]?.runs || 0) + '/' + (innings[1]?.wickets || 0) : null;
-    const overs2 = (isLive || isCompleted) ? innings[1]?.overs || 0 : null;
-
-    return (
-        <div
-            className="cric-card bg-white rounded-3 shadow-sm border overflow-hidden cursor-pointer transition-all w-100"
-            onClick={onClick}
-        >
-            <div className="px-4 py-3 border-bottom d-flex justify-content-between align-items-center bg-white">
-                <span className="text-muted fw-bold x-small text-uppercase letter-spacing-1">
-                    {match.series || 'SMCC LIVE'} {match.matchNumber ? `• Match ${match.matchNumber}` : ''}
-                    <Badge bg="light" text="dark" className="ms-2 border x-small fw-bold opacity-75">{groupType.toUpperCase()}</Badge>
-                </span>
-                <div className="d-flex align-items-center gap-2">
-                    {isLive && <span className="live-dot-pulse"></span>}
-                    <Badge bg={isLive ? 'danger' : isCompleted ? 'success' : isCancelled ? 'secondary' : 'info'} className="x-small px-2 fw-black border-0">
-                        {isLive ? 'LIVE' : isCompleted ? 'COMPLETED' : isCancelled ? 'CANCELLED' : 'UPCOMING'}
-                    </Badge>
-                </div>
-            </div>
-
-            <div className="p-4">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                    <div className="d-flex align-items-center gap-3">
-                        <div className="team-initial bg-light rounded-circle border d-flex align-items-center justify-content-center fw-black" style={{ width: '40px', height: '40px', fontSize: '11px' }}>
-                            {team1?.substring(0, 2).toUpperCase() || '??'}
-                        </div>
-                        <span className={`fw-black fs-5 ${match.winner === team1 ? 'text-dark' : 'text-dark opacity-75'}`}>{team1}</span>
-                    </div>
-                    {score1 !== null && (
-                        <div className="text-end">
-                            <span className="fw-black fs-4 text-primary">{score1}</span>
-                            <span className="text-muted small ms-2">({overs1})</span>
-                        </div>
-                    )}
-                </div>
-
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                    <div className="d-flex align-items-center gap-3">
-                        <div className="team-initial bg-light rounded-circle border d-flex align-items-center justify-content-center fw-black" style={{ width: '40px', height: '40px', fontSize: '11px' }}>
-                            {team2?.substring(0, 2).toUpperCase() || '??'}
-                        </div>
-                        <span className={`fw-black fs-5 ${match.winner === team2 ? 'text-dark' : 'text-dark opacity-75'}`}>{team2}</span>
-                    </div>
-                    {score2 !== null && (
-                        <div className="text-end">
-                            <span className="fw-black fs-4">{score2}</span>
-                            <span className="text-muted small ms-2">({overs2})</span>
-                        </div>
-                    )}
-                </div>
-
-                <div className="pt-2 border-top">
-                    <p className="mb-0 small fw-bold text-primary d-flex align-items-center gap-2">
-                        {isCancelled ? (
-                            <>
-                                <i className="bi bi-x-circle-fill text-danger"></i>
-                                <span className="text-danger text-uppercase">{match.score?.result || 'MATCH CANCELLED'}</span>
-                            </>
-                        ) : isCompleted ? (
-                            <>
-                                <i className="bi bi-trophy-fill text-warning"></i>
-                                <span className="text-dark opacity-75">{match.score?.result || (() => {
-                                    if (innings.length < 2) return "COMPLETED";
-                                    const inn1 = innings[0];
-                                    const inn2 = innings[1];
-                                    if (inn1.runs > inn2.runs) return `${inn1.team} won by ${inn1.runs - inn2.runs} runs`;
-                                    if (inn2.runs > inn1.runs) return `${inn2.team} won by ${10 - inn2.wickets} wickets`;
-                                    return "Match Drawn";
-                                })()}</span>
-                                {match.manOfTheMatch && (
-                                    <span className="ms-auto x-small bg-warning bg-opacity-10 text-dark px-2 py-1 rounded border border-warning d-flex align-items-center gap-1 fw-black">
-                                        <i className="bi bi-star-fill"></i>
-                                        {match.manOfTheMatch.toUpperCase()}
-                                    </span>
-                                )}
-                            </>
-                        ) : isLive ? (
-                            <>
-                                <span className="text-danger animate-pulse">●</span>
-                                <span>{match.score?.target ? `Need ${match.score.target - (match.score.runs || 0)} runs to win` : 'Match in progress'}</span>
-                            </>
-                        ) : (
-                            <>
-                                <i className="bi bi-calendar3"></i>
-                                <span>{formatTime(match.date)} • {match.venue || 'Ghs'}</span>
-                            </>
-                        )}
-                    </p>
-                </div>
-            </div>
-        </div>
-    );
-});
-
-
 const Home = () => {
     const navigate = useNavigate();
     const { t } = useApp();
@@ -297,75 +189,39 @@ const Home = () => {
 
     const renderSeriesGroup = (ps) => {
         return (
-            <div key={ps.seriesId} className="w-100 flex flex-col gap-4">
-                <div className="cric-card mb-4 overflow-hidden bg-white rounded-3 shadow-sm border">
+            <React.Fragment key={ps.seriesId}>
+                <div className="cric-card mb-3 overflow-hidden bg-white rounded-3 shadow-sm border">
                     <div className="p-4 bg-light text-center">
-                        <h6 className="fw-black text-primary mb-0 text-uppercase letter-spacing-1" style={{ fontSize: '13px' }}>
-                            SERIES: {ps.teamA} VS {ps.teamB} ({ps.totalMatches} Matches)
+                        <h6 className="fw-black text-primary mb-0 text-uppercase letter-spacing-1">
+                            {ps.teamA} VS {ps.teamB} SERIES ({ps.totalMatches} MATCHES)
                         </h6>
                         {ps.seriesWinner && (
-                            <div className="d-flex justify-content-center mt-2">
-                                <div className="badge bg-success text-uppercase fw-black px-3 py-2 rounded-pill shadow-sm d-inline-flex align-items-center gap-2"
-                                    style={{ fontSize: '11px', width: 'fit-content' }}>
-                                    🏆 {ps.seriesWinner} won the series {ps.teamAWins}-{ps.teamBWins}
-                                </div>
-                            </div>
+                            <div className="badge bg-success mt-2 text-uppercase fw-black px-3 py-2 rounded-pill shadow-sm" style={{ fontSize: '11px' }}>🏆 {ps.seriesWinner} WON THE SERIES</div>
                         )}
                     </div>
                 </div>
-                <div className="d-flex flex-column gap-3 w-100">
-                    {ps.matches.map(m => (
-                        <MatchCard
-                            key={m._id || m.id}
-                            match={m}
-                            groupType="series"
-                            onClick={() => navigate(`/scorecard/${m._id || m.id}`)}
-                        />
-                    ))}
-                </div>
-            </div>
+                {ps.matches.map(m => renderMatchCard(m, 'series'))}
+            </React.Fragment>
         );
     };
 
-
     if (loading) return (
-        <div className="container-mobile py-4 px-3 mx-auto" style={{ maxWidth: '448px' }}>
-            <div className="d-flex align-items-center gap-3 mb-4">
-                <div className="skeleton-badge w-15 h-20" style={{ width: '40px', height: '20px' }}></div>
-                <div className="skeleton-text w-50 h-25" style={{ width: '150px' }}></div>
-            </div>
-            <div className="d-flex flex-column gap-4">
-                {[1, 2, 3].map(i => (
-                    <div key={i} className="cric-card bg-white rounded-3 shadow-sm border overflow-hidden w-100 animate-pulse">
-                        <div className="px-4 py-3 border-bottom d-flex justify-content-between align-items-center bg-white">
-                            <div className="skeleton-text" style={{ width: '30%', height: '10px', background: '#e2e8f0', borderRadius: '4px' }}></div>
-                            <div className="skeleton-badge" style={{ width: '20%', height: '20px', background: '#e2e8f0', borderRadius: '100px' }}></div>
-                        </div>
-                        <div className="p-4">
-                            <div className="d-flex justify-content-between align-items-center mb-3">
-                                <div className="d-flex align-items-center gap-3">
-                                    <div className="skeleton-circle" style={{ width: '40px', height: '40px', background: '#e2e8f0', borderRadius: '50%' }}></div>
-                                    <div className="skeleton-text" style={{ width: '100px', height: '20px', background: '#e2e8f0', borderRadius: '4px' }}></div>
-                                </div>
-                                <div className="skeleton-text" style={{ width: '60px', height: '30px', background: '#e2e8f0', borderRadius: '4px' }}></div>
-                            </div>
-                            <div className="d-flex justify-content-between align-items-center mb-3">
-                                <div className="d-flex align-items-center gap-3">
-                                    <div className="skeleton-circle" style={{ width: '40px', height: '40px', background: '#e2e8f0', borderRadius: '50%' }}></div>
-                                    <div className="skeleton-text" style={{ width: '100px', height: '20px', background: '#e2e8f0', borderRadius: '4px' }}></div>
-                                </div>
-                                <div className="skeleton-text" style={{ width: '60px', height: '30px', background: '#e2e8f0', borderRadius: '4px' }}></div>
-                            </div>
-                            <div className="pt-2 border-top">
-                                <div className="skeleton-text" style={{ width: '80%', height: '15px', background: '#e2e8f0', borderRadius: '4px' }}></div>
-                            </div>
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </div>
+        <Container className="d-flex flex-column justify-content-center align-items-center" style={{ minHeight: '60vh' }}>
+            <div className="premium-spinner mb-3"></div>
+            <p className="fw-black text-muted x-small letter-spacing-2 text-uppercase animate-pulse">Fetching Live Scores...</p>
+            <style>{`
+                .premium-spinner {
+                    width: 40px;
+                    height: 40px;
+                    border: 3px solid rgba(0,0,0,0.05);
+                    border-top: 3px solid #ff4b2b;
+                    border-radius: 50%;
+                    animation: spin 0.8s linear infinite;
+                }
+                @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+            `}</style>
+        </Container>
     );
-
 
     const seriesList = ['ALL', ...new Set(matches.map(m => m.series || 'SMCC LIVE'))];
     const filteredBySeries = activeSeries === 'ALL' ? matches : matches.filter(m => (m.series || 'SMCC LIVE') === activeSeries);
@@ -511,90 +367,57 @@ const Home = () => {
             return (item.match.competitionType || 'head-to-head') === completedFilter;
         });
 
-    const renderedActiveItems = React.useMemo(() => (
-        <div className="d-flex flex-column gap-4 w-100">
-            {activeItems.map((item, idx) => {
-                if (item.type === 'series-group') return renderSeriesGroup(item.data);
-                return (
-                    <MatchCard
-                        key={item.match._id || item.match.id}
-                        match={item.match}
-                        groupType={item.groupType}
-                        onClick={() => navigate(`/scorecard/${item.match._id || item.match.id}`)}
-                    />
-                );
-            })}
-        </div>
-    ), [activeItems, navigate]);
-
-    const renderedCompletedItems = React.useMemo(() => (
-        <div className="d-flex flex-column gap-4 w-100">
-            {filteredCompletedItems.map((item, idx) => {
-                if (item.type === 'series-group') return renderSeriesGroup(item.data);
-                return (
-                    <MatchCard
-                        key={item.match._id || item.match.id}
-                        match={item.match}
-                        groupType={item.groupType}
-                        onClick={() => navigate(`/scorecard/${item.match._id || item.match.id}`)}
-                    />
-                );
-            })}
-        </div>
-    ), [filteredCompletedItems, navigate]);
-
+    const renderFeed = (itemsArray) => {
+        return itemsArray.map(item => {
+            if (item.type === 'series-group') return renderSeriesGroup(item.data);
+            return renderMatchCard(item.match, item.groupType);
+        });
+    };
 
     return (
         <div className="main-page-wrapper bg-light min-vh-100 pb-5">
-            <div className="container-mobile mx-auto py-4 px-3" style={{ maxWidth: '448px' }}>
+            <div className="global-container py-4">
                 <style>{`
-                    .cric-card { width: 100% !important; border-radius: 12px !important; }
-                    .filter-btn {
+                    .cric-card { cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; width: 100%; }
+                    .cric-card:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0,0,0,0.08) !important; }
+                     .filter-btn {
                         white-space: nowrap;
-                        font-weight: 800;
+                        font-weight: 900;
                         font-size: 11px;
-                        padding: 10px 18px;
+                        padding: 8px 16px;
                         border-radius: 100px;
                         transition: all 0.2s ease;
                         border: 1px solid #e2e8f0;
                         background: white;
                         color: #64748b;
-                        text-transform: capitalize;
-                        letter-spacing: 0.3px;
-                    }
-                    .filter-btn.active {
-                        background: #3b82f6;
-                        color: white !important;
-                        border-color: #3b82f6;
-                        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
-                    }
-                    .section-title {
-                        font-weight: 950;
-                        letter-spacing: -0.2px;
-                        color: #0f172a;
-                        margin-bottom: 0;
-                        font-size: 1.1rem;
-                    }
-                    .live-badge {
-                        background: #dc2626;
-                        color: white;
-                        font-weight: 900;
-                        padding: 2px 8px;
-                        border-radius: 4px;
-                        font-size: 10px;
+                        text-transform: uppercase;
                         letter-spacing: 0.5px;
                     }
+                    .filter-btn.active {
+                        background: #032333;
+                        color: white !important;
+                        border-color: #032333;
+                        box-shadow: 0 4px 12px rgba(3, 35, 51, 0.2);
+                    }
+                    .section-title {
+                        font-weight: 900;
+                        letter-spacing: 1px;
+                        color: #1a1a1a;
+                        margin-bottom: 0;
+                    }
+                    .no-scrollbar::-webkit-scrollbar { display: none; }
+                    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
                 `}</style>
 
-                <div className="feed-header mb-4">
+                <div className="feed-header mb-4 d-flex align-items-center gap-3">
                     <h2 className="section-title d-flex align-items-center gap-2">
-                        <span className="live-badge">LIVE</span>
-                        <span className="text-uppercase" style={{ fontSize: '13px' }}>Match Feed</span>
+                        <span className="bg-danger text-white px-2 py-1 rounded small" style={{ fontSize: '10px' }}>LIVE</span>
+                        <span>MATCH FEED</span>
                     </h2>
                 </div>
 
                 <div className="mb-5">
-                    {activeItems.length > 0 ? renderedActiveItems : (
+                    {activeItems.length > 0 ? renderFeed(activeItems) : (
                         <div className="bg-white p-5 rounded-3 border text-center shadow-sm w-100">
                             <h6 className="fw-black text-primary mb-2">NO ACTIVE MATCHES</h6>
                             <p className="text-muted x-small mb-0 text-uppercase letter-spacing-1">Stay tuned for upcoming live coverage</p>
@@ -603,9 +426,9 @@ const Home = () => {
                 </div>
 
                 <div className="recently-completed-section">
-                    <div className="d-flex flex-column gap-3 mb-4">
-                        <h4 className="section-title text-uppercase" style={{ fontSize: '13px' }}>Recently Completed</h4>
-                        <div className="d-flex gap-2 overflow-auto no-scrollbar py-1">
+                    <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+                        <h4 className="section-title">RECENTLY COMPLETED</h4>
+                        <div className="d-flex gap-2 overflow-auto no-scrollbar py-1 w-100 w-md-auto">
                             {COMPLETED_FILTERS.map(f => (
                                 <button
                                     key={f.key}
@@ -618,7 +441,7 @@ const Home = () => {
                         </div>
                     </div>
 
-                    {filteredCompletedItems.length > 0 ? renderedCompletedItems : (
+                    {filteredCompletedItems.length > 0 ? renderFeed(filteredCompletedItems) : (
                         <div className="bg-white p-5 rounded-3 border text-center shadow-sm w-100">
                             <i className="bi bi-info-circle fs-4 text-muted mb-3 d-block"></i>
                             <h6 className="fw-black text-muted text-uppercase small">No Matches Found</h6>
@@ -627,7 +450,6 @@ const Home = () => {
                     )}
                 </div>
             </div>
-
 
             <AnimatePresence>
                 {blastMatchId && (
