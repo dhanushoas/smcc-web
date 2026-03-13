@@ -243,8 +243,8 @@ const Home = () => {
                                 </>
                             ) : isCompleted ? (
                                 <>
-                                    <i className="bi bi-trophy-fill text-primary"></i>
-                                    <span className="fw-black text-primary">{match.score?.result || (() => {
+                                    <i className="bi bi-trophy-fill text-success"></i>
+                                    <span className="fw-black text-success">{match.score?.result || (() => {
                                         if (innings.length < 2) return "COMPLETED";
                                         const inn1 = innings[0];
                                         const inn2 = innings[1];
@@ -253,8 +253,8 @@ const Home = () => {
                                         return "Match Drawn";
                                     })()}</span>
                                     {match.manOfTheMatch && (
-                                        <span className="ms-auto x-small bg-primary bg-opacity-10 text-primary px-2 py-1 rounded border border-primary border-opacity-20 d-flex align-items-center gap-1 fw-black">
-                                            <i className="bi bi-award-fill"></i>
+                                        <span className="ms-auto x-small bg-warning bg-opacity-10 text-dark px-2 py-1 rounded border border-warning border-opacity-25 d-flex align-items-center gap-1 fw-black">
+                                            <i className="bi bi-award-fill text-warning"></i>
                                             {match.manOfTheMatch.toUpperCase()}
                                         </span>
                                     )}
