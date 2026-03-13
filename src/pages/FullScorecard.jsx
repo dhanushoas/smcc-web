@@ -514,11 +514,10 @@ const FullScorecard = () => {
                                                         <span className={`badge ${match.status === 'cancelled' ? 'bg-danger' : 'bg-success'} bg-opacity-10 ${match.status === 'cancelled' ? 'text-danger' : 'text-success'} p-1 px-2 rounded-pill letter-spacing-2 fw-black x-small`}>
                                                             {match.status === 'cancelled' ? 'MATCH CANCELLED' : 'MATCH RESULT'}
                                                         </span>
-                                                        <i className={`bi ${match.status === 'cancelled' ? 'bi-x-octagon-fill text-danger' : 'bi-star-fill text-warning'} x-small`}></i>
                                                     </div>
                                                     <div className="d-flex align-items-center gap-3 mb-3">
-                                                        <div className="d-inline-flex align-items-center justify-content-center rounded-circle border shadow-sm" style={{ backgroundColor: match.status === 'cancelled' ? '#FEE2E2' : '#FFF7D6', borderColor: match.status === 'cancelled' ? '#EF4444' : '#FBBF24', width: '60px', height: '60px' }}>
-                                                            <i className={`bi ${match.status === 'cancelled' ? 'bi-slash-circle' : 'bi-trophy-fill'}`} style={{ color: match.status === 'cancelled' ? '#DC2626' : '#F59E0B', fontSize: '2.4rem' }}></i>
+                                                        <div className="d-inline-flex align-items-center justify-content-center" style={{ width: '60px', height: '60px' }}>
+                                                            <span style={{ fontSize: '3rem' }}>{match.status === 'cancelled' ? '🚫' : '🏆'}</span>
                                                         </div>
                                                         <h4 className={`fw-black ${match.status === 'cancelled' ? 'text-danger' : 'text-dark'} mb-0 letter-spacing-1`}>
                                                             {match.status === 'cancelled' ? (match.score?.result || 'MATCH CANCELLED').toUpperCase() : (() => {
@@ -549,7 +548,7 @@ const FullScorecard = () => {
 
                                                     {match.manOfTheMatch && (
                                                         <div className="mt-1 pt-3 border-top d-flex align-items-center gap-3">
-                                                            <div className="d-inline-flex align-items-center justify-content-center rounded-circle shadow-sm" style={{ width: '40px', height: '40px', backgroundColor: '#FBBF24', fontSize: '1.5rem' }}>
+                                                            <div className="d-inline-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px', fontSize: '2.5rem' }}>
                                                                 🥇
                                                             </div>
                                                             <div>
