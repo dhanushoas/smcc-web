@@ -156,7 +156,7 @@ const Home = () => {
                         )}
                     </div>
 
-                    {match.toss?.winner && !isCompleted && !isCancelled && (
+                    {match.toss?.winner && !isCancelled && (
                         <div className="mt-2 mb-2 bg-warning bg-opacity-10 p-2 rounded border border-warning border-opacity-20">
                             <span className="fw-bold text-dark x-small d-flex align-items-center gap-1">
                                 <i className="bi bi-coin text-warning"></i>
@@ -243,7 +243,7 @@ const Home = () => {
                                     })()}</span>
                                     {match.manOfTheMatch && (
                                         <span className="ms-auto x-small bg-warning bg-opacity-10 text-dark px-2 py-1 rounded border border-warning d-flex align-items-center gap-1 fw-black">
-                                            <i className="bi bi-person-fill"></i>
+                                            <i className="bi bi-award-fill text-warning"></i>
                                             {match.manOfTheMatch.toUpperCase()}
                                         </span>
                                     )}
