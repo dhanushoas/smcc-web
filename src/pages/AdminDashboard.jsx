@@ -53,60 +53,74 @@ const CustomTimePicker = ({ label, value, onChange, size = 'lg', editDisplay = f
     const m = parts ? parts[2] : '00';
     const ampm = parts ? parts[3].toUpperCase() : 'PM';
 
-    // Extract time without am/pm for 24h display
     const time24h = parseTime12to24(value) || value;
 
     return (
-        <Form.Group>
-            {editDisplay ? (
-                <Form.Label className="x-small fw-black text-uppercase text-muted">
-                    {label} <Badge bg="light" text="dark" className="ms-2 border">{value}</Badge>
-                    <Badge bg="secondary" className="ms-1">{time24h}</Badge>
-                </Form.Label>
-            ) : (
-                <Form.Label className="small fw-bold">
-                    {label} <Badge bg="light" text="dark" className="ms-2 border">{value}</Badge>
-                    <Badge bg="secondary" className="ms-1">{time24h}</Badge>
-                </Form.Label>
-            )}
-            <InputGroup size={size} className="shadow-sm border rounded-3 overflow-hidden bg-white" style={{ height: size === 'sm' ? '36px' : 'auto' }}>
-                <Form.Select
-                    className="border-0 bg-transparent text-center fw-bold shadow-none px-1"
-                    value={h}
-                    onChange={e => onChange(`${e.target.value}:${m} ${ampm}`)}
-                    style={{ flex: '1 1 25%', appearance: 'none', borderRight: '1px solid #eee' }}
-                >
-                    {Array.from({ length: 12 }, (_, i) => {
-                        const val = (i + 1).toString().padStart(2, '0');
-                        return <option key={`h-${val}`} value={val}>{val}</option>;
-                    })}
-                </Form.Select>
-                <Form.Select
-                    className="border-0 bg-transparent text-center fw-bold shadow-none px-1"
-                    value={m}
-                    onChange={e => onChange(`${h}:${e.target.value} ${ampm}`)}
-                    style={{ flex: '1 1 25%', appearance: 'none', borderRight: '1px solid #eee' }}
-                >
-                    {Array.from({ length: 60 }, (_, i) => {
-                        const val = i.toString().padStart(2, '0');
-                        return <option key={`m-${val}`} value={val}>{val}</option>;
-                    })}
-                </Form.Select>
-                <Form.Select
-                    className="border-0 bg-light text-center fw-black text-primary shadow-none px-1"
-                    value={ampm}
-                    onChange={e => onChange(`${h}:${m} ${e.target.value}`)}
-                    style={{ flex: '1 1 30%' }}
-                >
-                    <option value="AM">AM</option>
-                    <option value="PM">PM</option>
-                </Form.Select>
-                <InputGroup.Text className="border-0 bg-light text-muted px-2">
-                    <i className="bi bi-clock"></i>
-                </InputGroup.Text>
-            </InputGroup>
+        <Form.Group className="w-100">
+            <Form.Label className="x-small fw-black text-uppercase text-dark d-flex justify-content-between align-items-center mb-1">
+                <span>{label}</span>
+                <span className="text-primary fw-black" style={{ fontSize: '10px' }}>24H: {time24h}</span>
+            </Form.Label>
+            <div className="d-flex align-items-center gap-1">
+                <div className="flex-fill">
+                    <Form.Select
+                        size="sm"
+                        className="text-center fw-black border-2"
+                        value={h}
+                        onChange={e => onChange(`${e.target.value}:${m} ${ampm}`)}
+                        style={{ height: '38px', borderColor: '#dee2e6' }}
+                    >
+                        {Array.from({ length: 12 }, (_, i) => {
+                            const val = (i + 1).toString().padStart(2, '0');
+                            return <option key={`h-${val}`} value={val}>{val}</option>;
+                        })}
+                    </Form.Select>
+                    <div className="text-center x-small fw-bold text-muted mt-1">HH</div>
+                </div>
+                <div className="fw-black text-dark mb-4">:</div>
+                <div className="flex-fill">
+                    <Form.Select
+                        size="sm"
+                        className="text-center fw-black border-2"
+                        value={m}
+                        onChange={e => onChange(`${h}:${e.target.value} ${ampm}`)}
+                        style={{ height: '38px', borderColor: '#dee2e6' }}
+                    >
+                        {Array.from({ length: 60 }, (_, i) => {
+                            const val = i.toString().padStart(2, '0');
+                            return <option key={`m-${val}`} value={val}>{val}</option>;
+                        })}
+                    </Form.Select>
+                    <div className="text-center x-small fw-bold text-muted mt-1">MM</div>
+                </div>
+                <div className="flex-fill">
+                    <Form.Select
+                        size="sm"
+                        className="text-center fw-black border-2 bg-dark text-white"
+                        value={ampm}
+                        onChange={e => onChange(`${h}:${m} ${e.target.value}`)}
+                        style={{ height: '38px' }}
+                    >
+                        <option value="AM">AM</option>
+                        <option value="PM">PM</option>
+                    </Form.Select>
+                    <div className="text-center x-small fw-bold text-muted mt-1">AM/PM</div>
+                </div>
+            </div>
         </Form.Group>
     );
+};
+
+// --- Robust Comparison Helpers ---
+const checkTeamMatch = (t1, t2) => {
+    if (!t1 || !t2) return false;
+    return t1.toString().trim().toLowerCase() === t2.toString().trim().toLowerCase();
+};
+
+const isPlayerInSquad = (squad, name) => {
+    if (!squad || !name) return false;
+    const n = name.toString().trim().toLowerCase();
+    return (squad || []).some(p => p && p.toString().trim().toLowerCase() === n);
 };
 
 const AdminDashboard = () => {
@@ -984,14 +998,15 @@ const AdminDashboard = () => {
                 localNonStriker = ns;
                 localBowler = b;
 
-                const battingSquad = battingTeam === updatedMatch.teamA ? updatedMatch.teamASquad : updatedMatch.teamBSquad;
-                const bowlingSquad = battingTeam === updatedMatch.teamA ? updatedMatch.teamBSquad : updatedMatch.teamASquad;
+                const isTeamA = checkTeamMatch(battingTeam, updatedMatch.teamA);
+                const battingSquad = isTeamA ? updatedMatch.teamASquad : updatedMatch.teamBSquad;
+                const bowlingSquad = isTeamA ? updatedMatch.teamBSquad : updatedMatch.teamASquad;
 
-                if (battingSquad && (!battingSquad.includes(s) || !battingSquad.includes(ns))) {
+                if (battingSquad && (!isPlayerInSquad(battingSquad, s) || !isPlayerInSquad(battingSquad, ns))) {
                     toast.error("One or more batsmen are not in the squad!");
                     setIsUpdating(false); return;
                 }
-                if (bowlingSquad && !bowlingSquad.includes(b)) {
+                if (bowlingSquad && !isPlayerInSquad(bowlingSquad, b)) {
                     toast.error("Bowler is not in the squad!");
                     setIsUpdating(false); return;
                 }
@@ -1183,9 +1198,9 @@ const AdminDashboard = () => {
                     return;
                 } else if (type === 'wicket_with_replacement' || type === 'retired_with_replacement') {
                     const newName = value;
-                    const battingSquad = battingTeam === updatedMatch.teamA ? updatedMatch.teamASquad : updatedMatch.teamBSquad;
-                    if (battingSquad && !battingSquad.includes(newName)) {
-                        toast.error("Player is not in the squad!");
+                    const battingSquad = checkTeamMatch(battingTeam, updatedMatch.teamA) ? updatedMatch.teamASquad : updatedMatch.teamBSquad;
+                    if (battingSquad && !isPlayerInSquad(battingSquad, newName)) {
+                        toast.error("New batsman is not in the squad!");
                         setIsUpdating(false); return;
                     }
                     const isStrikerReplacement = runOutOutType === 'striker';
@@ -1344,8 +1359,8 @@ const AdminDashboard = () => {
                         setIsUpdating(false); return;
                     }
 
-                    const bowlingSquad = battingTeam === updatedMatch.teamA ? updatedMatch.teamBSquad : updatedMatch.teamASquad;
-                    if (bowlingSquad && !bowlingSquad.includes(value)) {
+                    const bowlingSquad = checkTeamMatch(battingTeam, updatedMatch.teamA) ? updatedMatch.teamBSquad : updatedMatch.teamASquad;
+                    if (bowlingSquad && !isPlayerInSquad(bowlingSquad, value)) {
                         toast.error("Bowler is not in the squad!");
                         setIsUpdating(false); return;
                     }
@@ -2060,21 +2075,21 @@ const AdminDashboard = () => {
                             <Form.Label className="fw-bold small text-uppercase text-muted">Striker</Form.Label>
                             <Form.Select size="lg" className="rounded-3 border-0 shadow-sm" value={modalData.s} onChange={e => setModalData({ ...modalData, s: e.target.value })}>
                                 <option value="">Select Striker</option>
-                                {(modalData.team === selectedMatch?.teamA ? squadA : squadB).map((p, i) => <option key={i} value={p}>{p}</option>)}
+                                {(checkTeamMatch(modalData.team, selectedMatch?.teamA) ? squadA : squadB).map((p, i) => <option key={i} value={p}>{p}</option>)}
                             </Form.Select>
                         </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label className="fw-bold small text-uppercase text-muted">Non-Striker</Form.Label>
                             <Form.Select size="lg" className="rounded-3 border-0 shadow-sm" value={modalData.ns} onChange={e => setModalData({ ...modalData, ns: e.target.value })}>
                                 <option value="">Select Non-Striker</option>
-                                {(modalData.team === selectedMatch?.teamA ? squadA : squadB).map((p, i) => <option key={i} value={p}>{p}</option>)}
+                                {(checkTeamMatch(modalData.team, selectedMatch?.teamA) ? squadA : squadB).map((p, i) => <option key={i} value={p}>{p}</option>)}
                             </Form.Select>
                         </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label className="fw-bold small text-uppercase text-muted">Bowler</Form.Label>
                             <Form.Select size="lg" className="rounded-3 border-0 shadow-sm" value={modalData.b} onChange={e => setModalData({ ...modalData, b: e.target.value })}>
                                 <option value="">Select Bowler</option>
-                                {(modalData.team === selectedMatch?.teamA ? squadB : squadA).map((p, i) => <option key={i} value={p}>{p}</option>)}
+                                {(checkTeamMatch(modalData.team, selectedMatch?.teamA) ? squadB : squadA).map((p, i) => <option key={i} value={p}>{p}</option>)}
                             </Form.Select>
                         </Form.Group>
                     </Modal.Body>
@@ -2696,7 +2711,7 @@ const AdminDashboard = () => {
                                                     if (selectedMatch.toss?.winner) {
                                                         const win = selectedMatch.toss.winner;
                                                         const dec = selectedMatch.toss.decision;
-                                                        team1st = dec === 'bat' ? win : (win === selectedMatch.teamA ? selectedMatch.teamB : selectedMatch.teamA);
+                                                        team1st = dec === 'bat' ? win : (checkTeamMatch(win, selectedMatch.teamA) ? selectedMatch.teamB : selectedMatch.teamA);
                                                     }
                                                     setModalData({ s: '', ns: '', b: '', nextB: '', nextS: '', team: team1st });
                                                     setShowStartModal(true);
@@ -2706,7 +2721,7 @@ const AdminDashboard = () => {
                                                         if (selectedMatch.toss?.winner) {
                                                             const win = selectedMatch.toss.winner;
                                                             const dec = selectedMatch.toss.decision;
-                                                            team1st = dec === 'bat' ? win : (win === selectedMatch.teamA ? selectedMatch.teamB : selectedMatch.teamA);
+                                                            team1st = dec === 'bat' ? win : (checkTeamMatch(win, selectedMatch.teamA) ? selectedMatch.teamB : selectedMatch.teamA);
                                                         }
                                                         return `Start 1st Innings (${team1st})`;
                                                     })()}
@@ -3111,7 +3126,7 @@ const AdminDashboard = () => {
                                             selectedMatch.status === 'live' && (
                                                 <div className="cric-card border-0 shadow-sm mt-0 mb-4 overflow-hidden">
                                                     <div className="bg-dark text-white py-2 px-3 small fw-bold text-uppercase">
-                                                        <i className="bi bi-bullseye me-2"></i>Bowling Summary: {selectedMatch.innings[selectedMatch.score.battingTeam === selectedMatch.teamA ? (selectedMatch.innings.length > 2 ? 3 : 1) : (selectedMatch.innings.length > 2 ? 2 : 0)]?.team || 'N/A'}
+                                                        <i className="bi bi-bullseye me-2"></i>Bowling Summary: {selectedMatch.innings[checkTeamMatch(selectedMatch.score.battingTeam, selectedMatch.teamA) ? (selectedMatch.innings.length > 2 ? 3 : 1) : (selectedMatch.innings.length > 2 ? 2 : 0)]?.team || 'N/A'}
                                                     </div>
                                                     <Table hover responsive size="sm" className="mb-0">
                                                         <thead className="bg-light x-small text-uppercase">
@@ -3280,14 +3295,14 @@ const AdminDashboard = () => {
                                                             handleUpdate('manual', { ...selectedMatch, currentBatsmen: cb }, { toastMsg: 'Non-Striker updated' });
                                                         }}>
                                                             <option value="">Select</option>
-                                                            {(selectedMatch.score.battingTeam === selectedMatch.teamA ? squadA : squadB).filter(p => p && p.trim() !== '').map((p, i) => <option key={`nonstriker_${p}_${i}`} value={p}>{p}</option>)}
+                                                            {(checkTeamMatch(selectedMatch.score.battingTeam, selectedMatch.teamA) ? squadA : squadB).filter(p => p && p.trim() !== '').map((p, i) => <option key={`nonstriker_${p}_${i}`} value={p}>{p}</option>)}
                                                         </Form.Select>
                                                     </Col>
                                                     <Col md={4}>
                                                         <Form.Label className="x-small fw-black text-uppercase text-muted">Current Bowler</Form.Label>
                                                         <Form.Select size="sm" className="border-2 fw-bold" value={bowler} onChange={e => { setBowler(e.target.value); handleUpdate('manual', { ...selectedMatch, currentBowler: e.target.value }, { toastMsg: 'Bowler updated' }); }}>
                                                             <option value="">Select</option>
-                                                            {(selectedMatch.score.battingTeam === selectedMatch.teamA ? squadB : squadA).filter(p => p && p.trim() !== '').map((p, i) => <option key={`bowler_${p}_${i}`} value={p}>{p}</option>)}
+                                                            {(checkTeamMatch(selectedMatch.score.battingTeam, selectedMatch.teamA) ? squadB : squadA).filter(p => p && p.trim() !== '').map((p, i) => <option key={`bowler_${p}_${i}`} value={p}>{p}</option>)}
                                                         </Form.Select>
                                                     </Col>
 
@@ -3309,18 +3324,38 @@ const AdminDashboard = () => {
 
                                                     {/* Row 6: Schedule Override */}
                                                     <Col md={12} className="pt-2">
-                                                        <div className="bg-light p-3 rounded-4 border">
-                                                            <h6 className="fw-black x-small text-uppercase text-dark mb-3"><i className="bi bi-calendar-event me-1"></i> Match Date & Time</h6>
-                                                            <Row className="g-2 align-items-end">
-                                                                <Col md={4}>
-                                                                    <Form.Label className="x-small fw-black text-uppercase text-muted" style={{ height: '18px' }}>Date</Form.Label>
-                                                                    <Form.Control size="sm" type="date" value={editDate} onChange={e => setEditDate(e.target.value)} className="border-2 fw-bold" style={{ height: '36px' }} />
+                                                        <div className="bg-white p-3 rounded-4 border shadow-sm">
+                                                            <div className="d-flex justify-content-between align-items-center mb-3">
+                                                                <h6 className="fw-black x-small text-uppercase text-dark mb-0 d-flex align-items-center gap-2">
+                                                                    <i className="bi bi-calendar-event-fill text-primary"></i> Match Date & Time
+                                                                </h6>
+                                                                <Badge bg="danger" className="fw-black x-small letter-spacing-1">ADVANCED CORRECTION PANEL</Badge>
+                                                            </div>
+                                                            <Row className="g-3 align-items-end">
+                                                                <Col xs={12} sm={4}>
+                                                                    <Form.Label className="x-small fw-black text-uppercase text-dark mb-1">Date</Form.Label>
+                                                                    <Form.Control
+                                                                        size="sm"
+                                                                        type="date"
+                                                                        value={editDate}
+                                                                        onChange={e => setEditDate(e.target.value)}
+                                                                        className="border-2 fw-black"
+                                                                        style={{ height: '38px', borderColor: '#dee2e6' }}
+                                                                    />
                                                                 </Col>
-                                                                <Col md={5}>
+                                                                <Col xs={12} sm={5}>
                                                                     <CustomTimePicker label="Time" value={editTime} onChange={(newTime) => setEditTime(newTime)} size="sm" editDisplay={true} />
                                                                 </Col>
-                                                                <Col md={3}>
-                                                                    <Button variant="dark" size="sm" className="w-100 fw-black" style={{ height: '36px' }} onClick={handleSaveDateTime}>SAVE</Button>
+                                                                <Col xs={12} sm={3}>
+                                                                    <Button
+                                                                        variant="dark"
+                                                                        size="sm"
+                                                                        className="w-100 fw-black shadow-sm"
+                                                                        style={{ height: '38px' }}
+                                                                        onClick={handleSaveDateTime}
+                                                                    >
+                                                                        <i className="bi bi-check-circle-fill me-2"></i>SAVE
+                                                                    </Button>
                                                                 </Col>
                                                             </Row>
                                                         </div>

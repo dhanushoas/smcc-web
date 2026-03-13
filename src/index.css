@@ -14,10 +14,10 @@
 
   /* ESPN Cricinfo Theme */
   --bg-color: #fafafa;
-  --text-color: #333333;
-  --text-muted: #666666;
+  --text-color: #1a1a1a;
+  --text-muted: #1a1a1a;
   --card-bg: #ffffff;
-  --border-color: #e6e6e6;
+  --border-color: #d1d5db;
   --nav-bg: #032333;
 
   --premium-gradient: linear-gradient(135deg, #032333 0%, #00a0e0 100%);
@@ -29,7 +29,14 @@
   box-sizing: border-box;
 }
 
-html,
+html {
+  /* Aggressive Fluid scaling: 
+     At 320px (mobile): 11px
+     At 1440px (desktop): 16px
+  */
+  font-size: clamp(11px, 0.5vw + 9.5px, 16px);
+}
+
 body {
   margin: 0;
   padding: 0;
@@ -41,27 +48,71 @@ body {
   transition: background 0.4s ease;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+  line-height: 1.4;
 }
 
-/* Production-level Sports UI Tokens */
+/* Maintain laptop-style layout on mobile by preventing wrapping and scaling content */
+.laptop-view-mobile {
+  min-width: 1000px;
+  /* Force desktop-ish width */
+  transform-origin: top left;
+}
+
+@media (max-width: 991px) {
+  .force-desktop-layout {
+    overflow-x: auto;
+  }
+}
+
 .global-container {
   max-width: 1100px;
   margin: 0 auto;
-  padding: 0 16px;
+  padding: 0 1rem;
   width: 100%;
+}
+
+/* Force horizontal layout for scores on mobile if requested */
+.score-row-responsive {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .cric-card {
   background: #ffffff;
-  border: 1px solid var(--espn-border);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   overflow: hidden;
 }
 
+/* Table scaling for mobile */
+.responsive-table-sm {
+  font-size: 0.9em;
+}
+
+@media (max-width: 576px) {
+  .responsive-table-sm {
+    font-size: 0.75rem !important;
+  }
+
+  .responsive-table-sm th,
+  .responsive-table-sm td {
+    padding: 0.5rem 0.25rem !important;
+  }
+
+  .compact-mobile-grid {
+    display: flex !important;
+    gap: 0.5rem !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+  }
+}
+
 .cric-card:hover {
-  box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
 }
 
 .flex-wrap-gap {
@@ -281,6 +332,7 @@ body {
     font-size: 3rem;
   }
 }
+
 .focus-glow:focus {
   border-color: #00a0e0 !important;
   box-shadow: 0 0 0 4px rgba(0, 160, 224, 0.15) !important;

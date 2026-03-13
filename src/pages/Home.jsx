@@ -10,6 +10,17 @@ import API_URL from '../utils/api';
 
 const socket = io(API_URL);
 
+// --- Robust Comparison Helpers ---
+const checkTeamMatch = (t1, t2) => {
+    if (!t1 || !t2) return false;
+    return t1.toString().trim().toLowerCase() === t2.toString().trim().toLowerCase();
+};
+
+const isPlayerInSquad = (player, squad) => {
+    if (!player || !squad || !Array.isArray(squad)) return false;
+    return squad.some(p => p.name.toLowerCase() === player.toLowerCase());
+};
+
 const Home = () => {
     const navigate = useNavigate();
     const { t } = useApp();
@@ -102,7 +113,7 @@ const Home = () => {
                 onClick={handleCardClick}
             >
                 <div className="px-4 py-3 border-bottom d-flex justify-content-between align-items-center bg-white">
-                    <span className="text-muted fw-bold x-small text-uppercase letter-spacing-1">
+                    <span className="text-dark fw-black x-small text-uppercase letter-spacing-1">
                         {match.series || 'SMCC LIVE'} {match.matchNumber ? `• Match ${match.matchNumber}` : ''}
                     </span>
                     <div className="d-flex align-items-center gap-2">
@@ -119,12 +130,12 @@ const Home = () => {
                             <div className="team-initial bg-light rounded-circle border d-flex align-items-center justify-content-center fw-black" style={{ width: '40px', height: '40px', fontSize: '11px' }}>
                                 {team1?.substring(0, 2).toUpperCase() || '??'}
                             </div>
-                            <span className={`fw-black fs-5 ${match.winner === team1 ? 'text-dark' : 'text-dark opacity-75'}`}>{team1}</span>
+                            <span className="fw-black fs-5 text-dark">{team1}</span>
                         </div>
                         {score1 !== null && (
                             <div className="text-end">
-                                <span className="fw-black fs-4">{score1}</span>
-                                <span className="text-muted small ms-2">({overs1})</span>
+                                <span className="fw-black fs-4 text-dark">{score1}</span>
+                                <span className="text-dark fw-bold small ms-2">({overs1})</span>
                             </div>
                         )}
                     </div>
@@ -134,18 +145,18 @@ const Home = () => {
                             <div className="team-initial bg-light rounded-circle border d-flex align-items-center justify-content-center fw-black" style={{ width: '40px', height: '40px', fontSize: '11px' }}>
                                 {team2?.substring(0, 2).toUpperCase() || '??'}
                             </div>
-                            <span className={`fw-black fs-5 ${match.winner === team2 ? 'text-dark' : 'text-dark opacity-75'}`}>{team2}</span>
+                            <span className="fw-black fs-5 text-dark">{team2}</span>
                         </div>
                         {score2 !== null && (
                             <div className="text-end">
-                                <span className="fw-black fs-4">{score2}</span>
-                                <span className="text-muted small ms-2">({overs2})</span>
+                                <span className="fw-black fs-4 text-dark">{score2}</span>
+                                <span className="text-dark fw-bold small ms-2">({overs2})</span>
                             </div>
                         )}
                     </div>
 
                     <div className="pt-2 border-top">
-                        <p className="mb-0 small fw-bold text-primary d-flex align-items-center gap-2">
+                        <p className="mb-0 small fw-black text-dark d-flex align-items-center gap-2">
                             {isCancelled ? (
                                 <>
                                     <i className="bi bi-x-circle-fill text-danger"></i>
@@ -154,7 +165,7 @@ const Home = () => {
                             ) : isCompleted ? (
                                 <>
                                     <i className="bi bi-trophy-fill text-warning"></i>
-                                    <span>{match.score?.result || (() => {
+                                    <span className="fw-black">{match.score?.result || (() => {
                                         if (innings.length < 2) return "COMPLETED";
                                         const inn1 = innings[0];
                                         const inn2 = innings[1];

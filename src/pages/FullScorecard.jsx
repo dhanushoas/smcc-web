@@ -14,6 +14,12 @@ import API_URL from '../utils/api';
 
 const socket = io(API_URL);
 
+// --- Robust Comparison Helpers ---
+const checkTeamMatch = (t1, t2) => {
+    if (!t1 || !t2) return false;
+    return t1.toString().trim().toLowerCase() === t2.toString().trim().toLowerCase();
+};
+
 const FullScorecard = () => {
     const { id } = useParams();
     const [match, setMatch] = useState(null);
@@ -599,9 +605,9 @@ const FullScorecard = () => {
                                                                 <Button
                                                                     key={idx}
                                                                     variant={activeInnings === idx ? 'primary' : 'white'}
-                                                                    className={`flex-grow-1 py-2 px-3 transition-all border shadow-sm ${activeInnings === idx ? 'bg-primary text-white border-primary shadow-lg' : 'text-primary bg-white border-primary border-opacity-10'}`}
+                                                                    className={`flex-grow-1 py-1 px-2 transition-all border shadow-sm ${activeInnings === idx ? 'bg-primary text-white border-primary shadow-lg' : 'text-primary bg-white border-primary border-opacity-10'}`}
                                                                     onClick={() => setActiveInnings(idx)}
-                                                                    style={{ minWidth: '140px' }}
+                                                                    style={{ minWidth: '100px', fontSize: '11px' }}
                                                                 >
                                                                     <div className="d-flex flex-column align-items-center">
                                                                         <span className="fw-black text-uppercase x-small letter-spacing-1">{inn.team}</span>
@@ -633,10 +639,10 @@ const FullScorecard = () => {
                                                 </div>
 
                                                 {match.innings[activeInnings] ? (
-                                                    <Row className="gx-lg-4">
-                                                        <Col lg={7}>
+                                                    <Row className="gx-lg-4 gy-4">
+                                                        <Col md={7}>
                                                             <div className="border rounded-4 overflow-hidden shadow-sm bg-white mb-5">
-                                                                <Table hover responsive className="mb-0 border-0">
+                                                                <Table hover responsive className="mb-0 border-0 responsive-table-sm">
                                                                     <thead className="bg-dark text-white">
                                                                         <tr>
                                                                             <th className="ps-4 py-3 x-small text-uppercase letter-spacing-1">Batting</th>
@@ -654,7 +660,7 @@ const FullScorecard = () => {
                                                                                 <td className="ps-4 fw-black text-primary fs-6">
                                                                                     {(() => {
                                                                                         const isLive = match.status === 'live';
-                                                                                        const isCurrentInnings = match.score?.battingTeam === match.innings[activeInnings].team;
+                                                                                        const isCurrentInnings = checkTeamMatch(match.score?.battingTeam, match.innings[activeInnings]?.team);
                                                                                         const striker = match.currentBatsmen?.find(cb => cb.onStrike)?.name;
                                                                                         const onStrike = isLive && isCurrentInnings && striker === b.player;
                                                                                         return (
@@ -666,19 +672,19 @@ const FullScorecard = () => {
                                                                                         );
                                                                                     })()}
                                                                                 </td>
-                                                                                <td className="text-muted fw-bold small">{b.status}</td>
+                                                                                <td className="text-dark fw-black small">{b.status}</td>
                                                                                 <td className="text-center fw-black fs-5">{b.runs}</td>
                                                                                 <td className="text-center fw-bold">{b.balls}</td>
                                                                                 <td className="text-center fw-bold">{b.fours}</td>
                                                                                 <td className="text-center fw-bold">{b.sixes}</td>
-                                                                                <td className="text-center text-muted fw-black small">{b.strikeRate}</td>
+                                                                                <td className="text-center text-dark fw-black small">{b.strikeRate}</td>
                                                                             </tr>
                                                                         ))}
                                                                         <tr className="bg-light bg-opacity-50">
-                                                                            <td colSpan={2} className="ps-4 text-muted fw-bold">EXTRAS</td>
+                                                                            <td colSpan={2} className="ps-4 text-dark fw-black">EXTRAS</td>
                                                                             <td colSpan={5} className="ps-3 fw-black fs-5">
                                                                                 {match.innings[activeInnings].extras?.total || 0}
-                                                                                <small className="ms-3 text-muted fw-bold text-uppercase" style={{ fontSize: '0.75rem' }}>
+                                                                                <small className="ms-3 text-dark fw-black text-uppercase" style={{ fontSize: '0.75rem' }}>
                                                                                     (W {match.innings[activeInnings].extras?.wides || 0}, NB {match.innings[activeInnings].extras?.noBalls || 0}, B {match.innings[activeInnings].extras?.byes || 0}, LB {match.innings[activeInnings].extras?.legByes || 0})
                                                                                 </small>
                                                                             </td>
@@ -688,7 +694,7 @@ const FullScorecard = () => {
                                                                             <td colSpan={5} className="ps-3 py-4">
                                                                                 <div className="d-flex align-items-baseline gap-3">
                                                                                     <span className="fw-black fs-2 text-primary">{match.innings[activeInnings].runs} / {match.innings[activeInnings].wickets}</span>
-                                                                                    <span className="text-muted fs-5 fw-bold">({pluralize(match.innings[activeInnings].overs, 'Over')})</span>
+                                                                                    <span className="text-dark fs-5 fw-black">({pluralize(match.innings[activeInnings].overs, 'Over')})</span>
                                                                                 </div>
                                                                             </td>
                                                                         </tr>
@@ -703,28 +709,28 @@ const FullScorecard = () => {
                                                                     if (yetToBat.length === 0) return null;
                                                                     return (
                                                                         <div className="bg-light p-3 border-top">
-                                                                            <span className="x-small fw-black text-uppercase text-muted me-2">Yet to bat:</span>
-                                                                            <span className="small fw-bold text-dark">{yetToBat.map(p => toCamelCase(p)).join(', ')}</span>
+                                                                            <span className="x-small fw-black text-uppercase text-dark me-2">Yet to bat:</span>
+                                                                            <span className="small fw-black text-dark">{yetToBat.map(p => toCamelCase(p)).join(', ')}</span>
                                                                         </div>
                                                                     );
                                                                 })()}
                                                             </div>
                                                         </Col>
 
-                                                        <Col lg={5}>
+                                                        <Col md={5}>
                                                             <div className="border rounded-4 overflow-hidden shadow-sm bg-white mb-4">
                                                                 <div className="bg-dark text-white px-4 py-3 fw-black text-uppercase letter-spacing-1 d-flex align-items-center gap-2">
                                                                     <i className="bi bi-bullseye text-primary"></i>
                                                                     Bowling Summary
                                                                 </div>
-                                                                <Table hover responsive className="mb-0">
-                                                                    <thead className="bg-light">
+                                                                <Table hover responsive className="mb-0 responsive-table-sm">
+                                                                    <thead className="bg-dark text-white">
                                                                         <tr>
-                                                                            <th className="ps-4 py-3 text-muted x-small text-uppercase">Bowling</th>
-                                                                            <th className="text-center py-3 text-muted x-small text-uppercase">Overs Bowled</th>
-                                                                            <th className="text-center py-3 text-muted x-small text-uppercase">Runs</th>
-                                                                            <th className="text-center py-3 text-muted x-small text-uppercase">Wickets Taken</th>
-                                                                            <th className="text-center py-3 text-muted x-small text-uppercase">Economy</th>
+                                                                            <th className="ps-4 py-3 x-small text-uppercase">Bowling</th>
+                                                                            <th className="text-center py-3 x-small text-uppercase">Overs Bowled</th>
+                                                                            <th className="text-center py-3 x-small text-uppercase">Runs</th>
+                                                                            <th className="text-center py-3 x-small text-uppercase">Wickets Taken</th>
+                                                                            <th className="text-center py-3 x-small text-uppercase">Economy</th>
                                                                         </tr>
                                                                     </thead>
                                                                     <tbody>
@@ -740,7 +746,7 @@ const FullScorecard = () => {
                                                                                     <td className="text-center fw-bold">{bowler.overs}</td>
                                                                                     <td className="text-center fw-black">{bowler.runs}</td>
                                                                                     <td className="text-center fw-black text-danger">{bowler.wickets}</td>
-                                                                                    <td className="text-center text-muted small">{bowler.economy}</td>
+                                                                                    <td className="text-center text-dark fw-black small">{bowler.economy}</td>
                                                                                 </tr>
                                                                             ));
                                                                         })()}

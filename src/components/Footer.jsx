@@ -90,7 +90,7 @@ const Footer = () => {
                             <img src="/logo.png" alt="SMCC" height="45" className="rounded-circle shadow-sm border border-white" />
                             <span className="fw-black premium-gradient-text fs-4 letter-spacing-1">SMCC LIVE</span>
                         </div>
-                        <p className="text-muted small mb-4 pe-lg-4">
+                        <p className="text-dark fw-bold small mb-4 pe-lg-4">
                             S Mettur Cricket Council (SMCC) is dedicated to bringing professional-grade cricket scoring and live updates to our community. Experience cricket like never before.
                         </p>
                         <div className="d-flex justify-content-center justify-content-lg-start gap-3">
@@ -122,8 +122,8 @@ const Footer = () => {
                             <Col xs={6} md={4} className="text-center text-md-start">
                                 <h6 className="fw-black text-uppercase small letter-spacing-2 mb-4 text-primary">Quick Links</h6>
                                 <ul className="list-unstyled d-grid gap-2 small">
-                                    {loading ? <span className="text-muted spinner-border spinner-border-sm"></span> : links.quick_links.map((link, idx) => (
-                                        <li key={link.id || idx}><Link to={link.route} className="text-muted text-decoration-none hover-text-primary transition-all">{link.title}</Link></li>
+                                    {loading ? <span className="text-dark spinner-border spinner-border-sm"></span> : links.quick_links.map((link, idx) => (
+                                        <li key={link.id || idx}><Link to={link.route} className="text-dark fw-bold text-decoration-none hover-text-primary transition-all">{link.title}</Link></li>
                                     ))}
                                 </ul>
                             </Col>
@@ -131,8 +131,8 @@ const Footer = () => {
                             <Col xs={6} md={4} className="text-center text-md-start">
                                 <h6 className="fw-black text-uppercase small letter-spacing-2 mb-4 text-primary">Support</h6>
                                 <ul className="list-unstyled d-grid gap-2 small">
-                                    {loading ? <span className="text-muted spinner-border spinner-border-sm"></span> : links.support.map((link, idx) => (
-                                        <li key={link.id || idx}><Link to={link.route} className="text-muted text-decoration-none hover-text-primary transition-all">{link.title}</Link></li>
+                                    {loading ? <span className="text-dark spinner-border spinner-border-sm"></span> : links.support.map((link, idx) => (
+                                        <li key={link.id || idx}><Link to={link.route} className="text-dark fw-bold text-decoration-none hover-text-primary transition-all">{link.title}</Link></li>
                                     ))}
                                 </ul>
                             </Col>
@@ -140,8 +140,8 @@ const Footer = () => {
                             <Col xs={12} md={4} className="text-center text-md-start">
                                 <h6 className="fw-black text-uppercase small letter-spacing-2 mb-4 text-primary">Community</h6>
                                 <ul className="list-unstyled d-grid gap-2 small">
-                                    {loading ? <span className="text-muted spinner-border spinner-border-sm"></span> : links.community.map((link, idx) => (
-                                        <li key={link.id || idx}><Link to={link.route} className="text-muted text-decoration-none hover-text-primary transition-all">{link.title}</Link></li>
+                                    {loading ? <span className="text-dark spinner-border spinner-border-sm"></span> : links.community.map((link, idx) => (
+                                        <li key={link.id || idx}><Link to={link.route} className="text-dark fw-bold text-decoration-none hover-text-primary transition-all">{link.title}</Link></li>
                                     ))}
                                 </ul>
                             </Col>
@@ -153,12 +153,12 @@ const Footer = () => {
 
                 <Row className="align-items-center gy-3">
                     <Col md={6} className="text-center text-md-start">
-                        <p className="text-muted x-small mb-0 fw-bold">
+                        <p className="text-dark x-small mb-0 fw-black">
                             &copy; {new Date().getFullYear()} SMCC LIVE. ALL RIGHTS RESERVED.
                         </p>
                     </Col>
                     <Col md={6} className="text-center text-md-end">
-                        <p className="text-muted x-small mb-0">
+                        <p className="text-dark x-small mb-0 fw-bold">
                             DESIGNED & DEVELOPED BY <span className="text-primary fw-black letter-spacing-1">DHANUSH THANGARAJ</span>
                         </p>
                     </Col>
