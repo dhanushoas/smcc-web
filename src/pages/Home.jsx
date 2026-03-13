@@ -253,7 +253,7 @@ const Home = () => {
                                         return "Match Drawn";
                                     })()}</span>
                                     {match.manOfTheMatch && (
-                                        <span className="ms-auto x-small bg-warning bg-opacity-10 text-dark px-2 py-1 rounded border border-warning border-opacity-25 d-flex align-items-center gap-1 fw-black">
+                                        <span className="ms-auto x-small text-danger d-flex align-items-center gap-1 fw-black">
                                             <span style={{ fontSize: '14px' }}>🥇</span>
                                             {match.manOfTheMatch.toUpperCase()}
                                         </span>
