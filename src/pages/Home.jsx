@@ -192,9 +192,11 @@ const Home = () => {
 
                                 {match.score?.thisOver && match.score.thisOver.length > 0 && (
                                     <div className="d-flex flex-column align-items-end">
-                                        <div className="x-small fw-black text-muted text-uppercase mb-2" style={{ fontSize: '9px' }}>This Over</div>
-                                        <div className="d-flex gap-1">
-                                            {match.score.thisOver.map((ball, idx) => {
+                                        <div className="fw-black text-muted text-uppercase mb-2" style={{ fontSize: 'clamp(7px, 2vw, 9px)', letterSpacing: '0.5px' }}>
+                                            THIS OVER | <span className="text-secondary">{match.currentBowler?.toUpperCase() || 'BOWLER'}</span>
+                                        </div>
+                                        <div className="d-flex gap-1 justify-content-end flex-wrap">
+                                            {match.score.thisOver.slice(-6).map((ball, idx) => {
                                                 const bStr = ball.toString().toUpperCase();
                                                 const isWicket = bStr === 'W' || bStr === 'OUT' || bStr.startsWith('W');
                                                 const isExtra = bStr.includes('+') || bStr === 'WD' || bStr === 'NB' || bStr === 'LB' || bStr === 'B';
@@ -209,7 +211,7 @@ const Home = () => {
                                                 return (
                                                     <div key={idx}
                                                         className="rounded-circle d-flex align-items-center justify-content-center fw-black shadow-sm"
-                                                        style={{ backgroundColor: bg, color: text, width: '24px', height: '24px', fontSize: '9px', border: '1px solid rgba(0,0,0,0.05)' }}>
+                                                        style={{ backgroundColor: bg, color: text, width: 'clamp(20px, 5vw, 24px)', height: 'clamp(20px, 5vw, 24px)', fontSize: 'clamp(7px, 2vw, 9px)', border: '1px solid rgba(0,0,0,0.05)' }}>
                                                         {ball}
                                                     </div>
                                                 );
@@ -249,7 +251,7 @@ const Home = () => {
                             ) : isLive ? (
                                 <>
                                     <span className="text-danger animate-pulse">●</span>
-                                    <span className="fw-black text-primary text-uppercase letter-spacing-1">
+                                    <span className="fw-black text-primary text-uppercase letter-spacing-1" style={{ fontSize: 'clamp(10px, 3vw, 13px)' }}>
                                         {match.score?.target ? (() => {
                                             const getBalls = (ov) => {
                                                 const o = Math.floor(ov);
@@ -260,7 +262,7 @@ const Home = () => {
                                             const ballsBowled = getBalls(match.score?.overs || 0);
                                             const rem = match.score.ballsRemaining ?? (totalBalls - ballsBowled);
                                             const runsNeeded = match.score.target - (match.score.runs || 0);
-                                            return `Need ${runsNeeded} runs from ${rem} balls`;
+                                            return `Need ${runsNeeded} runs from ${rem} ${pluralize(rem, 'ball')}`;
                                         })() : 'Match in progress'}
                                     </span>
                                 </>
