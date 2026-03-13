@@ -120,8 +120,8 @@ const Footer = () => {
                     <Col lg={8}>
                         <Row className="gy-4">
                             <Col xs={6} md={4} className="text-center text-md-start">
-                                <h6 className="fw-black text-uppercase small letter-spacing-2 mb-4 text-primary">Quick Links</h6>
-                                <ul className="list-unstyled d-grid gap-2 small">
+                                <h6 className="fw-black text-uppercase responsive-footer-header letter-spacing-2 mb-4 text-primary">Quick Links</h6>
+                                <ul className="list-unstyled d-grid gap-2 responsive-footer-link">
                                     {loading ? <span className="text-dark spinner-border spinner-border-sm"></span> : links.quick_links.map((link, idx) => (
                                         <li key={link.id || idx}><Link to={link.route} className="text-dark fw-bold text-decoration-none hover-text-primary transition-all">{link.title}</Link></li>
                                     ))}
@@ -129,8 +129,8 @@ const Footer = () => {
                             </Col>
 
                             <Col xs={6} md={4} className="text-center text-md-start">
-                                <h6 className="fw-black text-uppercase small letter-spacing-2 mb-4 text-primary">Support</h6>
-                                <ul className="list-unstyled d-grid gap-2 small">
+                                <h6 className="fw-black text-uppercase responsive-footer-header letter-spacing-2 mb-4 text-primary">Support</h6>
+                                <ul className="list-unstyled d-grid gap-2 responsive-footer-link">
                                     {loading ? <span className="text-dark spinner-border spinner-border-sm"></span> : links.support.map((link, idx) => (
                                         <li key={link.id || idx}><Link to={link.route} className="text-dark fw-bold text-decoration-none hover-text-primary transition-all">{link.title}</Link></li>
                                     ))}
@@ -138,8 +138,8 @@ const Footer = () => {
                             </Col>
 
                             <Col xs={12} md={4} className="text-center text-md-start">
-                                <h6 className="fw-black text-uppercase small letter-spacing-2 mb-4 text-primary">Community</h6>
-                                <ul className="list-unstyled d-grid gap-2 small">
+                                <h6 className="fw-black text-uppercase responsive-footer-header letter-spacing-2 mb-4 text-primary">Community</h6>
+                                <ul className="list-unstyled d-grid gap-2 responsive-footer-link">
                                     {loading ? <span className="text-dark spinner-border spinner-border-sm"></span> : links.community.map((link, idx) => (
                                         <li key={link.id || idx}><Link to={link.route} className="text-dark fw-bold text-decoration-none hover-text-primary transition-all">{link.title}</Link></li>
                                     ))}

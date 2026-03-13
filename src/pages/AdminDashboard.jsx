@@ -46,68 +46,60 @@ const formatTime24to12 = (dateObj) => {
     return `${hours.toString().padStart(2, '0')}:${minutes} ${ampm}`;
 };
 
-const CustomTimePicker = ({ label, value, onChange, size = 'lg', editDisplay = false }) => {
-    // value expected like "09:00 AM"
+const CustomTimePicker = ({ value, onChange }) => {
     const parts = value.match(/^(1[0-2]|0?[1-9]):([0-5][0-9])\s?(AM|PM)$/i);
     const h = parts ? parts[1].padStart(2, '0') : '12';
     const m = parts ? parts[2] : '00';
     const ampm = parts ? parts[3].toUpperCase() : 'PM';
 
-    const time24h = parseTime12to24(value) || value;
-
     return (
-        <Form.Group className="w-100">
-            <Form.Label className="x-small fw-black text-uppercase text-dark d-flex justify-content-between align-items-center mb-1">
-                <span>{label}</span>
-                <span className="text-primary fw-black" style={{ fontSize: '10px' }}>24H: {time24h}</span>
-            </Form.Label>
+        <div className="flex-fill">
             <div className="d-flex align-items-center gap-1">
                 <div className="flex-fill">
                     <Form.Select
                         size="sm"
-                        className="text-center fw-black border-2"
+                        className="text-center fw-black border-2 bg-light focus-glow"
                         value={h}
                         onChange={e => onChange(`${e.target.value}:${m} ${ampm}`)}
-                        style={{ height: '38px', borderColor: '#dee2e6' }}
+                        style={{ height: '38px', borderRadius: '12px' }}
                     >
                         {Array.from({ length: 12 }, (_, i) => {
                             const val = (i + 1).toString().padStart(2, '0');
                             return <option key={`h-${val}`} value={val}>{val}</option>;
                         })}
                     </Form.Select>
-                    <div className="text-center x-small fw-bold text-muted mt-1">HH</div>
+                    <div className="text-center x-small fw-black text-muted mt-1" style={{ fontSize: '9px' }}>HH</div>
                 </div>
-                <div className="fw-black text-dark mb-4">:</div>
                 <div className="flex-fill">
                     <Form.Select
                         size="sm"
-                        className="text-center fw-black border-2"
+                        className="text-center fw-black border-2 bg-light focus-glow"
                         value={m}
                         onChange={e => onChange(`${h}:${e.target.value} ${ampm}`)}
-                        style={{ height: '38px', borderColor: '#dee2e6' }}
+                        style={{ height: '38px', borderRadius: '12px' }}
                     >
                         {Array.from({ length: 60 }, (_, i) => {
                             const val = i.toString().padStart(2, '0');
                             return <option key={`m-${val}`} value={val}>{val}</option>;
                         })}
                     </Form.Select>
-                    <div className="text-center x-small fw-bold text-muted mt-1">MM</div>
+                    <div className="text-center x-small fw-black text-muted mt-1" style={{ fontSize: '9px' }}>MM</div>
                 </div>
                 <div className="flex-fill">
                     <Form.Select
                         size="sm"
-                        className="text-center fw-black border-2 bg-dark text-white"
+                        className="text-center fw-black border-2 bg-dark text-white focus-glow"
                         value={ampm}
                         onChange={e => onChange(`${h}:${m} ${e.target.value}`)}
-                        style={{ height: '38px' }}
+                        style={{ height: '38px', borderRadius: '12px' }}
                     >
                         <option value="AM">AM</option>
                         <option value="PM">PM</option>
                     </Form.Select>
-                    <div className="text-center x-small fw-bold text-muted mt-1">AM/PM</div>
+                    <div className="text-center x-small fw-black text-muted mt-1" style={{ fontSize: '9px' }}>AM/PM</div>
                 </div>
             </div>
-        </Form.Group>
+        </div>
     );
 };
 
@@ -888,7 +880,7 @@ const AdminDashboard = () => {
             localStriker = updatedMatch.currentBatsmen?.find(b => b.onStrike)?.name || '';
             localNonStriker = updatedMatch.currentBatsmen?.find(b => !b.onStrike)?.name || '';
             localBowler = updatedMatch.currentBowler || '';
-        } else if (type === 'init') {
+        } else {
             // Safety: Ensure innings structure exists and has 2 teams
             if (!updatedMatch.innings || updatedMatch.innings.length < 2) {
                 const template = [
@@ -3322,42 +3314,66 @@ const AdminDashboard = () => {
                                                         </div>
                                                     </Col>
 
-                                                    {/* Row 6: Schedule Override */}
+                                                    {/* Row 6: Schedule Override (Redesigned All-in-One Row) */}
                                                     <Col md={12} className="pt-2">
-                                                        <div className="bg-white p-3 rounded-4 border shadow-sm">
-                                                            <div className="d-flex justify-content-between align-items-center mb-3">
-                                                                <h6 className="fw-black x-small text-uppercase text-dark mb-0 d-flex align-items-center gap-2">
-                                                                    <i className="bi bi-calendar-event-fill text-primary"></i> Match Date & Time
-                                                                </h6>
-                                                                <Badge bg="danger" className="fw-black x-small letter-spacing-1">ADVANCED CORRECTION PANEL</Badge>
+                                                        <div className="bg-[#f8fafc] p-4 rounded-4 border shadow-[0_8px_30px_rgb(0,0,0,0.04)]" style={{ backgroundColor: '#f8fafc' }}>
+                                                            <div className="d-flex justify-content-between align-items-center mb-4">
+                                                                <div className="d-flex align-items-center gap-2">
+                                                                    <div className="bg-light p-2 rounded-3 border">
+                                                                        <i className="bi bi-calendar3 text-dark"></i>
+                                                                    </div>
+                                                                    <h6 className="fw-bold text-dark mb-0 letter-spacing-1">MATCH DATE & TIME</h6>
+                                                                </div>
+                                                                <Badge pill bg="danger" className="fw-black x-small px-3 py-2 rounded-pill shadow-sm">
+                                                                    ADVANCED CORRECTION PANEL
+                                                                </Badge>
                                                             </div>
-                                                            <Row className="g-3 align-items-end">
-                                                                <Col xs={12} sm={4}>
-                                                                    <Form.Label className="x-small fw-black text-uppercase text-dark mb-1">Date</Form.Label>
-                                                                    <Form.Control
-                                                                        size="sm"
-                                                                        type="date"
-                                                                        value={editDate}
-                                                                        onChange={e => setEditDate(e.target.value)}
-                                                                        className="border-2 fw-black"
-                                                                        style={{ height: '38px', borderColor: '#dee2e6' }}
-                                                                    />
-                                                                </Col>
-                                                                <Col xs={12} sm={5}>
-                                                                    <CustomTimePicker label="Time" value={editTime} onChange={(newTime) => setEditTime(newTime)} size="sm" editDisplay={true} />
-                                                                </Col>
-                                                                <Col xs={12} sm={3}>
+
+                                                            <div className="d-flex flex-wrap flex-lg-nowrap align-items-end gap-4 p-1 bg-white rounded-4 border shadow-sm">
+                                                                {/* DATE FIELD */}
+                                                                <div className="flex-shrink-0" style={{ minWidth: '180px' }}>
+                                                                    <Form.Label className="x-small fw-black text-uppercase text-muted silver-text mb-1 ps-1">DATE</Form.Label>
+                                                                    <InputGroup size="sm">
+                                                                        <InputGroup.Text className="bg-light border-0 ps-3">
+                                                                            <i className="bi bi-calendar-check text-muted"></i>
+                                                                        </InputGroup.Text>
+                                                                        <Form.Control
+                                                                            type="date"
+                                                                            value={editDate}
+                                                                            onChange={e => setEditDate(e.target.value)}
+                                                                            className="border-0 bg-light fw-black focus-glow"
+                                                                            style={{ height: '38px', borderRadius: '0 12px 12px 0' }}
+                                                                        />
+                                                                    </InputGroup>
+                                                                </div>
+
+                                                                {/* TIME FIELD */}
+                                                                <div className="flex-fill" style={{ minWidth: '220px' }}>
+                                                                    <Form.Label className="x-small fw-black text-uppercase text-muted silver-text mb-1 ps-1">TIME</Form.Label>
+                                                                    <CustomTimePicker value={editTime} onChange={(newTime) => setEditTime(newTime)} />
+                                                                </div>
+
+                                                                {/* 24H PREVIEW */}
+                                                                <div className="flex-shrink-0 align-self-center mb-3">
+                                                                    <div className="bg-info bg-opacity-10 px-3 py-2 rounded-3 border border-info border-opacity-10">
+                                                                        <span className="text-info fw-black no-wrap" style={{ fontSize: '11px' }}>
+                                                                            24H: {parseTime12to24(editTime) || editTime}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* SAVE ACTION */}
+                                                                <div className="ms-lg-auto align-self-stretch h-100" style={{ minWidth: '120px' }}>
                                                                     <Button
                                                                         variant="dark"
-                                                                        size="sm"
-                                                                        className="w-100 fw-black shadow-sm"
+                                                                        className="w-100 h-100 fw-black shadow-lg rounded-4 d-flex align-items-center justify-content-center gap-2"
                                                                         style={{ height: '38px' }}
                                                                         onClick={handleSaveDateTime}
                                                                     >
-                                                                        <i className="bi bi-check-circle-fill me-2"></i>SAVE
+                                                                        <i className="bi bi-check-lg"></i> SAVE
                                                                     </Button>
-                                                                </Col>
-                                                            </Row>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     </Col>
 
