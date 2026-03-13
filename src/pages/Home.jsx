@@ -156,7 +156,7 @@ const Home = () => {
                         )}
                     </div>
 
-                    {match.toss?.winner && !isCancelled && (
+                    {match.toss?.winner && match.status !== 'completed' && !isCancelled && (
                         <div className="mt-2 mb-2 bg-warning bg-opacity-10 p-2 rounded border border-warning border-opacity-20">
                             <span className="fw-bold text-dark x-small d-flex align-items-center gap-1">
                                 <i className="bi bi-coin text-warning"></i>

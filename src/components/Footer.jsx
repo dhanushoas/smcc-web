@@ -28,10 +28,7 @@ const STATIC_FALLBACKS = {
 };
 
 const Footer = () => {
-    const [links, setLinks] = useState(() => {
-        const cached = localStorage.getItem('smcc_footer_links');
-        return cached ? JSON.parse(cached) : STATIC_FALLBACKS;
-    });
+    const [links] = useState(STATIC_FALLBACKS);
     const [socials, setSocials] = useState(() => {
         const cached = localStorage.getItem('smcc_social_links');
         return cached ? JSON.parse(cached) : [];
@@ -43,21 +40,13 @@ const Footer = () => {
     useEffect(() => {
         const fetchFooterData = async () => {
             try {
-                const [linksRes, socialsRes] = await Promise.all([
-                    axios.get(`${API_URL}/api/footer/links`),
-                    axios.get(`${API_URL}/api/footer/socials`)
-                ]);
-
-                if (linksRes.data && linksRes.data.quick_links) {
-                    setLinks(linksRes.data);
-                    localStorage.setItem('smcc_footer_links', JSON.stringify(linksRes.data));
-                }
+                const socialsRes = await axios.get(`${API_URL}/api/footer/socials`);
                 if (socialsRes.data) {
                     setSocials(socialsRes.data);
                     localStorage.setItem('smcc_social_links', JSON.stringify(socialsRes.data));
                 }
             } catch (error) {
-                console.error('Failed to load dynamic footer data:', error);
+                console.error('Failed to load social links:', error);
             }
         };
 
