@@ -296,7 +296,7 @@ const Home = () => {
                 <div className="cric-card mb-3 overflow-hidden bg-white rounded-3 shadow-sm border">
                     <div className="p-4 bg-light text-center">
                         <h6 className="fw-black text-primary mb-0 text-uppercase letter-spacing-1">
-                            {ps.teamA} VS {ps.teamB} SERIES ({ps.totalMatches} MATCHES)
+                            {ps.teamA} VS {ps.teamB} SERIES ({ps.teamAWins}-{ps.teamBWins})
                         </h6>
                         {ps.seriesWinner && (
                             <div className="badge bg-success mt-2 text-uppercase fw-black px-3 py-2 rounded-pill shadow-sm" style={{ fontSize: '11px' }}>🏆 {ps.seriesWinner} WON THE SERIES</div>
