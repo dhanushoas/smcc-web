@@ -157,11 +157,64 @@ const Home = () => {
                     </div>
 
                     {match.toss?.winner && !isCompleted && !isCancelled && (
-                        <div className="mt-2 mb-3 bg-warning bg-opacity-10 p-2 rounded border border-warning border-opacity-20">
+                        <div className="mt-2 mb-2 bg-warning bg-opacity-10 p-2 rounded border border-warning border-opacity-20">
                             <span className="fw-bold text-dark x-small d-flex align-items-center gap-1">
                                 <i className="bi bi-coin text-warning"></i>
                                 {match.toss.winner} won toss & elected to {match.toss.decision}
                             </span>
+                        </div>
+                    )}
+
+                    {isLive && (
+                        <div className="mt-3 mb-3">
+                            <div className="d-flex justify-content-between align-items-center mb-3 p-3 bg-light rounded-4 border border-opacity-50 shadow-sm">
+                                <div className="d-flex gap-3">
+                                    {match.currentBatsmen?.map(b => (
+                                        <div key={b.name} className="d-flex flex-column">
+                                            <div className="d-flex align-items-center gap-1">
+                                                {b.onStrike && <span className="text-warning">🏏</span>}
+                                                <span className={`fw-black ${b.onStrike ? 'text-primary' : 'text-muted'}`} style={{ fontSize: '12px' }}>
+                                                    {b.name.toUpperCase()}
+                                                </span>
+                                            </div>
+                                            <div className="fw-black text-dark" style={{ fontSize: '14px' }}>
+                                                {b.runs} <span className="text-muted fw-bold" style={{ fontSize: '10px' }}>({b.balls})</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {(!match.currentBatsmen || match.currentBatsmen.length === 0) && (
+                                        <span className="fw-black text-muted x-small">NO BATSMEN SELECTED</span>
+                                    )}
+                                </div>
+
+                                {match.score?.thisOver && match.score.thisOver.length > 0 && (
+                                    <div className="d-flex flex-column align-items-end">
+                                        <div className="x-small fw-black text-muted text-uppercase mb-2" style={{ fontSize: '9px' }}>This Over</div>
+                                        <div className="d-flex gap-1">
+                                            {match.score.thisOver.map((ball, idx) => {
+                                                const bStr = ball.toString().toUpperCase();
+                                                const isWicket = bStr === 'W' || bStr === 'OUT' || bStr.startsWith('W');
+                                                const isExtra = bStr.includes('+') || bStr === 'WD' || bStr === 'NB' || bStr === 'LB' || bStr === 'B';
+                                                const isBound = bStr === '4' || bStr === '6';
+
+                                                let bg = '#f3f4f6';
+                                                let text = '#4b5563';
+                                                if (isWicket) { bg = '#ef4444'; text = 'white'; }
+                                                else if (isBound) { bg = '#10b981'; text = 'white'; }
+                                                else if (isExtra) { bg = '#f59e0b'; text = 'white'; }
+
+                                                return (
+                                                    <div key={idx}
+                                                        className="rounded-circle d-flex align-items-center justify-content-center fw-black shadow-sm"
+                                                        style={{ backgroundColor: bg, color: text, width: '24px', height: '24px', fontSize: '9px', border: '1px solid rgba(0,0,0,0.05)' }}>
+                                                        {ball}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
 
@@ -193,7 +246,9 @@ const Home = () => {
                             ) : isLive ? (
                                 <>
                                     <span className="text-danger animate-pulse">●</span>
-                                    <span>{match.score?.target ? `Need ${match.score.target - (match.score.runs || 0)} runs to win` : 'Match in progress'}</span>
+                                    <span className="fw-black text-primary text-uppercase letter-spacing-1">
+                                        {match.score?.target ? `Need ${match.score.target - (match.score.runs || 0)} runs from ${match.score.ballsRemaining || '...'} balls` : 'Match in progress'}
+                                    </span>
                                 </>
                             ) : (
                                 <>

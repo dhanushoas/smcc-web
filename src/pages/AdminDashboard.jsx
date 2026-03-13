@@ -55,7 +55,7 @@ const CustomTimePicker = ({ value, onChange, label }) => {
     return (
         <div className="flex-fill">
             {label && <Form.Label className="small fw-bold">{label}</Form.Label>}
-            <div className="d-flex align-items-center gap-1">
+            <div className="d-flex align-items-center gap-2">
                 <div className="flex-fill">
                     <Form.Select
                         size="sm"
@@ -2999,24 +2999,28 @@ const AdminDashboard = () => {
                                         {
                                             selectedMatch.status === 'live' && (
                                                 <Row className="g-3 mb-4">
-                                                    <Col md={6}>
-                                                        <div className="cric-card border-0 bg-info bg-opacity-10 shadow-sm">
+                                                    <Col lg={6} xs={12}>
+                                                        <div className="h-100 bg-info bg-opacity-10 rounded-4 border border-info border-opacity-10 shadow-sm overflow-hidden">
                                                             <div className="py-3 px-4">
-                                                                <div className="d-flex justify-content-between align-items-center mb-2">
-                                                                    <small className="text-info fw-bold text-uppercase d-block mb-1">Batting</small>
-                                                                    <Button variant="link" size="sm" className="text-info p-0 text-decoration-none fw-bold" onClick={() => handleUpdate('swap_strike')}>
-                                                                        ⇄ SWAP STRIKE
+                                                                <div className="d-flex justify-content-between align-items-center mb-3">
+                                                                    <small className="text-info fw-black text-uppercase letter-spacing-2" style={{ fontSize: '11px' }}>BATTING</small>
+                                                                    <Button variant="link" size="sm" className="text-info p-0 text-decoration-none fw-black x-small d-flex align-items-center gap-1" onClick={() => handleUpdate('swap_strike')}>
+                                                                        <i className="bi bi-arrow-left-right"></i> SWAP STRIKE
                                                                     </Button>
                                                                 </div>
-                                                                <div className="d-flex justify-content-between">
-                                                                    <div>
-                                                                        <div className="fw-bold fs-5">🏏 {striker || '...'}*</div>
-                                                                        <div className="text-secondary small">{nonStriker || '...'}</div>
+                                                                <div className="d-flex justify-content-between align-items-center">
+                                                                    <div className="d-flex flex-column gap-1">
+                                                                        <div className="fw-black text-dark letter-spacing-1 d-flex align-items-center gap-2" style={{ fontSize: '1.2rem' }}>
+                                                                            <span className="fs-4">🏏</span> {toCamelCase(striker || '...')}{striker && '*'}
+                                                                        </div>
+                                                                        <div className="text-muted fw-bold ps-4 ms-2" style={{ fontSize: '0.9rem' }}>
+                                                                            {toCamelCase(nonStriker || '...')}
+                                                                        </div>
                                                                     </div>
-                                                                    <div className="text-end">
+                                                                    <div className="text-end d-flex flex-column gap-2">
                                                                         {selectedMatch.currentBatsmen?.map(b => (
-                                                                            <div key={b.name} className={`small fw-bold ${b.onStrike ? 'text-primary' : 'text-muted'}`}>
-                                                                                {pluralize(b.runs, 'Run')} ({pluralize(b.balls, 'Ball')})
+                                                                            <div key={b.name} className={`fw-black ${b.onStrike ? 'text-primary' : 'text-muted'}`} style={{ fontSize: '13px' }}>
+                                                                                {b.runs} <span className="opacity-75">Runs</span> ({b.balls} <span className="opacity-75">Balls</span>)
                                                                             </div>
                                                                         ))}
                                                                     </div>
@@ -3024,39 +3028,43 @@ const AdminDashboard = () => {
                                                             </div>
                                                         </div>
                                                     </Col>
-                                                    <Col md={6}>
-                                                        <div className="cric-card border-0 bg-success bg-opacity-10 shadow-sm">
+                                                    <Col lg={6} xs={12}>
+                                                        <div className="h-100 bg-success bg-opacity-10 rounded-4 border border-success border-opacity-10 shadow-sm overflow-hidden">
                                                             <div className="py-3 px-4">
-                                                                <small className="text-success fw-bold text-uppercase d-block mb-1">Bowling</small>
-                                                                <div className="d-flex justify-content-between align-items-center">
-                                                                    <div className="fw-bold fs-5">⚾ {bowler || '...'}</div>
-                                                                    <div className="text-end text-success fw-bold">
+                                                                <div className="d-flex justify-content-between align-items-center mb-3">
+                                                                    <small className="text-success fw-black text-uppercase letter-spacing-2" style={{ fontSize: '11px' }}>BOWLING</small>
+                                                                    <div className="text-end text-success fw-black letter-spacing-1" style={{ fontSize: '11px' }}>
                                                                         {(() => {
                                                                             const battingIdx = selectedMatch.innings.length > 2 ? selectedMatch.innings.length - 1 : (selectedMatch.score.battingTeam === selectedMatch.teamB ? 1 : 0);
                                                                             const bowlingIdx = battingIdx % 2 === 0 ? battingIdx + 1 : battingIdx - 1;
                                                                             const bStats = selectedMatch.innings[bowlingIdx]?.bowling.find(p => p.player === bowler);
-                                                                            if (!bStats) return `0 ${pluralize(0, 'Over')}`;
-                                                                            return `${pluralize(bStats.overs, 'Over')} | ${pluralize(bStats.runs, 'Run')} | ${pluralize(bStats.wickets, 'Wicket')}`;
+                                                                            if (!bStats) return `0 OVERS | 0 RUNS | 0 WICKETS`;
+                                                                            return `${bStats.overs} OVERS | ${bStats.runs} RUNS | ${bStats.wickets} WICKETS`;
                                                                         })()}
                                                                     </div>
                                                                 </div>
+                                                                <div className="d-flex justify-content-between align-items-start">
+                                                                    <div className="fw-black text-dark letter-spacing-1 d-flex align-items-center gap-2 mb-3" style={{ fontSize: '1.2rem' }}>
+                                                                        <span className="fs-4">⚾</span> {toCamelCase(bowler || '...')}
+                                                                    </div>
+                                                                </div>
                                                                 {selectedMatch.score.thisOver && selectedMatch.score.thisOver.length > 0 && (
-                                                                    <div className="mt-3">
-                                                                        <div className="small fw-bold text-muted text-uppercase mb-2">This Over</div>
-                                                                        <div className="d-flex gap-2">
+                                                                    <div className="mt-2 pt-2 border-top border-success border-opacity-10">
+                                                                        <div className="x-small fw-black text-muted text-uppercase mb-2 letter-spacing-2" style={{ fontSize: '9px' }}>THIS OVER</div>
+                                                                        <div className="d-flex flex-wrap gap-2">
                                                                             {selectedMatch.score.thisOver.map((ball, idx) => {
                                                                                 const bStr = ball.toString().toUpperCase();
-                                                                                const isWicket = bStr === 'W' || bStr === 'OUT';
-                                                                                const isExtra = bStr.includes('+') ? (bStr.startsWith('W+') || bStr.startsWith('NB+') || bStr.startsWith('B+') || bStr.startsWith('LB+')) : (bStr === 'WD' || bStr === 'NB' || bStr === 'LB' || bStr === 'B');
+                                                                                const isWicket = bStr === 'W' || bStr === 'OUT' || bStr.startsWith('W');
+                                                                                const isExtra = bStr.includes('+') || bStr === 'WD' || bStr === 'NB' || bStr === 'LB' || bStr === 'B';
                                                                                 const isBound = bStr === '4' || bStr === '6';
 
                                                                                 let bgClass = 'bg-white border';
-                                                                                if (isWicket) bgClass = 'bg-danger text-white';
-                                                                                else if (isBound) bgClass = 'bg-success text-white';
-                                                                                else if (isExtra) bgClass = 'bg-warning text-dark';
+                                                                                if (isWicket) bgClass = 'bg-danger text-white border-0';
+                                                                                else if (isBound) bgClass = 'bg-success text-white border-0';
+                                                                                else if (isExtra) bgClass = 'bg-warning text-dark border-0';
 
                                                                                 return (
-                                                                                    <div key={idx} className={`rounded-pill d-flex align-items-center justify-content-center fw-bold ${bgClass}`} style={{ minWidth: '26px', height: '26px', fontSize: '0.75rem', padding: '0 4px' }}>
+                                                                                    <div key={idx} className={`rounded-circle d-flex align-items-center justify-content-center fw-black shadow-sm ${bgClass}`} style={{ width: '28px', height: '28px', fontSize: '10px' }}>
                                                                                         {ball}
                                                                                     </div>
                                                                                 );
@@ -3330,7 +3338,7 @@ const AdminDashboard = () => {
                                                                 </Badge>
                                                             </div>
 
-                                                            <div className="d-flex flex-wrap flex-lg-nowrap align-items-end gap-4 p-1 bg-white rounded-4 border shadow-sm">
+                                                            <div className="d-flex flex-wrap flex-lg-nowrap align-items-end gap-3 p-3 bg-white rounded-4 border shadow-sm">
                                                                 {/* DATE FIELD */}
                                                                 <div className="flex-shrink-0" style={{ minWidth: '180px' }}>
                                                                     <Form.Label className="x-small fw-black text-uppercase text-muted silver-text mb-1 ps-1">DATE</Form.Label>
@@ -3354,21 +3362,12 @@ const AdminDashboard = () => {
                                                                     <CustomTimePicker value={editTime} onChange={(newTime) => setEditTime(newTime)} />
                                                                 </div>
 
-                                                                {/* 24H PREVIEW */}
-                                                                <div className="flex-shrink-0 align-self-center mb-3">
-                                                                    <div className="bg-info bg-opacity-10 px-3 py-2 rounded-3 border border-info border-opacity-10">
-                                                                        <span className="text-info fw-black no-wrap" style={{ fontSize: '11px' }}>
-                                                                            24H: {parseTime12to24(editTime) || editTime}
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-
                                                                 {/* SAVE ACTION */}
-                                                                <div className="ms-lg-auto align-self-stretch h-100" style={{ minWidth: '120px' }}>
+                                                                <div className="ms-lg-auto">
                                                                     <Button
                                                                         variant="dark"
-                                                                        className="w-100 h-100 fw-black shadow-lg rounded-4 d-flex align-items-center justify-content-center gap-2"
-                                                                        style={{ height: '38px' }}
+                                                                        className="fw-black shadow-sm rounded-4 d-flex align-items-center justify-content-center gap-2 px-4 mb-2 mb-lg-0"
+                                                                        style={{ height: '38px', minWidth: '110px' }}
                                                                         onClick={handleSaveDateTime}
                                                                     >
                                                                         <i className="bi bi-check-lg"></i> SAVE

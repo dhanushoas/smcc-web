@@ -611,6 +611,56 @@ const FullScorecard = () => {
                                     >
                                         {match.innings && match.innings.length > 0 ? (
                                             <>
+                                                {match.status === 'live' && (
+                                                    <div className="mb-4 p-4 bg-white rounded-4 border shadow-sm">
+                                                        <div className="d-flex justify-content-between align-items-center flex-wrap gap-4">
+                                                            <div className="d-flex gap-4">
+                                                                {match.currentBatsmen?.map(b => (
+                                                                    <div key={b.name} className="d-flex flex-column">
+                                                                        <div className="d-flex align-items-center gap-2 mb-1">
+                                                                            {b.onStrike && <span className="text-warning fs-5">🏏</span>}
+                                                                            <span className={`fw-black ${b.onStrike ? 'text-primary' : 'text-muted'} letter-spacing-1`} style={{ fontSize: '14px' }}>
+                                                                                {b.name.toUpperCase()}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="fw-black text-dark d-flex align-items-baseline gap-2">
+                                                                            <span className="fs-4">{b.runs}</span>
+                                                                            <span className="text-muted fw-bold" style={{ fontSize: '12px' }}>({b.balls} balls)</span>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+
+                                                            {match.score?.thisOver && match.score.thisOver.length > 0 && (
+                                                                <div className="ms-lg-auto text-lg-end">
+                                                                    <div className="x-small fw-black text-muted text-uppercase mb-2 letter-spacing-2" style={{ fontSize: '10px' }}>This Over</div>
+                                                                    <div className="d-flex gap-2 justify-content-lg-end">
+                                                                        {match.score.thisOver.map((ball, idx) => {
+                                                                            const bStr = ball.toString().toUpperCase();
+                                                                            const isWicket = bStr === 'W' || bStr === 'OUT' || bStr.startsWith('W');
+                                                                            const isExtra = bStr.includes('+') || bStr === 'WD' || bStr === 'NB' || bStr === 'LB' || bStr === 'B';
+                                                                            const isBound = bStr === '4' || bStr === '6';
+
+                                                                            let bg = '#f8fafc';
+                                                                            let text = '#64748b';
+                                                                            if (isWicket) { bg = '#ef4444'; text = 'white'; }
+                                                                            else if (isBound) { bg = '#10b981'; text = 'white'; }
+                                                                            else if (isExtra) { bg = '#f59e0b'; text = 'white'; }
+
+                                                                            return (
+                                                                                <div key={idx}
+                                                                                    className="rounded-circle d-flex align-items-center justify-content-center fw-black shadow-sm"
+                                                                                    style={{ backgroundColor: bg, color: text, width: '32px', height: '32px', fontSize: '12px', border: '1px solid rgba(0,0,0,0.05)' }}>
+                                                                                    {ball}
+                                                                                </div>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
                                                 <div className="bg-light p-3 rounded-4 mb-4 border shadow-inner">
                                                     <div className="fw-black text-uppercase x-small text-muted letter-spacing-2 mb-3 px-1">Match Phases</div>
                                                     <div className="flex-wrap-gap">
