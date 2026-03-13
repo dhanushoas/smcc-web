@@ -114,7 +114,8 @@ const Home = () => {
             >
                 <div className="px-4 py-3 border-bottom d-flex justify-content-between align-items-center bg-white">
                     <span className="text-dark fw-black x-small text-uppercase letter-spacing-1">
-                        {match.series || 'SMCC LIVE'} {match.matchNumber ? `• Match ${match.matchNumber}` : ''}
+                        {match.competitionType === 'tournament' ? (match.series || 'TOURNAMENT') : (match.competitionType === 'series' ? (match.series || 'SERIES') : 'HEAD-TO-HEAD')}
+                        {match.matchNumber ? ` • Match ${match.matchNumber}` : ''}
                     </span>
                     <div className="d-flex align-items-center gap-2">
                         {isLive && <span className="live-dot-pulse"></span>}
@@ -125,7 +126,7 @@ const Home = () => {
                 </div>
 
                 <div className="p-4">
-                    <div className="d-flex justify-content-between align-items-center mb-3">
+                    <div className="d-flex justify-content-between align-items-center mb-1">
                         <div className="d-flex align-items-center gap-3">
                             <div className="team-initial bg-light rounded-circle border d-flex align-items-center justify-content-center fw-black" style={{ width: '40px', height: '40px', fontSize: '11px' }}>
                                 {team1?.substring(0, 2).toUpperCase() || '??'}
@@ -140,7 +141,7 @@ const Home = () => {
                         )}
                     </div>
 
-                    <div className="d-flex justify-content-between align-items-center mb-3">
+                    <div className="d-flex justify-content-between align-items-center mb-1">
                         <div className="d-flex align-items-center gap-3">
                             <div className="team-initial bg-light rounded-circle border d-flex align-items-center justify-content-center fw-black" style={{ width: '40px', height: '40px', fontSize: '11px' }}>
                                 {team2?.substring(0, 2).toUpperCase() || '??'}
@@ -154,6 +155,15 @@ const Home = () => {
                             </div>
                         )}
                     </div>
+
+                    {match.toss?.winner && !isCompleted && !isCancelled && (
+                        <div className="mt-2 mb-3 bg-warning bg-opacity-10 p-2 rounded border border-warning border-opacity-20">
+                            <span className="fw-bold text-dark x-small d-flex align-items-center gap-1">
+                                <i className="bi bi-coin text-warning"></i>
+                                {match.toss.winner} won toss & elected to {match.toss.decision}
+                            </span>
+                        </div>
+                    )}
 
                     <div className="pt-2 border-top">
                         <p className="mb-0 small fw-black text-dark d-flex align-items-center gap-2">

@@ -171,18 +171,18 @@ const FullScorecard = () => {
                         }
                     }
                     if (winnerString) {
-                        doc.setFontSize(13);
-                        doc.setTextColor(0, 146, 112);
+                        doc.setFontSize(14);
+                        doc.setTextColor(16, 185, 129); // Vibrant Emerald
                         doc.setFont(undefined, 'bold');
                         doc.text(`RESULT: ${winnerString.toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
-                        currentY += 5; // 8px after result
+                        currentY += 6;
                     }
                     if (match.manOfTheMatch) {
-                        doc.setFontSize(11);
-                        doc.setTextColor(217, 119, 6); // Amber color for MOM
+                        doc.setFontSize(12);
+                        doc.setTextColor(245, 158, 11); // Vibrant Amber
                         doc.setFont(undefined, 'bold');
                         doc.text(`MAN OF THE MATCH: ${match.manOfTheMatch.toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
-                        currentY += 6; // 16px after MOM
+                        currentY += 7;
                     } else if (winnerString) {
                         currentY += 4;
                     }
@@ -191,30 +191,40 @@ const FullScorecard = () => {
             }
         }
 
-        // Match title
-        doc.setFontSize(14);
+        // Match title (Indigo)
+        doc.setFontSize(16);
         doc.setFont(undefined, 'bold');
-        doc.setTextColor(30, 60, 114);
-        doc.text(`${match.teamA.toUpperCase()} VS ${match.teamB.toUpperCase()} - FULL SCORECARD`, pageWidth / 2, currentY, { align: 'center' });
-        currentY += 5; // 8px after title
+        doc.setTextColor(79, 70, 229); // Premium Indigo
+        doc.text(`${match.teamA.toUpperCase()} VS ${match.teamB.toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
+        currentY += 6;
 
-        // Toss Info
+        // Competition Type Subtitle
+        doc.setFontSize(11);
+        doc.setFont(undefined, 'bold');
+        const compLabel = match.competitionType === 'tournament' ? (match.series || 'TOURNAMENT') : match.competitionType === 'series' ? (match.series || 'SERIES') : 'HEAD-TO-HEAD';
+        const matchNumLabel = match.matchNumber ? ` - MATCH ${match.matchNumber}` : '';
+        doc.setTextColor(100, 116, 139); // Slate Gray
+        doc.text(`${compLabel.toUpperCase()}${matchNumLabel} - FULL SCORECARD`, pageWidth / 2, currentY, { align: 'center' });
+        currentY += 6;
+
+        // Toss Info (Gray)
         if (match.toss?.winner) {
             doc.setFontSize(10);
-            doc.setTextColor(100);
-            doc.setFont(undefined, 'italic');
-            doc.text(`Toss won by ${match.toss.winner} and elected to ${match.toss.decision} first.`, pageWidth / 2, currentY, { align: 'center' });
-            currentY += 6;
+            doc.setTextColor(75, 85, 99);
+            doc.setFont(undefined, 'bold'); // Make it bold as requested
+            doc.text(`${match.toss.winner.toUpperCase()} WON THE TOSS AND ELECTED TO ${match.toss.decision.toUpperCase()} FIRST.`, pageWidth / 2, currentY, { align: 'center' });
+            currentY += 7;
         }
 
-        // Meta info
+        // Meta info line
         doc.setFontSize(8);
         doc.setFont(undefined, 'normal');
         doc.setTextColor(120);
-        doc.text(`COMPETITION: ${(match.competitionType || 'HEAD-TO-HEAD').toUpperCase()} | SERIES: ${(match.series || 'SMCC').toUpperCase()} | GROUND: ${(match.venue || 'TBA').toUpperCase()} | DATE: ${new Date(match.date).toDateString().toUpperCase()} ${formatTime(match.date).toUpperCase()}`, pageWidth / 2, currentY, { align: 'center' });
+        const metaLine = `GROUND: ${(match.venue || 'TBA').toUpperCase()} | DATE: ${new Date(match.date).toDateString().toUpperCase()} ${formatTime(match.date).toUpperCase()}`;
+        doc.text(metaLine, pageWidth / 2, currentY, { align: 'center' });
         currentY += 4;
         const exportedDate = new Date();
-        const exportStr = `EXPORTED: ${exportedDate.toLocaleDateString().toUpperCase()} ${exportedDate.toLocaleTimeString().toUpperCase()}`;
+        const exportStr = `EXPORTED ON: ${exportedDate.toLocaleDateString().toUpperCase()} @ ${exportedDate.toLocaleTimeString().toUpperCase()}`;
         doc.text(exportStr, pageWidth / 2, currentY, { align: 'center' });
         currentY += 6; // 16px before divider
 
@@ -262,7 +272,7 @@ const FullScorecard = () => {
                         ['Extras', '', extras.total, `(W ${extras.wides}, NB ${extras.noBalls}, B ${extras.byes}, LB ${extras.legByes})`, '', '', '']
                     ],
                     theme: 'grid',
-                    headStyles: { fillColor: [0, 146, 112] }
+                    headStyles: { fillColor: [79, 70, 229] } // Indigo
                 });
             }
 
@@ -285,7 +295,7 @@ const FullScorecard = () => {
                     head: [['Bowler', 'Overs', 'Maidens', 'Runs', 'Wickets', 'Wides', 'No Balls', 'Economy']],
                     body: bowlingInn.bowling.map(b => [b.player.toUpperCase(), b.overs, b.maidens, b.runs, b.wickets, b.wides || 0, b.noBalls || 0, b.economy]),
                     theme: 'grid',
-                    headStyles: { fillColor: [34, 34, 34] }
+                    headStyles: { fillColor: [55, 65, 81] } // Dark Slate
                 });
             }
 
@@ -400,16 +410,25 @@ const FullScorecard = () => {
                                         </div>
                                     </div>
 
-                                    <h2 className="fw-black mb-1 text-uppercase letter-spacing-1 text-nowrap">
+                                    <div className="d-flex align-items-center gap-2 mb-2">
+                                        <Badge bg={match.competitionType === 'tournament' ? 'warning' : match.competitionType === 'series' ? 'primary' : 'secondary'} className="text-uppercase x-small px-3 py-2 rounded-pill shadow-sm">
+                                            {match.competitionType === 'tournament' ? (match.series || 'Tournament') : match.competitionType === 'series' ? (match.series || 'Series') : 'Head-to-Head'}
+                                            {match.matchNumber ? ` • Match ${match.matchNumber}` : ''}
+                                        </Badge>
+                                        {match.status === 'completed' && (
+                                            <Badge bg="success" className="text-uppercase x-small px-3 py-2 rounded-pill shadow-sm">
+                                                Completed
+                                            </Badge>
+                                        )}
+                                    </div>
+
+                                    <h2 className="fw-black mb-3 text-uppercase letter-spacing-1 text-nowrap">
                                         {match.teamA} <span className="text-primary mx-1">VS</span> {match.teamB}
                                     </h2>
 
-                                    {match.competitionType === 'series' && (
+                                    {match.competitionType === 'series' && seriesData && (
                                         <div className="mb-4">
-                                            <div className="text-secondary fw-bold mb-2 pb-1" style={{ letterSpacing: '1px' }}>
-                                                Match {match.matchNumber} of {seriesData ? seriesData.matches.length : '?'}
-                                            </div>
-                                            {seriesData && (() => {
+                                            {(() => {
                                                 let teamAWins = 0;
                                                 let teamBWins = 0;
                                                 seriesData.matches.forEach(m => {
@@ -444,7 +463,7 @@ const FullScorecard = () => {
 
                                                 return (
                                                     <div className="fw-black text-dark mb-4 p-2 bg-light rounded d-inline-block shadow-sm">
-                                                        Series Lead : <span className="text-primary">{seriesStatusStr}</span>
+                                                        Series Standing : <span className="text-primary">{seriesStatusStr}</span>
                                                     </div>
                                                 );
                                             })()}
