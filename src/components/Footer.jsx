@@ -9,25 +9,21 @@ const STATIC_FALLBACKS = {
         { title: 'Live Matches', route: '/' },
         { title: 'Upcoming Schedule', route: '/schedule' },
         { title: 'Points Table', route: '/points-table' },
-        { title: 'Achievements', route: '/achievements' },
     ],
     support: [
         { title: 'Contact Us', route: '/contact' },
         { title: 'Share Feedback', route: '/feedback' },
         { title: 'Report Issues', route: '/report' },
-        { title: 'Privacy Policy', route: '/privacy' },
-        { title: 'User Manual', route: '/user-manual' },
     ],
     community: [
         { title: 'Improvements', route: '/improvements' },
         { title: 'Join Council', route: '/join' },
         { title: 'Sponsorship', route: '/sponsorship' },
-        { title: 'Admin Login', route: '/login' },
     ],
-    tournaments: [
-        { title: 'All Tournaments', route: '/tournaments' },
-        { title: 'Tournament Reg', route: '/tournament-registration' },
-        { title: 'Admin Manual', route: '/admin-manual' },
+    console: [
+        { title: 'Achievements', route: '/achievements' },
+        { title: 'Privacy Policy', route: '/privacy' },
+        { title: 'Console', route: '/login' },
     ]
 };
 
@@ -154,9 +150,9 @@ const Footer = () => {
                             </Col>
 
                             <Col xs={6} md={3} className="text-center text-md-start">
-                                <h6 className="fw-black text-uppercase responsive-footer-header letter-spacing-2 mb-4 text-primary">Tournaments</h6>
+                                <h6 className="fw-black text-uppercase responsive-footer-header letter-spacing-2 mb-4 text-primary">Owner</h6>
                                 <ul className="list-unstyled d-grid gap-2 responsive-footer-link">
-                                    {(links.tournaments || []).map((link, idx) => (
+                                    {(links.console || []).map((link, idx) => (
                                         <li key={link.id || idx}><Link to={link.route} className="text-dark fw-bold text-decoration-none hover-text-primary transition-all">{link.title}</Link></li>
                                     ))}
                                 </ul>

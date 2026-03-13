@@ -262,7 +262,7 @@ const Home = () => {
                                             const ballsBowled = getBalls(match.score?.overs || 0);
                                             const rem = match.score.ballsRemaining ?? (totalBalls - ballsBowled);
                                             const runsNeeded = match.score.target - (match.score.runs || 0);
-                                            return `Need ${runsNeeded} runs from ${rem} ${pluralize(rem, 'ball')}`;
+                                            return `Need ${runsNeeded} runs from ${pluralize(rem, 'ball')}`;
                                         })() : 'Match in progress'}
                                     </span>
                                 </>
