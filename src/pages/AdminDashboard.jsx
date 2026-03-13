@@ -46,7 +46,7 @@ const formatTime24to12 = (dateObj) => {
     return `${hours.toString().padStart(2, '0')}:${minutes} ${ampm}`;
 };
 
-const CustomTimePicker = ({ value, onChange }) => {
+const CustomTimePicker = ({ value, onChange, label }) => {
     const parts = value.match(/^(1[0-2]|0?[1-9]):([0-5][0-9])\s?(AM|PM)$/i);
     const h = parts ? parts[1].padStart(2, '0') : '12';
     const m = parts ? parts[2] : '00';
@@ -54,6 +54,7 @@ const CustomTimePicker = ({ value, onChange }) => {
 
     return (
         <div className="flex-fill">
+            {label && <Form.Label className="small fw-bold">{label}</Form.Label>}
             <div className="d-flex align-items-center gap-1">
                 <div className="flex-fill">
                     <Form.Select
@@ -2507,7 +2508,7 @@ const AdminDashboard = () => {
                                                 <Col md={6}>
                                                     <Form.Group>
                                                         <CustomTimePicker
-                                                            label="Time (Local)"
+                                                            label="Time"
                                                             value={createForm.time}
                                                             onChange={(newTime) => setCreateForm({ ...createForm, time: newTime })}
                                                             size="md"
