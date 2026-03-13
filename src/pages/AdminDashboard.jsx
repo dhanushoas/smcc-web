@@ -3008,21 +3008,28 @@ const AdminDashboard = () => {
                                                                         <i className="bi bi-arrow-left-right"></i> SWAP STRIKE
                                                                     </Button>
                                                                 </div>
-                                                                <div className="d-flex justify-content-between align-items-center">
-                                                                    <div className="d-flex flex-column gap-1">
-                                                                        <div className="fw-black text-dark letter-spacing-1 d-flex align-items-center gap-2" style={{ fontSize: '1.2rem' }}>
-                                                                            <span className="fs-4">🏏</span> {toCamelCase(striker || '...')}{striker && '*'}
+                                                                <div className="d-flex flex-column gap-2">
+                                                                    <div className="d-flex align-items-center justify-content-between">
+                                                                        <div className="fw-black text-dark letter-spacing-1 d-flex align-items-center gap-2" style={{ fontSize: '1rem' }}>
+                                                                            <span className="fs-5">🏏</span> {toCamelCase(striker || '...')}{striker && '*'}
                                                                         </div>
-                                                                        <div className="text-muted fw-bold ps-4 ms-2" style={{ fontSize: '0.9rem' }}>
-                                                                            {toCamelCase(nonStriker || '...')}
+                                                                        <div className="text-end fw-black text-primary" style={{ fontSize: '12px' }}>
+                                                                            {(() => {
+                                                                                const b = selectedMatch.currentBatsmen?.find(p => p.onStrike);
+                                                                                return b ? `${b.runs} (${b.balls})` : '0 (0)';
+                                                                            })()}
                                                                         </div>
                                                                     </div>
-                                                                    <div className="text-end d-flex flex-column gap-2">
-                                                                        {selectedMatch.currentBatsmen?.map(b => (
-                                                                            <div key={b.name} className={`fw-black ${b.onStrike ? 'text-primary' : 'text-muted'}`} style={{ fontSize: '13px' }}>
-                                                                                {b.runs} <span className="opacity-75">Runs</span> ({b.balls} <span className="opacity-75">Balls</span>)
-                                                                            </div>
-                                                                        ))}
+                                                                    <div className="d-flex align-items-center justify-content-between opacity-75">
+                                                                        <div className="text-muted fw-bold ps-4" style={{ fontSize: '0.85rem' }}>
+                                                                            {toCamelCase(nonStriker || '...')}
+                                                                        </div>
+                                                                        <div className="text-end fw-bold text-muted" style={{ fontSize: '11px' }}>
+                                                                            {(() => {
+                                                                                const b = selectedMatch.currentBatsmen?.find(p => !p.onStrike);
+                                                                                return b ? `${b.runs} (${b.balls})` : '0 (0)';
+                                                                            })()}
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -3033,13 +3040,13 @@ const AdminDashboard = () => {
                                                             <div className="py-3 px-4">
                                                                 <div className="d-flex justify-content-between align-items-center mb-3">
                                                                     <small className="text-success fw-black text-uppercase letter-spacing-2" style={{ fontSize: '11px' }}>BOWLING</small>
-                                                                    <div className="text-end text-success fw-black letter-spacing-1" style={{ fontSize: '11px' }}>
+                                                                    <div className="text-end text-success fw-black letter-spacing-1 text-nowrap" style={{ fontSize: '10px' }}>
                                                                         {(() => {
                                                                             const battingIdx = selectedMatch.innings.length > 2 ? selectedMatch.innings.length - 1 : (selectedMatch.score.battingTeam === selectedMatch.teamB ? 1 : 0);
                                                                             const bowlingIdx = battingIdx % 2 === 0 ? battingIdx + 1 : battingIdx - 1;
                                                                             const bStats = selectedMatch.innings[bowlingIdx]?.bowling.find(p => p.player === bowler);
-                                                                            if (!bStats) return `0 OVERS | 0 RUNS | 0 WICKETS`;
-                                                                            return `${bStats.overs} OVERS | ${bStats.runs} RUNS | ${bStats.wickets} WICKETS`;
+                                                                            if (!bStats) return `0 OV | 0 R | 0 W`;
+                                                                            return `${bStats.overs} OV | ${bStats.runs} R | ${bStats.wickets} W`;
                                                                         })()}
                                                                     </div>
                                                                 </div>
@@ -3338,36 +3345,33 @@ const AdminDashboard = () => {
                                                                 </Badge>
                                                             </div>
 
-                                                            <div className="d-flex flex-wrap flex-lg-nowrap align-items-end gap-3 p-3 bg-white rounded-4 border shadow-sm">
+                                                            <div className="d-flex flex-nowrap align-items-end gap-2 p-2 bg-white rounded-4 border shadow-sm overflow-hidden" style={{ minHeight: '85px' }}>
                                                                 {/* DATE FIELD */}
-                                                                <div className="flex-shrink-0" style={{ minWidth: '180px' }}>
-                                                                    <Form.Label className="x-small fw-black text-uppercase text-muted silver-text mb-1 ps-1">DATE</Form.Label>
+                                                                <div className="flex-shrink-0" style={{ width: '140px' }}>
+                                                                    <Form.Label className="x-small fw-black text-uppercase text-muted silver-text mb-1 ps-1" style={{ fontSize: '9px' }}>DATE</Form.Label>
                                                                     <InputGroup size="sm">
-                                                                        <InputGroup.Text className="bg-light border-0 ps-3">
-                                                                            <i className="bi bi-calendar-check text-muted"></i>
-                                                                        </InputGroup.Text>
                                                                         <Form.Control
                                                                             type="date"
                                                                             value={editDate}
                                                                             onChange={e => setEditDate(e.target.value)}
-                                                                            className="border-0 bg-light fw-black focus-glow"
-                                                                            style={{ height: '38px', borderRadius: '0 12px 12px 0' }}
+                                                                            className="border bg-light fw-black focus-glow"
+                                                                            style={{ height: '34px', fontSize: '11px', borderRadius: '8px' }}
                                                                         />
                                                                     </InputGroup>
                                                                 </div>
 
                                                                 {/* TIME FIELD */}
-                                                                <div className="flex-fill" style={{ minWidth: '220px' }}>
-                                                                    <Form.Label className="x-small fw-black text-uppercase text-muted silver-text mb-1 ps-1">TIME</Form.Label>
-                                                                    <CustomTimePicker value={editTime} onChange={(newTime) => setEditTime(newTime)} />
+                                                                <div className="flex-shrink-0" style={{ width: '220px' }}>
+                                                                    <Form.Label className="x-small fw-black text-uppercase text-muted silver-text mb-1 ps-1" style={{ fontSize: '9px' }}>TIME</Form.Label>
+                                                                    <CustomTimePicker value={editTime} onChange={(newTime) => setEditTime(newTime)} compact />
                                                                 </div>
 
                                                                 {/* SAVE ACTION */}
-                                                                <div className="ms-lg-auto">
+                                                                <div className="flex-shrink-0">
                                                                     <Button
                                                                         variant="dark"
-                                                                        className="fw-black shadow-sm rounded-4 d-flex align-items-center justify-content-center gap-2 px-4 mb-2 mb-lg-0"
-                                                                        style={{ height: '38px', minWidth: '110px' }}
+                                                                        className="fw-black shadow-sm rounded-3 d-flex align-items-center justify-content-center gap-2 px-3"
+                                                                        style={{ height: '34px', fontSize: '11px' }}
                                                                         onClick={handleSaveDateTime}
                                                                     >
                                                                         <i className="bi bi-check-lg"></i> SAVE

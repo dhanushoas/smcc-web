@@ -36,77 +36,64 @@ const CorrectionForm = () => {
                 </div>
 
                 {/* Form Row */}
-                <div className="flex flex-wrap lg:flex-nowrap items-end gap-6 bg-white/50 p-1 rounded-2xl">
+                <div className="flex flex-nowrap items-end gap-3 bg-white/50 p-1 rounded-2xl overflow-x-auto no-scrollbar">
 
                     {/* Date Field */}
-                    <div className="flex flex-col gap-1.5">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">DATE</label>
+                    <div className="flex items-center gap-2">
                         <div className="relative group">
-                            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
                             <input
                                 type="date"
                                 value={date}
                                 onChange={(e) => setDate(e.target.value)}
-                                className="bg-gray-50 border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 rounded-xl py-3 pl-11 pr-4 text-sm font-medium text-gray-700 outline-none w-[180px] transition-all shadow-inner"
+                                className="bg-gray-50 border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 rounded-xl py-2 px-3 text-sm font-medium text-gray-700 outline-none w-[130px] transition-all"
                             />
                         </div>
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">DATE</label>
                     </div>
 
                     {/* Time Fields Container */}
-                    <div className="flex flex-col gap-1.5">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">TIME</label>
-                        <div className="flex items-center gap-2">
-                            {/* HH */}
-                            <div className="flex flex-col gap-1">
-                                <div className="relative group">
-                                    <select
-                                        value={time.hh}
-                                        onChange={(e) => setTime({ ...time, hh: e.target.value })}
-                                        className="appearance-none bg-gray-50 border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 rounded-xl py-3 pl-4 pr-10 text-sm font-bold text-gray-700 outline-none transition-all shadow-inner cursor-pointer"
-                                    >
-                                        {[...Array(12)].map((_, i) => {
-                                            const val = (i + 1).toString().padStart(2, '0');
-                                            return <option key={val} value={val}>{val}</option>
-                                        })}
-                                    </select>
-                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                                </div>
-                                <span className="text-[9px] font-bold text-gray-400 text-center uppercase tracking-tighter">HH</span>
-                            </div>
+                    <div className="flex items-center gap-3">
+                        {/* HH */}
+                        <div className="flex items-center gap-1">
+                            <select
+                                value={time.hh}
+                                onChange={(e) => setTime({ ...time, hh: e.target.value })}
+                                className="appearance-none bg-gray-50 border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 rounded-xl py-2 px-3 text-sm font-bold text-gray-700 outline-none transition-all cursor-pointer"
+                            >
+                                {[...Array(12)].map((_, i) => {
+                                    const val = (i + 1).toString().padStart(2, '0');
+                                    return <option key={val} value={val}>{val}</option>
+                                })}
+                            </select>
+                            <span className="text-[9px] font-bold text-gray-400 uppercase">HH</span>
+                        </div>
 
-                            {/* MM */}
-                            <div className="flex flex-col gap-1">
-                                <div className="relative group">
-                                    <select
-                                        value={time.mm}
-                                        onChange={(e) => setTime({ ...time, mm: e.target.value })}
-                                        className="appearance-none bg-gray-50 border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 rounded-xl py-3 pl-4 pr-10 text-sm font-bold text-gray-700 outline-none transition-all shadow-inner cursor-pointer"
-                                    >
-                                        {[...Array(60)].map((_, i) => {
-                                            const val = i.toString().padStart(2, '0');
-                                            return <option key={val} value={val}>{val}</option>
-                                        })}
-                                    </select>
-                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                                </div>
-                                <span className="text-[9px] font-bold text-gray-400 text-center uppercase tracking-tighter">MM</span>
-                            </div>
+                        {/* MM */}
+                        <div className="flex items-center gap-1">
+                            <select
+                                value={time.mm}
+                                onChange={(e) => setTime({ ...time, mm: e.target.value })}
+                                className="appearance-none bg-gray-50 border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 rounded-xl py-2 px-3 text-sm font-bold text-gray-700 outline-none transition-all cursor-pointer"
+                            >
+                                {[...Array(60)].map((_, i) => {
+                                    const val = i.toString().padStart(2, '0');
+                                    return <option key={val} value={val}>{val}</option>
+                                })}
+                            </select>
+                            <span className="text-[9px] font-bold text-gray-400 uppercase">MM</span>
+                        </div>
 
-                            {/* AM/PM */}
-                            <div className="flex flex-col gap-1">
-                                <div className="relative group">
-                                    <select
-                                        value={time.period}
-                                        onChange={(e) => setTime({ ...time, period: e.target.value })}
-                                        className="appearance-none bg-gray-50 border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 rounded-xl py-3 pl-4 pr-10 text-sm font-black text-gray-700 outline-none transition-all shadow-inner cursor-pointer"
-                                    >
-                                        <option value="AM">AM</option>
-                                        <option value="PM">PM</option>
-                                    </select>
-                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                                </div>
-                                <span className="text-[9px] font-bold text-gray-400 text-center uppercase tracking-tighter">AM/PM</span>
-                            </div>
+                        {/* AM/PM */}
+                        <div className="flex items-center gap-1">
+                            <select
+                                value={time.period}
+                                onChange={(e) => setTime({ ...time, period: e.target.value })}
+                                className="appearance-none bg-gray-50 border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 rounded-xl py-2 px-3 text-sm font-black text-gray-700 outline-none transition-all cursor-pointer"
+                            >
+                                <option value="AM">AM</option>
+                                <option value="PM">PM</option>
+                            </select>
+                            <span className="text-[9px] font-bold text-gray-400 uppercase">AM/PM</span>
                         </div>
                     </div>
 

@@ -169,22 +169,25 @@ const Home = () => {
                         <div className="mt-3 mb-3">
                             <div className="d-flex justify-content-between align-items-center mb-3 p-3 bg-light rounded-4 border border-opacity-50 shadow-sm">
                                 <div className="d-flex gap-3">
-                                    {match.currentBatsmen?.map(b => (
-                                        <div key={b.name} className="d-flex flex-column">
-                                            <div className="d-flex align-items-center gap-1">
-                                                {b.onStrike && <span className="text-warning">🏏</span>}
-                                                <span className={`fw-black ${b.onStrike ? 'text-primary' : 'text-muted'}`} style={{ fontSize: '12px' }}>
-                                                    {b.name.toUpperCase()}
-                                                </span>
+                                    <div className="d-flex align-items-center gap-2 flex-wrap">
+                                        {match.currentBatsmen?.map((b, idx) => (
+                                            <div key={b.name} className="d-flex align-items-center gap-1">
+                                                {idx > 0 && <span className="mx-1 text-muted opacity-50">|</span>}
+                                                <div className="d-flex align-items-center gap-1">
+                                                    {b.onStrike && <span className="text-warning x-small">🏏</span>}
+                                                    <span className={`fw-black ${b.onStrike ? 'text-primary' : 'text-muted'}`} style={{ fontSize: '12px' }}>
+                                                        {b.name.split(' ')[0].toUpperCase()}
+                                                    </span>
+                                                </div>
+                                                <div className="fw-black text-dark" style={{ fontSize: '13px' }}>
+                                                    {b.runs}<span className="text-muted fw-bold" style={{ fontSize: '10px' }}>({b.balls})</span>
+                                                </div>
                                             </div>
-                                            <div className="fw-black text-dark" style={{ fontSize: '14px' }}>
-                                                {b.runs} <span className="text-muted fw-bold" style={{ fontSize: '10px' }}>({b.balls})</span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {(!match.currentBatsmen || match.currentBatsmen.length === 0) && (
-                                        <span className="fw-black text-muted x-small">NO BATSMEN SELECTED</span>
-                                    )}
+                                        ))}
+                                        {(!match.currentBatsmen || match.currentBatsmen.length === 0) && (
+                                            <span className="fw-black text-muted x-small">NO BATSMEN SELECTED</span>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {match.score?.thisOver && match.score.thisOver.length > 0 && (
@@ -247,7 +250,18 @@ const Home = () => {
                                 <>
                                     <span className="text-danger animate-pulse">●</span>
                                     <span className="fw-black text-primary text-uppercase letter-spacing-1">
-                                        {match.score?.target ? `Need ${match.score.target - (match.score.runs || 0)} runs from ${match.score.ballsRemaining || '...'} balls` : 'Match in progress'}
+                                        {match.score?.target ? (() => {
+                                            const getBalls = (ov) => {
+                                                const o = Math.floor(ov);
+                                                const b = Math.round((ov % 1) * 10);
+                                                return (o * 6) + b;
+                                            };
+                                            const totalBalls = (match.totalOvers || 20) * 6;
+                                            const ballsBowled = getBalls(match.score?.overs || 0);
+                                            const rem = match.score.ballsRemaining ?? (totalBalls - ballsBowled);
+                                            const runsNeeded = match.score.target - (match.score.runs || 0);
+                                            return `Need ${runsNeeded} runs from ${rem} balls`;
+                                        })() : 'Match in progress'}
                                     </span>
                                 </>
                             ) : (

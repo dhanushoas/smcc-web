@@ -7,20 +7,25 @@ import axios from 'axios';
 const STATIC_FALLBACKS = {
     quick_links: [
         { title: 'Live Matches', route: '/' },
-        { title: 'Register Team', route: '/register' },
         { title: 'Upcoming Schedule', route: '/schedule' },
         { title: 'Points Table', route: '/points-table' },
+        { title: 'Achievements', route: '/achievements' },
     ],
     support: [
         { title: 'Contact Us', route: '/contact' },
         { title: 'Share Feedback', route: '/feedback' },
         { title: 'Report Issues', route: '/report' },
+        { title: 'Privacy Policy', route: '/privacy' },
     ],
     community: [
         { title: 'Improvements', route: '/improvements' },
         { title: 'Join Council', route: '/join' },
         { title: 'Sponsorship', route: '/sponsorship' },
-        { title: 'Console', route: '/login' },
+    ],
+    console: [
+        { title: 'Admin Login', route: '/login' },
+        { title: 'User Manual', route: '/user-manual' },
+        { title: 'Admin Manual', route: '/admin-manual' },
     ]
 };
 
@@ -119,7 +124,7 @@ const Footer = () => {
 
                     <Col lg={8}>
                         <Row className="gy-4">
-                            <Col xs={6} md={4} className="text-center text-md-start">
+                            <Col xs={6} md={3} className="text-center text-md-start">
                                 <h6 className="fw-black text-uppercase responsive-footer-header letter-spacing-2 mb-4 text-primary">Quick Links</h6>
                                 <ul className="list-unstyled d-grid gap-2 responsive-footer-link">
                                     {loading ? <span className="text-dark spinner-border spinner-border-sm"></span> : links.quick_links.map((link, idx) => (
@@ -128,19 +133,28 @@ const Footer = () => {
                                 </ul>
                             </Col>
 
-                            <Col xs={6} md={4} className="text-center text-md-start">
+                            <Col xs={6} md={3} className="text-center text-md-start">
                                 <h6 className="fw-black text-uppercase responsive-footer-header letter-spacing-2 mb-4 text-primary">Support</h6>
                                 <ul className="list-unstyled d-grid gap-2 responsive-footer-link">
-                                    {loading ? <span className="text-dark spinner-border spinner-border-sm"></span> : links.support.map((link, idx) => (
+                                    {loading ? <span className="text-dark spinner-border spinner-border-sm"></span> : (links.support || []).map((link, idx) => (
                                         <li key={link.id || idx}><Link to={link.route} className="text-dark fw-bold text-decoration-none hover-text-primary transition-all">{link.title}</Link></li>
                                     ))}
                                 </ul>
                             </Col>
 
-                            <Col xs={12} md={4} className="text-center text-md-start">
+                            <Col xs={6} md={3} className="text-center text-md-start">
                                 <h6 className="fw-black text-uppercase responsive-footer-header letter-spacing-2 mb-4 text-primary">Community</h6>
                                 <ul className="list-unstyled d-grid gap-2 responsive-footer-link">
-                                    {loading ? <span className="text-dark spinner-border spinner-border-sm"></span> : links.community.map((link, idx) => (
+                                    {loading ? <span className="text-dark spinner-border spinner-border-sm"></span> : (links.community || []).map((link, idx) => (
+                                        <li key={link.id || idx}><Link to={link.route} className="text-dark fw-bold text-decoration-none hover-text-primary transition-all">{link.title}</Link></li>
+                                    ))}
+                                </ul>
+                            </Col>
+
+                            <Col xs={6} md={3} className="text-center text-md-start">
+                                <h6 className="fw-black text-uppercase responsive-footer-header letter-spacing-2 mb-4 text-primary">Console</h6>
+                                <ul className="list-unstyled d-grid gap-2 responsive-footer-link">
+                                    {loading ? <span className="text-dark spinner-border spinner-border-sm"></span> : (links.console || []).map((link, idx) => (
                                         <li key={link.id || idx}><Link to={link.route} className="text-dark fw-bold text-decoration-none hover-text-primary transition-all">{link.title}</Link></li>
                                     ))}
                                 </ul>

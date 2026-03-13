@@ -372,7 +372,7 @@ const FullScorecard = () => {
                             </motion.div>
                             <div>
                                 <div className="d-flex align-items-center flex-wrap gap-2">
-                                    <h1 className="fw-black mb-0 premium-gradient-text letter-spacing-1 fluid-text-h2 text-uppercase">{t('full_scorecard')}</h1>
+                                    <h1 className="fw-black mb-0 premium-gradient-text letter-spacing-1 fluid-text-h2 text-uppercase text-nowrap">{t('full_scorecard')}</h1>
                                     <span className="mx-1 opacity-25 d-none d-md-inline">|</span>
                                     <div className="d-flex align-items-center gap-2 text-muted fw-bold small text-uppercase">
                                         <i className="bi bi-shield-check text-primary"></i>
