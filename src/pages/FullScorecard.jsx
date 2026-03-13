@@ -549,12 +549,12 @@ const FullScorecard = () => {
 
                                                     {match.manOfTheMatch && (
                                                         <div className="mt-1 pt-3 border-top d-flex align-items-center gap-3">
-                                                            <div className="d-inline-flex align-items-center justify-content-center rounded-circle shadow-sm" style={{ width: '40px', height: '40px', backgroundColor: '#FBBF24' }}>
-                                                                <i className="bi bi-award-fill" style={{ color: '#111827', fontSize: '1.4rem' }}></i>
+                                                            <div className="d-inline-flex align-items-center justify-content-center rounded-circle shadow-sm" style={{ width: '40px', height: '40px', backgroundColor: '#FBBF24', fontSize: '1.5rem' }}>
+                                                                🥇
                                                             </div>
                                                             <div>
-                                                                <div className="x-small fw-bold text-muted letter-spacing-1">Man of the Match</div>
-                                                                <h5 className="fw-black text-dark mb-0 letter-spacing-1">
+                                                                <div className="d-inline-block bg-danger text-white px-2 py-0 rounded mb-1" style={{ fontSize: '9px', fontWeight: '900', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Man of the Match</div>
+                                                                <h5 className="fw-black text-danger mb-0 letter-spacing-1" style={{ fontSize: '1.4rem' }}>
                                                                     {match.manOfTheMatch.toUpperCase()}
                                                                 </h5>
                                                             </div>
