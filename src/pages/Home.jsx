@@ -158,8 +158,8 @@ const Home = () => {
 
                     {match.toss?.winner && match.status !== 'completed' && !isCancelled && (
                         <div className="mt-2 mb-2 bg-warning bg-opacity-10 p-2 rounded border border-warning border-opacity-20">
-                            <span className="fw-bold text-dark x-small d-flex align-items-center gap-1">
-                                <i className="bi bi-coin text-warning"></i>
+                            <span className="fw-black text-dark x-small d-flex align-items-center gap-1">
+                                <i className="bi bi-coin text-primary"></i>
                                 {match.toss.winner} won toss & elected to {match.toss.decision}
                             </span>
                         </div>
@@ -174,8 +174,8 @@ const Home = () => {
                                             <div key={b.name} className="d-flex align-items-center gap-1">
                                                 {idx > 0 && <span className="mx-1 text-muted opacity-50">|</span>}
                                                 <div className="d-flex align-items-center gap-1">
-                                                    {b.onStrike && <span className="text-warning x-small">🏏</span>}
-                                                    <span className={`fw-black ${b.onStrike ? 'text-primary' : 'text-muted'}`} style={{ fontSize: '12px' }}>
+                                                    {b.onStrike && <i className="bi bi-caret-right-fill text-primary" style={{ fontSize: '10px' }}></i>}
+                                                    <span className={`fw-black ${b.onStrike ? 'text-primary' : 'text-muted'}`} style={{ fontSize: '11px' }}>
                                                         {b.name.split(' ')[0].toUpperCase()}
                                                     </span>
                                                 </div>
@@ -195,12 +195,16 @@ const Home = () => {
                                         <div className="fw-black text-muted text-uppercase mb-2 text-nowrap" style={{ fontSize: 'clamp(7px, 2vw, 9px)', letterSpacing: '0.5px' }}>
                                             THIS OVER | <span className="text-secondary">{match.currentBowler?.toUpperCase() || 'BOWLER'}</span>
                                         </div>
-                                        <div className="d-flex gap-1 justify-content-end w-100 overflow-hidden" style={{ minHeight: '30px' }}>
-                                            {(Array.isArray(match.score.thisOver) ? match.score.thisOver : []).slice(-6).map((ball, idx) => {
+                                        <div className="d-flex gap-1 justify-content-end flex-wrap overflow-hidden py-1">
+                                            {(Array.isArray(match.score.thisOver) ? match.score.thisOver : []).map((ball, idx) => {
                                                 const bStr = ball.toString().toUpperCase();
-                                                const isWicket = bStr === 'W' || bStr === 'OUT' || bStr.startsWith('W');
+                                                const isWicket = bStr === 'W' || bStr === 'OUT' || (bStr.startsWith('W') && !bStr.startsWith('WD'));
                                                 const isExtra = bStr.includes('+') || bStr === 'WD' || bStr === 'NB' || bStr === 'LB' || bStr === 'B';
                                                 const isBound = bStr === '4' || bStr === '6';
+
+                                                const ballCount = match.score.thisOver.length;
+                                                const dynamicSize = ballCount > 10 ? '16px' : ballCount > 7 ? '20px' : '24px';
+                                                const dynamicFont = ballCount > 10 ? '6px' : '8px';
 
                                                 let bg = '#f3f4f6';
                                                 let text = '#4b5563';
@@ -211,7 +215,14 @@ const Home = () => {
                                                 return (
                                                     <div key={idx}
                                                         className="rounded-circle d-flex align-items-center justify-content-center fw-black shadow-sm flex-shrink-0"
-                                                        style={{ backgroundColor: bg, color: text, width: 'clamp(20px, 5vw, 24px)', height: 'clamp(20px, 5vw, 24px)', fontSize: 'clamp(7px, 2vw, 9px)', border: '1px solid rgba(0,0,0,0.05)' }}>
+                                                        style={{
+                                                            backgroundColor: bg,
+                                                            color: text,
+                                                            width: dynamicSize,
+                                                            height: dynamicSize,
+                                                            fontSize: dynamicFont,
+                                                            border: '1px solid rgba(0,0,0,0.05)'
+                                                        }}>
                                                         {ball}
                                                     </div>
                                                 );
@@ -232,8 +243,8 @@ const Home = () => {
                                 </>
                             ) : isCompleted ? (
                                 <>
-                                    <i className="bi bi-trophy-fill text-warning"></i>
-                                    <span className="fw-black">{match.score?.result || (() => {
+                                    <i className="bi bi-trophy-fill text-primary"></i>
+                                    <span className="fw-black text-primary">{match.score?.result || (() => {
                                         if (innings.length < 2) return "COMPLETED";
                                         const inn1 = innings[0];
                                         const inn2 = innings[1];
@@ -242,8 +253,8 @@ const Home = () => {
                                         return "Match Drawn";
                                     })()}</span>
                                     {match.manOfTheMatch && (
-                                        <span className="ms-auto x-small bg-warning bg-opacity-10 text-dark px-2 py-1 rounded border border-warning d-flex align-items-center gap-1 fw-black">
-                                            <i className="bi bi-award-fill text-warning"></i>
+                                        <span className="ms-auto x-small bg-primary bg-opacity-10 text-primary px-2 py-1 rounded border border-primary border-opacity-20 d-flex align-items-center gap-1 fw-black">
+                                            <i className="bi bi-award-fill"></i>
                                             {match.manOfTheMatch.toUpperCase()}
                                         </span>
                                     )}
