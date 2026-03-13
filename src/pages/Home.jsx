@@ -243,7 +243,7 @@ const Home = () => {
                                 </>
                             ) : isCompleted ? (
                                 <>
-                                    <i className="bi bi-stars text-success"></i>
+                                    <i className="bi bi-trophy-fill text-success"></i>
                                     <span className="fw-black text-success">{match.score?.result || (() => {
                                         if (innings.length < 2) return "COMPLETED";
                                         const inn1 = innings[0];
