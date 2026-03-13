@@ -463,7 +463,7 @@ const FullScorecard = () => {
 
                                                 return (
                                                     <div className="fw-black text-dark mb-4 p-2 bg-light rounded d-inline-block shadow-sm">
-                                                        Series Standing : <span className="text-primary">{seriesStatusStr}</span>
+                                                        Series Status : <span className="text-primary">({teamAWins}-{teamBWins}) | TOTAL {seriesData.matches.length}</span>
                                                     </div>
                                                 );
                                             })()}
@@ -497,9 +497,9 @@ const FullScorecard = () => {
                                             <span className="fw-bold x-small">{match.totalOvers} Overs Format</span>
                                         </div>
                                         {match.toss?.winner && (
-                                            <div className="d-flex align-items-center gap-2 bg-warning bg-opacity-10 px-2 py-1 rounded-3 border border-warning border-opacity-20 shadow-sm">
-                                                <i className="bi bi-coin text-warning"></i>
-                                                <span className="fw-bold text-dark x-small">{match.toss.winner} won toss & elected to {match.toss.decision}</span>
+                                            <div className="d-flex align-items-center gap-2 bg-primary bg-opacity-10 px-2 py-1 rounded-3 border border-primary border-opacity-20 shadow-sm">
+                                                <i className="bi bi-toll text-primary"></i>
+                                                <span className="fw-bold text-primary x-small">{match.toss.winner.toUpperCase()} won toss & elected to {match.toss.decision.toUpperCase()}</span>
                                             </div>
                                         )}
                                     </div>

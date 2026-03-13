@@ -157,10 +157,10 @@ const Home = () => {
                     </div>
 
                     {match.toss?.winner && match.status !== 'completed' && !isCancelled && (
-                        <div className="mt-2 mb-2 bg-warning bg-opacity-10 p-2 rounded border border-warning border-opacity-20">
-                            <span className="fw-black text-dark x-small d-flex align-items-center gap-1">
-                                <i className="bi bi-coin text-primary"></i>
-                                {match.toss.winner} won toss & elected to {match.toss.decision}
+                        <div className="mt-2 mb-2 bg-primary bg-opacity-10 p-2 rounded border border-primary border-opacity-20 shadow-sm">
+                            <span className="fw-black text-primary x-small d-flex align-items-center gap-1">
+                                <i className="bi bi-toll"></i>
+                                {match.toss.winner.toUpperCase()} WON TOSS & ELECTED TO {match.toss.decision.toUpperCase()}
                             </span>
                         </div>
                     )}
