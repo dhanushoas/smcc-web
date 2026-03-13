@@ -299,7 +299,10 @@ const Home = () => {
                             {ps.teamA} VS {ps.teamB} SERIES ({ps.teamAWins}-{ps.teamBWins})
                         </h6>
                         {ps.seriesWinner && (
-                            <div className="badge bg-success mt-2 text-uppercase fw-black px-3 py-2 rounded-pill shadow-sm" style={{ fontSize: '11px' }}>🏆 {ps.seriesWinner} WON THE SERIES</div>
+                            <div className="badge bg-success mt-2 text-uppercase fw-black px-3 py-2 rounded-pill shadow-sm d-inline-flex align-items-center gap-2" style={{ fontSize: '11px' }}>
+                                <i className="bi bi-trophy-fill"></i>
+                                {ps.seriesWinner} WON THE SERIES
+                            </div>
                         )}
                     </div>
                 </div>
