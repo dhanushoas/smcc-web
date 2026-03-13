@@ -139,7 +139,7 @@ const Footer = () => {
                             </Col>
 
                             <Col xs={6} md={3} className="text-center text-md-start">
-                                <h6 className="fw-black text-uppercase responsive-footer-header letter-spacing-2 mb-4 text-primary">Owner</h6>
+                                <h6 className="fw-black text-uppercase responsive-footer-header letter-spacing-2 mb-4 text-primary">SMCC</h6>
                                 <ul className="list-unstyled d-grid gap-2 responsive-footer-link">
                                     {(links.console || []).map((link, idx) => (
                                         <li key={link.id || idx}><Link to={link.route} className="text-dark fw-bold text-decoration-none hover-text-primary transition-all">{link.title}</Link></li>
