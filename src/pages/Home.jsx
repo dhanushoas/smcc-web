@@ -191,12 +191,12 @@ const Home = () => {
                                 </div>
 
                                 {match.score?.thisOver && match.score.thisOver.length > 0 && (
-                                    <div className="d-flex flex-column align-items-end">
-                                        <div className="fw-black text-muted text-uppercase mb-2" style={{ fontSize: 'clamp(7px, 2vw, 9px)', letterSpacing: '0.5px' }}>
+                                    <div className="d-flex flex-column align-items-end" style={{ maxWidth: '100%', minWidth: 0 }}>
+                                        <div className="fw-black text-muted text-uppercase mb-2 text-nowrap" style={{ fontSize: 'clamp(7px, 2vw, 9px)', letterSpacing: '0.5px' }}>
                                             THIS OVER | <span className="text-secondary">{match.currentBowler?.toUpperCase() || 'BOWLER'}</span>
                                         </div>
-                                        <div className="d-flex gap-1 justify-content-end flex-wrap">
-                                            {match.score.thisOver.slice(-6).map((ball, idx) => {
+                                        <div className="d-flex gap-1 justify-content-end w-100 overflow-hidden" style={{ minHeight: '30px' }}>
+                                            {(Array.isArray(match.score.thisOver) ? match.score.thisOver : []).slice(-6).map((ball, idx) => {
                                                 const bStr = ball.toString().toUpperCase();
                                                 const isWicket = bStr === 'W' || bStr === 'OUT' || bStr.startsWith('W');
                                                 const isExtra = bStr.includes('+') || bStr === 'WD' || bStr === 'NB' || bStr === 'LB' || bStr === 'B';
@@ -210,7 +210,7 @@ const Home = () => {
 
                                                 return (
                                                     <div key={idx}
-                                                        className="rounded-circle d-flex align-items-center justify-content-center fw-black shadow-sm"
+                                                        className="rounded-circle d-flex align-items-center justify-content-center fw-black shadow-sm flex-shrink-0"
                                                         style={{ backgroundColor: bg, color: text, width: 'clamp(20px, 5vw, 24px)', height: 'clamp(20px, 5vw, 24px)', fontSize: 'clamp(7px, 2vw, 9px)', border: '1px solid rgba(0,0,0,0.05)' }}>
                                                         {ball}
                                                     </div>
