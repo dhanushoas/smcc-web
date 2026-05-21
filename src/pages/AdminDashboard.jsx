@@ -174,6 +174,12 @@ const AdminDashboard = () => {
     const [showTossModal, setShowTossModal] = useState(false);
     const [squadA, setSquadA] = useState(Array(11).fill(''));
     const [squadB, setSquadB] = useState(Array(11).fill(''));
+    const loadSquad = (squad) => {
+        if (!squad) return Array(11).fill('');
+        const arr = [...squad];
+        while (arr.length < 11) arr.push('');
+        return arr;
+    };
     const [tossData, setTossData] = useState({ winner: '', decision: 'bat' });
 
     const [showSuperOverModal, setShowSuperOverModal] = useState(false);
@@ -224,8 +230,8 @@ const AdminDashboard = () => {
         const fullA = currA.filter(p => p.trim() !== '');
         const fullB = currB.filter(p => p.trim() !== '');
 
-        if (fullA.length !== 11 || fullB.length !== 11) {
-            toast.error("Both teams must have exactly 11 players!");
+        if (fullA.length < 11 || fullB.length < 11) {
+            toast.error("Both teams must have at least 11 players!");
             return false;
         }
 
@@ -812,11 +818,8 @@ const AdminDashboard = () => {
         setBowler(match.currentBowler || '');
 
         // Sync squads if they exist
-        if (match.teamASquad && match.teamASquad.length === 11) setSquadA(match.teamASquad);
-        else setSquadA(Array(11).fill(''));
-
-        if (match.teamBSquad && match.teamBSquad.length === 11) setSquadB(match.teamBSquad);
-        else setSquadB(Array(11).fill(''));
+        setSquadA(loadSquad(match.teamASquad));
+        setSquadB(loadSquad(match.teamBSquad));
     };
 
     const handleEdit = (match) => {
@@ -1644,8 +1647,8 @@ const AdminDashboard = () => {
             venue: m.venue || '',
             totalOvers: m.totalOvers || 20
         });
-        setSquadA(m.teamASquad && m.teamASquad.length === 11 ? m.teamASquad : Array(11).fill(''));
-        setSquadB(m.teamBSquad && m.teamBSquad.length === 11 ? m.teamBSquad : Array(11).fill(''));
+        setSquadA(loadSquad(m.teamASquad));
+        setSquadB(loadSquad(m.teamBSquad));
         setIsCreating(true);
         setIsEditingMode(true);
         setSelectedMatch(null);
@@ -1991,7 +1994,7 @@ const AdminDashboard = () => {
 
                 {/* SQUAD MODAL */}
                 <Modal show={showSquadModal} onHide={() => setShowSquadModal(false)} size="xl" backdrop="static">
-                    <Modal.Header closeButton><Modal.Title>Manage Squads (11 Players Each)</Modal.Title></Modal.Header>
+                    <Modal.Header closeButton><Modal.Title>Manage Squads (Min 11 Players)</Modal.Title></Modal.Header>
                     <Modal.Body>
                         <Row>
                             <Col md={6}>
@@ -1999,12 +2002,18 @@ const AdminDashboard = () => {
                                 {squadA.map((p, i) => (
                                     <Form.Control key={i} className="mb-2" placeholder={`Player ${i + 1}`} value={p} onChange={e => handleSquadChange('A', i, e.target.value)} />
                                 ))}
+                                <div className="text-center mb-3">
+                                    <Button variant="outline-primary" size="sm" className="mt-2" onClick={() => setSquadA([...squadA, ''])}>+ Add Player</Button>
+                                </div>
                             </Col>
                             <Col md={6}>
                                 <h5 className="text-center text-danger fw-bold mb-3">{createForm.teamB || selectedMatch?.teamB || 'Team B'}</h5>
                                 {squadB.map((p, i) => (
                                     <Form.Control key={i} className="mb-2" placeholder={`Player ${i + 1}`} value={p} onChange={e => handleSquadChange('B', i, e.target.value)} />
                                 ))}
+                                <div className="text-center mb-3">
+                                    <Button variant="outline-danger" size="sm" className="mt-2" onClick={() => setSquadB([...squadB, ''])}>+ Add Player</Button>
+                                </div>
                             </Col>
                         </Row>
                     </Modal.Body>
@@ -2358,8 +2367,8 @@ const AdminDashboard = () => {
                                                             title: '', teamA: m.teamA, teamB: m.teamB, status: 'upcoming',
                                                             date: new Date().toISOString().split('T')[0], time: formatTime24to12(new Date()), venue: '', totalOvers: 20
                                                         });
-                                                        setSquadA(m.teamASquad || Array(11).fill(''));
-                                                        setSquadB(m.teamBSquad || Array(11).fill(''));
+                                                        setSquadA(loadSquad(m.teamASquad));
+                                                        setSquadB(loadSquad(m.teamBSquad));
                                                         setIsCreating(true);
                                                         setSelectedMatch(null);
                                                         window.scrollTo({ top: 0, behavior: 'smooth' });
