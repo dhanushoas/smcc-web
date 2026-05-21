@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Badge, Spinner, Button } from 'react-bootstrap';
 import { io } from 'socket.io-client';
 import { useApp } from '../AppContext';
-import { formatTime, pluralize } from '../utils/formatters';
+import { formatTime, pluralize, formatMatchDateTime } from '../utils/formatters';
 import { motion, AnimatePresence } from 'framer-motion';
 import API_URL from '../utils/api';
 
@@ -278,10 +278,20 @@ const Home = () => {
                                     </span>
                                 </>
                             ) : (
-                                <>
-                                    <i className="bi bi-calendar3"></i>
-                                    <span>{formatTime(match.date)} • {match.venue || 'TBA'}</span>
-                                </>
+                                <div className="w-100 p-3 bg-primary bg-opacity-10 rounded border border-primary border-opacity-20 d-flex align-items-center gap-3">
+                                    <div className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style={{ width: '36px', height: '36px' }}>
+                                        <i className="bi bi-calendar-event fs-5"></i>
+                                    </div>
+                                    <div className="d-flex flex-column align-items-start">
+                                        <span className="fw-black text-primary text-uppercase" style={{ fontSize: '12px', letterSpacing: '0.5px' }}>
+                                            {formatMatchDateTime(match.date)}
+                                        </span>
+                                        <span className="text-muted fw-bold text-uppercase" style={{ fontSize: '10px', letterSpacing: '0.2px' }}>
+                                            <i className="bi bi-geo-alt-fill text-danger me-1"></i>
+                                            {match.venue || 'TBA'}
+                                        </span>
+                                    </div>
+                                </div>
                             )}
                         </p>
                     </div>

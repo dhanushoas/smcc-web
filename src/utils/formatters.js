@@ -63,3 +63,35 @@ export const getBallDisplay = (ball) => {
     if (bs === 'OUT') return 'Wicket';
     return bs;
 };
+
+export const formatMatchDateTime = (dateInput) => {
+    if (!dateInput) return '';
+    const date = new Date(dateInput);
+    if (isNaN(date.getTime())) return '';
+
+    const today = new Date();
+    const tomorrow = new Date();
+    tomorrow.setDate(today.getDate() + 1);
+
+    const isSameDay = (d1, d2) => 
+        d1.getFullYear() === d2.getFullYear() &&
+        d1.getMonth() === d2.getMonth() &&
+        d1.getDate() === d2.getDate();
+
+    const timeStr = date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+    }).toLowerCase();
+
+    const dateOptions = { weekday: 'short', month: 'short', day: 'numeric' };
+    const dateStr = date.toLocaleDateString('en-US', dateOptions).toUpperCase();
+
+    if (isSameDay(date, today)) {
+        return `TODAY • ${timeStr}`;
+    } else if (isSameDay(date, tomorrow)) {
+        return `TOMORROW • ${timeStr}`;
+    } else {
+        return `${dateStr} • ${timeStr}`;
+    }
+};
