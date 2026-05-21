@@ -5,7 +5,7 @@ import { Container, Row, Col, Card, Badge, Spinner, Button } from 'react-bootstr
 import { motion } from 'framer-motion';
 import { Toaster, toast } from 'react-hot-toast';
 import API_URL from '../utils/api';
-import { formatTime, pluralize, formatMatchDateTime } from '../utils/formatters';
+import { formatTime, pluralize, formatMatchDateTime, formatMatchDateSingleLine } from '../utils/formatters';
 
 const SeriesView = () => {
     const { id } = useParams();
@@ -140,16 +140,10 @@ const SeriesView = () => {
                                     </div>
                                 ) : (
                                     <div className="w-100 p-2 bg-primary bg-opacity-10 rounded border border-primary border-opacity-20 d-flex align-items-center gap-2 mt-1">
-                                        <i className="bi bi-calendar3-event text-primary fs-6 ms-1"></i>
-                                        <div className="d-flex flex-column align-items-start">
-                                            <span className="fw-black text-primary text-uppercase" style={{ fontSize: '11px', letterSpacing: '0.5px' }}>
-                                                {formatMatchDateTime(match.date)}
-                                            </span>
-                                            <span className="text-muted fw-bold text-uppercase" style={{ fontSize: '9px', letterSpacing: '0.2px' }}>
-                                                <i className="bi bi-geo-alt-fill text-danger me-1"></i>
-                                                {titleCaseVenue}
-                                            </span>
-                                        </div>
+                                        <i className="bi bi-calendar3-event text-primary fs-6 ms-1 flex-shrink-0"></i>
+                                        <span className="fw-black text-primary text-uppercase" style={{ fontSize: '11px', letterSpacing: '0.5px' }}>
+                                            {formatMatchDateSingleLine(match.date, match.venue)}
+                                        </span>
                                     </div>
                                 )}
                             </div>

@@ -95,3 +95,30 @@ export const formatMatchDateTime = (dateInput) => {
         return `${dateStr} • ${timeStr}`;
     }
 };
+
+export const formatMatchDateSingleLine = (dateInput, venueInput) => {
+    if (!dateInput) return '';
+    const date = new Date(dateInput);
+    if (isNaN(date.getTime())) return '';
+
+    const day = date.getDate();
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const month = monthNames[date.getMonth()];
+    const year = date.getFullYear();
+
+    let hours = date.getHours();
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'pm' : 'am';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+
+    const timeStr = `${hours}.${minutes} ${ampm}`;
+    const venueStr = venueInput || 'TBA';
+
+    const titleCaseVenue = venueStr.split(' ').map(word => {
+        if (!word) return '';
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    }).join(' ');
+
+    return `Date : ${day} ${month} ${year} • ${timeStr} | Venue : ${titleCaseVenue}`;
+};
