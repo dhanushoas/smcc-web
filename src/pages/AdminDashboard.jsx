@@ -242,11 +242,6 @@ const AdminDashboard = () => {
         const fullA = currA.filter(p => p.trim() !== '');
         const fullB = currB.filter(p => p.trim() !== '');
 
-        if (fullA.length < 11 || fullB.length < 11) {
-            toast.error("Both teams must have at least 11 players!");
-            return false;
-        }
-
         const nameRegex = /^[A-Za-z\s]+$/;
 
         const checkTeam = (squad, teamName) => {
@@ -1007,16 +1002,14 @@ const AdminDashboard = () => {
                 localBowler = b;
 
                 const isTeamA = checkTeamMatch(battingTeam, updatedMatch.teamA);
-                const battingSquad = isTeamA ? updatedMatch.teamASquad : updatedMatch.teamBSquad;
-                const bowlingSquad = isTeamA ? updatedMatch.teamBSquad : updatedMatch.teamASquad;
-
-                if (battingSquad && (!isPlayerInSquad(battingSquad, s) || !isPlayerInSquad(battingSquad, ns))) {
-                    toast.error("One or more batsmen are not in the squad!");
-                    setIsUpdating(false); return;
-                }
-                if (bowlingSquad && !isPlayerInSquad(bowlingSquad, b)) {
-                    toast.error("Bowler is not in the squad!");
-                    setIsUpdating(false); return;
+                if (isTeamA) {
+                    if (s && !updatedMatch.teamASquad.includes(s)) updatedMatch.teamASquad.push(s);
+                    if (ns && !updatedMatch.teamASquad.includes(ns)) updatedMatch.teamASquad.push(ns);
+                    if (b && !updatedMatch.teamBSquad.includes(b)) updatedMatch.teamBSquad.push(b);
+                } else {
+                    if (s && !updatedMatch.teamBSquad.includes(s)) updatedMatch.teamBSquad.push(s);
+                    if (ns && !updatedMatch.teamBSquad.includes(ns)) updatedMatch.teamBSquad.push(ns);
+                    if (b && !updatedMatch.teamASquad.includes(b)) updatedMatch.teamASquad.push(b);
                 }
 
                 // Ensure arrays exist
@@ -1211,10 +1204,11 @@ const AdminDashboard = () => {
                     return;
                 } else if (type === 'wicket_with_replacement' || type === 'retired_with_replacement') {
                     const newName = value;
-                    const battingSquad = checkTeamMatch(battingTeam, updatedMatch.teamA) ? updatedMatch.teamASquad : updatedMatch.teamBSquad;
-                    if (battingSquad && !isPlayerInSquad(battingSquad, newName)) {
-                        toast.error("New batsman is not in the squad!");
-                        setIsUpdating(false); return;
+                    const isTeamA = checkTeamMatch(battingTeam, updatedMatch.teamA);
+                    if (isTeamA) {
+                        if (newName && !updatedMatch.teamASquad.includes(newName)) updatedMatch.teamASquad.push(newName);
+                    } else {
+                        if (newName && !updatedMatch.teamBSquad.includes(newName)) updatedMatch.teamBSquad.push(newName);
                     }
                     const isStrikerReplacement = runOutOutType === 'striker';
 
@@ -1383,10 +1377,11 @@ const AdminDashboard = () => {
                         setIsUpdating(false); return;
                     }
 
-                    const bowlingSquad = checkTeamMatch(battingTeam, updatedMatch.teamA) ? updatedMatch.teamBSquad : updatedMatch.teamASquad;
-                    if (bowlingSquad && !isPlayerInSquad(bowlingSquad, value)) {
-                        toast.error("Bowler is not in the squad!");
-                        setIsUpdating(false); return;
+                    const isTeamA = checkTeamMatch(battingTeam, updatedMatch.teamA);
+                    if (isTeamA) {
+                        if (value && !updatedMatch.teamBSquad.includes(value)) updatedMatch.teamBSquad.push(value);
+                    } else {
+                        if (value && !updatedMatch.teamASquad.includes(value)) updatedMatch.teamASquad.push(value);
                     }
                     localBowler = value;
                     if (!currentBowling.bowling.find(p => p.player === value)) {
@@ -2152,24 +2147,48 @@ const AdminDashboard = () => {
                         </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label className="fw-bold small text-uppercase text-muted">Striker</Form.Label>
-                            <Form.Select size="lg" className="rounded-3 border-0 shadow-sm" value={modalData.s} onChange={e => setModalData({ ...modalData, s: e.target.value })}>
-                                <option value="">Select Striker</option>
-                                {(checkTeamMatch(modalData.team, selectedMatch?.teamA) ? squadA : squadB).map((p, i) => <option key={i} value={p}>{p}</option>)}
-                            </Form.Select>
+                            <Form.Control
+                                type="text"
+                                list="striker-list"
+                                size="lg"
+                                className="rounded-3 border-0 shadow-sm"
+                                placeholder="Player name"
+                                value={modalData.s || ''}
+                                onChange={e => setModalData({ ...modalData, s: e.target.value })}
+                            />
+                            <datalist id="striker-list">
+                                {(checkTeamMatch(modalData.team, selectedMatch?.teamA) ? squadA : squadB).filter(p => p && p.trim() !== '').map((p, i) => <option key={i} value={p} />)}
+                            </datalist>
                         </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label className="fw-bold small text-uppercase text-muted">Non-Striker</Form.Label>
-                            <Form.Select size="lg" className="rounded-3 border-0 shadow-sm" value={modalData.ns} onChange={e => setModalData({ ...modalData, ns: e.target.value })}>
-                                <option value="">Select Non-Striker</option>
-                                {(checkTeamMatch(modalData.team, selectedMatch?.teamA) ? squadA : squadB).map((p, i) => <option key={i} value={p}>{p}</option>)}
-                            </Form.Select>
+                            <Form.Control
+                                type="text"
+                                list="non-striker-list"
+                                size="lg"
+                                className="rounded-3 border-0 shadow-sm"
+                                placeholder="Player name"
+                                value={modalData.ns || ''}
+                                onChange={e => setModalData({ ...modalData, ns: e.target.value })}
+                            />
+                            <datalist id="non-striker-list">
+                                {(checkTeamMatch(modalData.team, selectedMatch?.teamA) ? squadA : squadB).filter(p => p && p.trim() !== '').map((p, i) => <option key={i} value={p} />)}
+                            </datalist>
                         </Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label className="fw-bold small text-uppercase text-muted">Bowler</Form.Label>
-                            <Form.Select size="lg" className="rounded-3 border-0 shadow-sm" value={modalData.b} onChange={e => setModalData({ ...modalData, b: e.target.value })}>
-                                <option value="">Select Bowler</option>
-                                {(checkTeamMatch(modalData.team, selectedMatch?.teamA) ? squadB : squadA).map((p, i) => <option key={i} value={p}>{p}</option>)}
-                            </Form.Select>
+                            <Form.Control
+                                type="text"
+                                list="bowler-list"
+                                size="lg"
+                                className="rounded-3 border-0 shadow-sm"
+                                placeholder="Player name"
+                                value={modalData.b || ''}
+                                onChange={e => setModalData({ ...modalData, b: e.target.value })}
+                            />
+                            <datalist id="bowler-list">
+                                {(checkTeamMatch(modalData.team, selectedMatch?.teamA) ? squadB : squadA).filter(p => p && p.trim() !== '').map((p, i) => <option key={i} value={p} />)}
+                            </datalist>
                         </Form.Group>
                     </Modal.Body>
                     <Modal.Footer className="border-0 bg-light pb-4 px-4">
@@ -2189,10 +2208,18 @@ const AdminDashboard = () => {
                     <Modal.Body className="p-4 bg-light">
                         <Form.Group>
                             <Form.Label className="fw-bold small text-uppercase text-muted">Next Bowler Name:</Form.Label>
-                            <Form.Select size="lg" className="rounded-3 border-0 shadow-sm" value={modalData.nextB} onChange={e => setModalData({ ...modalData, nextB: e.target.value })}>
-                                <option value="">Select Bowler</option>
-                                {(selectedMatch?.score?.battingTeam === selectedMatch?.teamA ? squadB : squadA).filter(p => p.trim() !== '').map((p, i) => <option key={i} value={p}>{p}</option>)}
-                            </Form.Select>
+                            <Form.Control
+                                type="text"
+                                list="next-bowler-list"
+                                size="lg"
+                                className="rounded-3 border-0 shadow-sm"
+                                placeholder="Player name"
+                                value={modalData.nextB || ''}
+                                onChange={e => setModalData({ ...modalData, nextB: e.target.value })}
+                            />
+                            <datalist id="next-bowler-list">
+                                {(selectedMatch?.score?.battingTeam === selectedMatch?.teamA ? squadB : squadA).filter(p => p && p.trim() !== '').map((p, i) => <option key={i} value={p} />)}
+                            </datalist>
                             {selectedMatch?.score?.thisOver?.length > 0 && selectedMatch.bowler && (
                                 <div className="mt-2 p-2 bg-warning bg-opacity-10 border border-warning rounded-3 small text-warning-emphasis fw-bold">
                                     🩹 Replacing bowler mid-over. Remaining balls: {BALLS_PER_OVER - selectedMatch.score.thisOver.filter(b => !/(W\+|WD|NB)/i.test(b.toString())).length}
@@ -2212,10 +2239,18 @@ const AdminDashboard = () => {
                     <Modal.Body className="p-4 bg-light">
                         <Form.Group>
                             <Form.Label className="fw-bold small text-uppercase text-muted">Select New Batsman:</Form.Label>
-                            <Form.Select size="lg" className="rounded-3 border-0 shadow-sm" value={modalData.nextS} onChange={e => setModalData({ ...modalData, nextS: e.target.value })}>
-                                <option value="">Select Batsman</option>
-                                {getAvailableBatsmen('batting').map((p, i) => <option key={i} value={p}>{p}</option>)}
-                            </Form.Select>
+                            <Form.Control
+                                type="text"
+                                list="next-batsman-list"
+                                size="lg"
+                                className="rounded-3 border-0 shadow-sm"
+                                placeholder="Player name"
+                                value={modalData.nextS || ''}
+                                onChange={e => setModalData({ ...modalData, nextS: e.target.value })}
+                            />
+                            <datalist id="next-batsman-list">
+                                {getAvailableBatsmen('batting').map((p, i) => <option key={i} value={p} />)}
+                            </datalist>
                         </Form.Group>
                     </Modal.Body>
                     <Modal.Footer className="border-0 bg-light pb-4 px-4 d-flex gap-2">
@@ -3089,10 +3124,6 @@ const AdminDashboard = () => {
                                                         return;
                                                     }
                                                     if (!validateSquads()) return;
-                                                    if (squadA.filter(p => p).length < 11 || squadB.filter(p => p).length < 11) {
-                                                        toast.error("Both teams must have 11 players!");
-                                                        return;
-                                                    }
                                                     // Pre-select team from toss if available
                                                     let team1st = selectedMatch.teamA;
                                                     if (selectedMatch.toss?.winner) {
