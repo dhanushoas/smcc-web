@@ -213,6 +213,18 @@ const AdminDashboard = () => {
     const [editDate, setEditDate] = useState('');
     const [editTime, setEditTime] = useState('');
 
+    // Checkbox states for scoring
+    const [isWideChecked, setIsWideChecked] = useState(false);
+    const [isNbChecked, setIsNbChecked] = useState(false);
+    const [isByesChecked, setIsByesChecked] = useState(false);
+    const [isLbChecked, setIsLbChecked] = useState(false);
+    const [isWicketChecked, setIsWicketChecked] = useState(false);
+
+    // Modal display states
+    const [showPartnershipModal, setShowPartnershipModal] = useState(false);
+    const [showSettingsModal, setShowSettingsModal] = useState(false);
+    const [showExtrasBreakdownModal, setShowExtrasBreakdownModal] = useState(false);
+
 
     const handleSquadChange = (team, index, value) => {
         if (team === 'A') {
@@ -1098,31 +1110,36 @@ const AdminDashboard = () => {
                 } else if (type === 'extra') {
                     const amount = params?.amount || 1;
                     const isBat = params?.isBat || false; // New flag for NB
+                    const settings = updatedMatch.settings || {
+                        wideBall: { reBall: true, runs: 1 },
+                        noBall: { reBall: true, runs: 1 }
+                    };
                     currentInnings.runs += amount;
                     if (value === 'w') {
-                        // Wide Ball: amount is total runs added. Display W+(amount-1) or WD.
-                        updatedMatch.score.thisOver.push(amount > 1 ? 'W+' + (amount - 1) : 'WD');
+                        // Wide Ball: amount is total runs added. Display W+(amount-widePenalty) or WD.
+                        const widePenalty = settings.wideBall.runs;
+                        updatedMatch.score.thisOver.push(amount > widePenalty ? 'W+' + (amount - widePenalty) : 'WD');
                         currentInnings.extras.wides = (currentInnings.extras.wides || 0) + amount;
                         currentInnings.extras.total = (currentInnings.extras.total || 0) + amount;
                         currentBowling.bowling[bIdx].runs += amount;
                         currentBowling.bowling[bIdx].wides = (currentBowling.bowling[bIdx].wides || 0) + 1;
-                        ballCounts = false;
+                        ballCounts = settings.wideBall.reBall === false ? true : false;
 
-                        // Strike Rotation: Swap if runs ran (amount - 1) is odd
-                        const runsRan = amount - 1;
-                        if (runsRan % 2 !== 0) {
+                        // Strike Rotation: Swap if runs ran (amount - widePenalty) is odd
+                        const runsRan = amount - widePenalty;
+                        if (runsRan % 2 !== 0 && runsRan > 0) {
                             const temp = localStriker; localStriker = localNonStriker; localNonStriker = temp;
                         }
                     }
                     else if (value === 'nb') {
-                        // No Ball: amount is total runs added. Display NB+ (amount-1).
-                        updatedMatch.score.thisOver.push(amount > 1 ? 'NB+' + (amount - 1) : 'NB');
-                        const penalty = 1;
+                        // No Ball: amount is total runs added. Display NB+ (amount-nbPenalty).
+                        const penalty = settings.noBall.runs;
+                        updatedMatch.score.thisOver.push(amount > penalty ? 'NB+' + (amount - penalty) : 'NB');
                         const additionalRuns = Math.max(0, amount - penalty);
                         currentInnings.extras.noBalls = (currentInnings.extras.noBalls || 0) + penalty;
 
                         if (isBat) {
-                            // Hit by bat: 1 Extra + additionalRuns to Batter
+                            // Hit by bat: penalty Extra + additionalRuns to Batter
                             if (additionalRuns > 0 && sIdx !== -1) {
                                 currentInnings.batting[sIdx].runs += additionalRuns;
                                 if (additionalRuns === 4) currentInnings.batting[sIdx].fours += 1;
@@ -1131,13 +1148,13 @@ const AdminDashboard = () => {
                             currentInnings.extras.total = (currentInnings.extras.total || 0) + penalty;
                         } else {
                             // Not hit by bat: All runs are Extras
-                            currentInnings.extras.noBalls = (currentInnings.extras.noBalls || 0) + additionalRuns; // Actually No Ball Byes/Leg Byes are often just recorded under NB extras in simple scoreboards
+                            currentInnings.extras.noBalls = (currentInnings.extras.noBalls || 0) + additionalRuns;
                             currentInnings.extras.total = (currentInnings.extras.total || 0) + amount;
                         }
 
                         currentBowling.bowling[bIdx].runs += amount;
                         currentBowling.bowling[bIdx].noBalls = (currentBowling.bowling[bIdx].noBalls || 0) + 1;
-                        ballCounts = false;
+                        ballCounts = settings.noBall.reBall === false ? true : false;
                         updatedMatch.score.freeHit = true;
 
                         // Strike Rotation: Swap if runs ran (additionalRuns) is odd
@@ -1245,21 +1262,27 @@ const AdminDashboard = () => {
                                 currentInnings.runs += completedRuns;
                                 currentBowling.bowling[bIdx].runs += completedRuns;
                                 currentInnings.batting[sIdx].runs += completedRuns;
+                                const settings = updatedMatch.settings || {
+                                    wideBall: { reBall: true, runs: 1 },
+                                    noBall: { reBall: true, runs: 1 }
+                                };
 
                                 if (wDetail.ballType === 'wide') {
-                                    currentInnings.runs += 1;
-                                    currentInnings.extras.wides = (currentInnings.extras.wides || 0) + 1;
-                                    currentInnings.extras.total = (currentInnings.extras.total || 0) + 1;
-                                    currentBowling.bowling[bIdx].runs += 1;
+                                    const wideRuns = settings.wideBall.runs;
+                                    currentInnings.runs += wideRuns;
+                                    currentInnings.extras.wides = (currentInnings.extras.wides || 0) + wideRuns;
+                                    currentInnings.extras.total = (currentInnings.extras.total || 0) + wideRuns;
+                                    currentBowling.bowling[bIdx].runs += wideRuns;
                                     currentBowling.bowling[bIdx].wides = (currentBowling.bowling[bIdx].wides || 0) + 1;
-                                    ballCounts = false;
+                                    ballCounts = settings.wideBall.reBall === false ? true : false;
                                 } else if (wDetail.ballType === 'no-ball') {
-                                    currentInnings.runs += 1;
-                                    currentInnings.extras.noBalls = (currentInnings.extras.noBalls || 0) + 1;
-                                    currentInnings.extras.total = (currentInnings.extras.total || 0) + 1;
-                                    currentBowling.bowling[bIdx].runs += 1;
+                                    const nbRuns = settings.noBall.runs;
+                                    currentInnings.runs += nbRuns;
+                                    currentInnings.extras.noBalls = (currentInnings.extras.noBalls || 0) + nbRuns;
+                                    currentInnings.extras.total = (currentInnings.extras.total || 0) + nbRuns;
+                                    currentBowling.bowling[bIdx].runs += nbRuns;
                                     currentBowling.bowling[bIdx].noBalls = (currentBowling.bowling[bIdx].noBalls || 0) + 1;
-                                    ballCounts = false;
+                                    ballCounts = settings.noBall.reBall === false ? true : false;
                                 } else if (wDetail.ballType === 'mankad') {
                                     ballCounts = false;
                                 }
@@ -1277,12 +1300,17 @@ const AdminDashboard = () => {
                                 // Regular wickets (caught, bowled, lbw, stumped, hit wicket)
                                 // Stumped on a wide?
                                 if (wDetail.type === 'stumped' && wDetail.ballType === 'wide') {
-                                    currentInnings.runs += 1;
-                                    currentInnings.extras.wides = (currentInnings.extras.wides || 0) + 1;
-                                    currentInnings.extras.total = (currentInnings.extras.total || 0) + 1;
-                                    currentBowling.bowling[bIdx].runs += 1;
+                                    const settings = updatedMatch.settings || {
+                                        wideBall: { reBall: true, runs: 1 },
+                                        noBall: { reBall: true, runs: 1 }
+                                    };
+                                    const wideRuns = settings.wideBall.runs;
+                                    currentInnings.runs += wideRuns;
+                                    currentInnings.extras.wides = (currentInnings.extras.wides || 0) + wideRuns;
+                                    currentInnings.extras.total = (currentInnings.extras.total || 0) + wideRuns;
+                                    currentBowling.bowling[bIdx].runs += wideRuns;
                                     currentBowling.bowling[bIdx].wides = (currentBowling.bowling[bIdx].wides || 0) + 1;
-                                    ballCounts = false;
+                                    ballCounts = settings.wideBall.reBall === false ? true : false;
                                 } else {
                                     if (wDetail.ballType !== 'wide') {
                                         currentInnings.batting[sIdx].balls += 1;
@@ -1630,6 +1658,55 @@ const AdminDashboard = () => {
         } finally {
             setIsUpdating(false);
         }
+    };
+
+    const onRunClick = (runs) => {
+        const settings = selectedMatch?.settings || {
+            wideBall: { reBall: true, runs: 1 },
+            noBall: { reBall: true, runs: 1 }
+        };
+
+        if (isWicketChecked) {
+            let wicketType = 'caught';
+            if (isLbChecked) wicketType = 'lbw';
+            else if (isByesChecked) wicketType = 'stumped';
+
+            let ballType = 'normal';
+            if (isWideChecked) ballType = 'wide';
+            else if (isNbChecked) ballType = 'no-ball';
+
+            setWicketDetails({
+                type: wicketType,
+                fielder: '',
+                runs: runs,
+                whomOut: 'striker',
+                ballType: ballType,
+                crossed: false
+            });
+            setShowWicketModal(true);
+        } else {
+            if (isWideChecked) {
+                const penalty = settings.wideBall.runs;
+                handleUpdate('extra', 'w', { amount: runs + penalty });
+            } else if (isNbChecked) {
+                const penalty = settings.noBall.runs;
+                const isBat = !(isByesChecked || isLbChecked);
+                handleUpdate('extra', 'nb', { amount: runs + penalty, isBat });
+            } else if (isByesChecked) {
+                handleUpdate('extra', 'b', { amount: runs });
+            } else if (isLbChecked) {
+                handleUpdate('extra', 'lb', { amount: runs });
+            } else {
+                handleUpdate('runs', runs);
+            }
+        }
+
+        // Reset all checks
+        setIsWideChecked(false);
+        setIsNbChecked(false);
+        setIsByesChecked(false);
+        setIsLbChecked(false);
+        setIsWicketChecked(false);
     };
 
     // Auto POTM logic removed for manual subjective assignment.
@@ -2272,6 +2349,314 @@ const AdminDashboard = () => {
                     </Modal.Footer>
                 </Modal>
 
+                {/* SettingsModal */}
+                <Modal show={showSettingsModal} onHide={() => setShowSettingsModal(false)} centered backdrop="static" contentClassName="border-0 shadow-lg rounded-4 overflow-hidden">
+                    <Modal.Header className="bg-dark text-white border-0 py-3 px-4">
+                        <Modal.Title className="fw-black"><i className="bi bi-gear-fill me-2"></i>MATCH SETTINGS</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body className="p-4 bg-light">
+                        <Form.Group className="mb-4">
+                            <Form.Label className="fw-bold small text-uppercase text-muted">Players Per Team</Form.Label>
+                            <Form.Control 
+                                type="number" 
+                                size="lg" 
+                                className="rounded-3 border-0 shadow-sm"
+                                value={selectedMatch?.settings?.playersPerTeam ?? 11}
+                                onChange={e => {
+                                    const val = parseInt(e.target.value) || 11;
+                                    const updated = {
+                                        ...selectedMatch,
+                                        settings: {
+                                            ...(selectedMatch.settings || {}),
+                                            playersPerTeam: val
+                                        }
+                                    };
+                                    handleUpdate('manual', updated, { toastMsg: 'Players per team updated' });
+                                }}
+                            />
+                        </Form.Group>
+                        
+                        <h5 className="fw-bold mb-3 text-primary text-uppercase" style={{ letterSpacing: '0.5px' }}>No Ball Config</h5>
+                        <Form.Group className="mb-3 d-flex align-items-center justify-content-between">
+                            <span className="fw-bold text-muted">Re-ball after No Ball</span>
+                            <Form.Check 
+                                type="switch" 
+                                id="settings-nb-reball"
+                                checked={selectedMatch?.settings?.noBall?.reBall !== false}
+                                onChange={e => {
+                                    const val = e.target.checked;
+                                    const updated = {
+                                        ...selectedMatch,
+                                        settings: {
+                                            ...(selectedMatch.settings || {}),
+                                            noBall: {
+                                                ...(selectedMatch.settings?.noBall || { runs: 1 }),
+                                                reBall: val
+                                            }
+                                        }
+                                    };
+                                    handleUpdate('manual', updated, { toastMsg: 'No Ball Re-ball updated' });
+                                }}
+                            />
+                        </Form.Group>
+                        <Form.Group className="mb-4">
+                            <Form.Label className="fw-bold small text-uppercase text-muted">No Ball Runs Penalty</Form.Label>
+                            <Form.Select 
+                                size="lg" 
+                                className="rounded-3 border-0 shadow-sm"
+                                value={selectedMatch?.settings?.noBall?.runs ?? 1}
+                                onChange={e => {
+                                    const val = parseInt(e.target.value);
+                                    const updated = {
+                                        ...selectedMatch,
+                                        settings: {
+                                            ...(selectedMatch.settings || {}),
+                                            noBall: {
+                                                ...(selectedMatch.settings?.noBall || { reBall: true }),
+                                                runs: val
+                                            }
+                                        }
+                                    };
+                                    handleUpdate('manual', updated, { toastMsg: 'No Ball Runs penalty updated' });
+                                }}
+                            >
+                                {[0, 1, 2, 3, 4].map(v => <option key={v} value={v}>{v} Run{v !== 1 ? 's' : ''}</option>)}
+                            </Form.Select>
+                        </Form.Group>
+
+                        <h5 className="fw-bold mb-3 text-primary text-uppercase" style={{ letterSpacing: '0.5px' }}>Wide Ball Config</h5>
+                        <Form.Group className="mb-3 d-flex align-items-center justify-content-between">
+                            <span className="fw-bold text-muted">Re-ball after Wide Ball</span>
+                            <Form.Check 
+                                type="switch" 
+                                id="settings-wide-reball"
+                                checked={selectedMatch?.settings?.wideBall?.reBall !== false}
+                                onChange={e => {
+                                    const val = e.target.checked;
+                                    const updated = {
+                                        ...selectedMatch,
+                                        settings: {
+                                            ...(selectedMatch.settings || {}),
+                                            wideBall: {
+                                                ...(selectedMatch.settings?.wideBall || { runs: 1 }),
+                                                reBall: val
+                                            }
+                                        }
+                                    };
+                                    handleUpdate('manual', updated, { toastMsg: 'Wide Re-ball updated' });
+                                }}
+                            />
+                        </Form.Group>
+                        <Form.Group className="mb-3">
+                            <Form.Label className="fw-bold small text-uppercase text-muted">Wide Ball Runs Penalty</Form.Label>
+                            <Form.Select 
+                                size="lg" 
+                                className="rounded-3 border-0 shadow-sm"
+                                value={selectedMatch?.settings?.wideBall?.runs ?? 1}
+                                onChange={e => {
+                                    const val = parseInt(e.target.value);
+                                    const updated = {
+                                        ...selectedMatch,
+                                        settings: {
+                                            ...(selectedMatch.settings || {}),
+                                            wideBall: {
+                                                ...(selectedMatch.settings?.wideBall || { reBall: true }),
+                                                runs: val
+                                            }
+                                        }
+                                    };
+                                    handleUpdate('manual', updated, { toastMsg: 'Wide Runs penalty updated' });
+                                }}
+                            >
+                                {[0, 1, 2, 3, 4].map(v => <option key={v} value={v}>{v} Run{v !== 1 ? 's' : ''}</option>)}
+                            </Form.Select>
+                        </Form.Group>
+                    </Modal.Body>
+                    <Modal.Footer className="border-0 bg-light pb-4 px-4">
+                        <Button variant="dark" size="lg" className="w-100 fw-black rounded-pill shadow" onClick={() => setShowSettingsModal(false)}>DONE</Button>
+                    </Modal.Footer>
+                </Modal>
+
+                {/* PartnershipModal */}
+                <Modal show={showPartnershipModal} onHide={() => setShowPartnershipModal(false)} centered backdrop="static" contentClassName="border-0 shadow-lg rounded-4 overflow-hidden">
+                    <Modal.Header className="bg-primary text-white border-0 py-3 px-4">
+                        <Modal.Title className="fw-black"><i className="bi bi-people-fill me-2"></i>PARTNERSHIP DETAILS</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body className="p-4 bg-light">
+                        {(() => {
+                            const currentInnings = selectedMatch?.innings?.[selectedMatch.innings.length > 2 ? (selectedMatch.score?.target ? selectedMatch.innings.length - 1 : selectedMatch.innings.length - 2) : (selectedMatch.score?.target ? 1 : 0)];
+                            const sStat = currentInnings?.batting?.find(p => p.player === striker) || { runs: 0, balls: 0 };
+                            const nsStat = currentInnings?.batting?.find(p => p.player === nonStriker) || { runs: 0, balls: 0 };
+                            const extrasTotal = currentInnings?.extras?.total || 0;
+                            const partnershipRuns = sStat.runs + nsStat.runs + extrasTotal;
+                            const partnershipBalls = sStat.balls + nsStat.balls;
+
+                            return (
+                                <div>
+                                    <div className="text-center mb-4 p-3 bg-white rounded-3 border">
+                                        <div className="x-small fw-black text-uppercase text-muted">Current Partnership</div>
+                                        <h2 className="fw-black text-primary mb-0">{partnershipRuns} runs ({partnershipBalls} balls)</h2>
+                                        <small className="text-muted">Extras: {extrasTotal}</small>
+                                    </div>
+                                    
+                                    <Form.Group className="mb-4">
+                                        <Form.Label className="fw-bold small text-uppercase text-muted">{striker} (Striker) Runs</Form.Label>
+                                        <Form.Control 
+                                            type="number" 
+                                            size="lg" 
+                                            value={sStat.runs}
+                                            onChange={e => {
+                                                const val = parseInt(e.target.value) || 0;
+                                                const updated = { ...selectedMatch };
+                                                const innIdx = updated.innings.findIndex(inn => inn.team === currentInnings.team);
+                                                if (innIdx !== -1) {
+                                                    const pIdx = updated.innings[innIdx].batting.findIndex(p => p.player === striker);
+                                                    if (pIdx !== -1) {
+                                                        updated.innings[innIdx].batting[pIdx].runs = val;
+                                                        let totalRuns = 0;
+                                                        updated.innings[innIdx].batting.forEach(p => totalRuns += (p.runs || 0));
+                                                        totalRuns += (updated.innings[innIdx].extras?.total || 0);
+                                                        updated.innings[innIdx].runs = totalRuns;
+                                                        updated.score.runs = totalRuns;
+                                                        handleUpdate('manual', updated, { toastMsg: 'Striker runs updated' });
+                                                    }
+                                                }
+                                            }}
+                                        />
+                                    </Form.Group>
+
+                                    <Form.Group className="mb-4">
+                                        <Form.Label className="fw-bold small text-uppercase text-muted">{striker} (Striker) Balls</Form.Label>
+                                        <Form.Control 
+                                            type="number" 
+                                            size="lg" 
+                                            value={sStat.balls}
+                                            onChange={e => {
+                                                const val = parseInt(e.target.value) || 0;
+                                                const updated = { ...selectedMatch };
+                                                const innIdx = updated.innings.findIndex(inn => inn.team === currentInnings.team);
+                                                if (innIdx !== -1) {
+                                                    const pIdx = updated.innings[innIdx].batting.findIndex(p => p.player === striker);
+                                                    if (pIdx !== -1) {
+                                                        updated.innings[innIdx].batting[pIdx].balls = val;
+                                                        handleUpdate('manual', updated, { toastMsg: 'Striker balls updated' });
+                                                    }
+                                                }
+                                            }}
+                                        />
+                                    </Form.Group>
+
+                                    <Form.Group className="mb-4">
+                                        <Form.Label className="fw-bold small text-uppercase text-muted">{nonStriker} (Non-Striker) Runs</Form.Label>
+                                        <Form.Control 
+                                            type="number" 
+                                            size="lg" 
+                                            value={nsStat.runs}
+                                            onChange={e => {
+                                                const val = parseInt(e.target.value) || 0;
+                                                const updated = { ...selectedMatch };
+                                                const innIdx = updated.innings.findIndex(inn => inn.team === currentInnings.team);
+                                                if (innIdx !== -1) {
+                                                    const pIdx = updated.innings[innIdx].batting.findIndex(p => p.player === nonStriker);
+                                                    if (pIdx !== -1) {
+                                                        updated.innings[innIdx].batting[pIdx].runs = val;
+                                                        let totalRuns = 0;
+                                                        updated.innings[innIdx].batting.forEach(p => totalRuns += (p.runs || 0));
+                                                        totalRuns += (updated.innings[innIdx].extras?.total || 0);
+                                                        updated.innings[innIdx].runs = totalRuns;
+                                                        updated.score.runs = totalRuns;
+                                                        handleUpdate('manual', updated, { toastMsg: 'Non-striker runs updated' });
+                                                    }
+                                                }
+                                            }}
+                                        />
+                                    </Form.Group>
+
+                                    <Form.Group className="mb-4">
+                                        <Form.Label className="fw-bold small text-uppercase text-muted">{nonStriker} (Non-Striker) Balls</Form.Label>
+                                        <Form.Control 
+                                            type="number" 
+                                            size="lg" 
+                                            value={nsStat.balls}
+                                            onChange={e => {
+                                                const val = parseInt(e.target.value) || 0;
+                                                const updated = { ...selectedMatch };
+                                                const innIdx = updated.innings.findIndex(inn => inn.team === currentInnings.team);
+                                                if (innIdx !== -1) {
+                                                    const pIdx = updated.innings[innIdx].batting.findIndex(p => p.player === nonStriker);
+                                                    if (pIdx !== -1) {
+                                                        updated.innings[innIdx].batting[pIdx].balls = val;
+                                                        handleUpdate('manual', updated, { toastMsg: 'Non-striker balls updated' });
+                                                    }
+                                                }
+                                            }}
+                                        />
+                                    </Form.Group>
+                                </div>
+                            );
+                        })()}
+                    </Modal.Body>
+                    <Modal.Footer className="border-0 bg-light pb-4 px-4">
+                        <Button variant="primary" size="lg" className="w-100 fw-black rounded-pill shadow" onClick={() => setShowPartnershipModal(false)}>DONE</Button>
+                    </Modal.Footer>
+                </Modal>
+
+                {/* ExtrasBreakdownModal */}
+                <Modal show={showExtrasBreakdownModal} onHide={() => setShowExtrasBreakdownModal(false)} centered backdrop="static" contentClassName="border-0 shadow-lg rounded-4 overflow-hidden">
+                    <Modal.Header className="bg-primary text-white border-0 py-3 px-4">
+                        <Modal.Title className="fw-black"><i className="bi bi-plus-circle-fill me-2"></i>EXTRAS BREAKDOWN</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body className="p-4 bg-light">
+                        {(() => {
+                            const currentInnings = selectedMatch?.innings?.[selectedMatch.innings.length > 2 ? (selectedMatch.score?.target ? selectedMatch.innings.length - 1 : selectedMatch.innings.length - 2) : (selectedMatch.score?.target ? 1 : 0)];
+                            const ex = currentInnings?.extras || { total: 0, wides: 0, noBalls: 0, byes: 0, legByes: 0 };
+                            return (
+                                <div>
+                                    <div className="text-center mb-4 p-3 bg-white rounded-3 border">
+                                        <div className="x-small fw-black text-uppercase text-muted">Total Extras</div>
+                                        <h2 className="fw-black text-primary mb-0">{ex.total}</h2>
+                                    </div>
+                                    
+                                    {['wides', 'noBalls', 'byes', 'legByes'].map(key => {
+                                        const label = key === 'wides' ? 'Wides' : key === 'noBalls' ? 'No Balls' : key === 'byes' ? 'Byes' : 'Leg Byes';
+                                        return (
+                                            <Form.Group key={key} className="mb-3">
+                                                <Form.Label className="fw-bold small text-uppercase text-muted">{label}</Form.Label>
+                                                <Form.Control 
+                                                    type="number" 
+                                                    size="lg" 
+                                                    value={ex[key] || 0}
+                                                    onChange={e => {
+                                                        const val = parseInt(e.target.value) || 0;
+                                                        const updated = { ...selectedMatch };
+                                                        const innIdx = updated.innings.findIndex(inn => inn.team === currentInnings.team);
+                                                        if (innIdx !== -1) {
+                                                            const currentExtras = updated.innings[innIdx].extras || { total: 0, wides: 0, noBalls: 0, byes: 0, legByes: 0 };
+                                                            currentExtras[key] = val;
+                                                            currentExtras.total = (currentExtras.wides || 0) + (currentExtras.noBalls || 0) + (currentExtras.byes || 0) + (currentExtras.legByes || 0);
+                                                            updated.innings[innIdx].extras = currentExtras;
+                                                            
+                                                            let totalRuns = 0;
+                                                            updated.innings[innIdx].batting.forEach(p => totalRuns += (p.runs || 0));
+                                                            totalRuns += currentExtras.total;
+                                                            updated.innings[innIdx].runs = totalRuns;
+                                                            updated.score.runs = totalRuns;
+                                                            handleUpdate('manual', updated, { toastMsg: `${label} updated` });
+                                                        }
+                                                    }}
+                                                />
+                                            </Form.Group>
+                                        );
+                                    })}
+                                </div>
+                            );
+                        })()}
+                    </Modal.Body>
+                    <Modal.Footer className="border-0 bg-light pb-4 px-4">
+                        <Button variant="primary" size="lg" className="w-100 fw-black rounded-pill shadow" onClick={() => setShowExtrasBreakdownModal(false)}>DONE</Button>
+                    </Modal.Footer>
+                </Modal>
+
                 <Modal show={showDlsModal} onHide={() => setShowDlsModal(false)} centered backdrop="static" contentClassName="border-0 shadow-lg rounded-4 overflow-hidden">
                     <Modal.Header className="bg-primary text-white border-0 py-3 px-4">
                         <Modal.Title className="fw-black">🌧️ DLS ADJUSTMENTS</Modal.Title>
@@ -2801,148 +3186,137 @@ const AdminDashboard = () => {
                                                             })()
                                                         )}
 
-                                                        {/* SCORING PANEL - 5 ROW LAYOUT */}
+                                                        {/* SCORING PANEL - MOBILE MATCHED KEYPAD */}
                                                         {selectedMatch.status === 'live' && selectedMatch.currentBatsmen?.length > 0 && selectedMatch.currentBowler && !isComplete && (
-                                                            <div className="scoring-panel-container d-grid gap-4 w-100">
+                                                            <div className="scoring-panel-container bg-light p-4 rounded-4 shadow-sm border w-100">
                                                                 {selectedMatch.toss?.winner && (
-                                                                    <div className="bg-warning bg-opacity-10 text-dark text-center fw-bold py-3 mb-0 border border-warning border-opacity-20 rounded-pill shadow-sm">
+                                                                    <div className="bg-warning bg-opacity-10 text-dark text-center fw-bold py-2 mb-3 border border-warning border-opacity-20 rounded-pill shadow-xs small">
                                                                         <i className="bi bi-coin me-2"></i>
                                                                         Toss: {selectedMatch.toss.winner} won & elected to {selectedMatch.toss.decision} first.
                                                                     </div>
                                                                 )}
 
-                                                                {/* ROW 1 – MATCH CONTROLS */}
-                                                                <div className="flex-wrap-gap justify-content-center">
-                                                                    <Button variant="outline-primary" className="flex-grow-1 px-3 fw-bold shadow-sm py-2" onClick={() => setShowSquadModal(true)}>
-                                                                        <i className="bi bi-people-fill me-2"></i>SQUADS
+                                                                {/* 1. RETIRE & SWAP STRIKE ROW */}
+                                                                <div className="d-flex justify-content-between gap-3 mb-3">
+                                                                    <Button variant="outline-danger" className="w-50 py-2 fw-black rounded-3 shadow-sm text-uppercase" onClick={() => { setBatsmanModalType('retire'); setShowBatsmanModal(true); }}>
+                                                                        <i className="bi bi-person-x-fill me-2"></i>Retire
                                                                     </Button>
-                                                                    <Button variant="outline-primary" className="flex-grow-1 px-3 fw-bold shadow-sm py-2" onClick={() => setShowDlsModal(true)}>
-                                                                        <i className="bi bi-cloud-rain-fill me-2"></i>DLS
+                                                                    <Button variant="outline-primary" className="w-50 py-2 fw-black rounded-3 shadow-sm text-uppercase" onClick={() => handleUpdate('swap_strike')}>
+                                                                        <i className="bi bi-arrow-left-right me-2"></i>Swap Strike
                                                                     </Button>
-                                                                    <Button variant="outline-warning" className="flex-grow-1 px-3 fw-bold shadow-sm py-2" onClick={undoLastBall} disabled={!selectedMatch.history || selectedMatch.history.length === 0}>
-                                                                        <i className="bi bi-arrow-counterclockwise me-2"></i>REVERSE
-                                                                    </Button>
-                                                                    {selectedMatch.score?.isPaused ? (
-                                                                        <Button variant="success" className="flex-grow-1 px-3 fw-bold shadow-sm py-2" onClick={() => handlePauseToggle()}>
-                                                                            <i className="bi bi-play-fill me-2"></i>RESUME
-                                                                        </Button>
-                                                                    ) : (
-                                                                        <Button variant="danger" className="flex-grow-1 px-3 fw-bold shadow-sm py-2" onClick={() => setShowPauseModal(true)}>
-                                                                            <i className="bi bi-pause-fill me-2"></i>PAUSE
-                                                                        </Button>
-                                                                    )}
                                                                 </div>
 
-                                                                {/* ROW 2 – PRIMARY SCORING */}
-                                                                <div className="flex-wrap-gap justify-content-center">
-                                                                    {[0, 1, 2, 3, 4, 6].map(r => (
-                                                                        <Button key={r} disabled={isUpdating || selectedMatch.score?.isPaused} variant="outline-primary" className="flex-grow-1 text-center py-3 px-4 fw-black shadow-sm fs-5" onClick={() => {
-                                                                            if (currentInn && currentInn.overs >= limit) return toast.error(`Over limit reached!`);
-                                                                            handleUpdate('runs', r);
-                                                                        }}>
-                                                                            {r}
-                                                                        </Button>
-                                                                    ))}
-                                                                    <Button variant="danger" className="flex-grow-1 py-3 px-4 fw-black shadow-sm fs-5" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => {
-                                                                        setWicketDetails(prev => ({ ...prev, type: 'caught', fielder: '', runs: 0, whomOut: 'striker' }));
-                                                                        setShowWicketModal(true);
-                                                                    }}>WKT</Button>
-                                                                </div>
-
-                                                                {/* ROW 3 – EXTRAS */}
-                                                                <div className="flex-wrap-gap justify-content-center">
-                                                                    <Dropdown as={ButtonGroup} className="flex-grow-1">
-                                                                        <Button variant="outline-warning" className="px-3 fw-bold shadow-sm py-2 h-100" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => {
-                                                                            if (currentInn && currentInn.overs >= limit) return toast.error(`Over limit reached!`);
-                                                                            handleUpdate('extra', 'w', { amount: 1 });
-                                                                        }}>WIDE</Button>
-                                                                        <Dropdown.Toggle split variant="outline-warning" id="dropdown-wide" disabled={isUpdating || selectedMatch.score?.isPaused} />
-                                                                        <Dropdown.Menu className="border-0 shadow-lg p-2">
-                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'w', { amount: 2 })}>Wide + 1 (2 Runs)</Dropdown.Item>
-                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'w', { amount: 3 })}>Wide + 2 (3 Runs)</Dropdown.Item>
-                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'w', { amount: 5 })}>Wide + 4 (5 Runs)</Dropdown.Item>
-                                                                        </Dropdown.Menu>
-                                                                    </Dropdown>
-
-                                                                    <Dropdown as={ButtonGroup} className="flex-grow-1">
-                                                                        <Button variant="outline-warning" className="px-3 fw-bold shadow-sm py-2 h-100" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => {
-                                                                            if (currentInn && currentInn.overs >= limit) return toast.error(`Over limit reached!`);
-                                                                            handleUpdate('extra', 'nb', { amount: 1, isBat: false });
-                                                                        }}>NB</Button>
-                                                                        <Dropdown.Toggle split variant="outline-warning" id="dropdown-noball" disabled={isUpdating || selectedMatch.score?.isPaused} />
-                                                                        <Dropdown.Menu className="border-0 shadow-lg p-3" style={{ minWidth: '250px' }}>
-                                                                            <div className="fw-bold small text-muted mb-2 text-uppercase">Hit by Bat (Striker)</div>
-                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'nb', { amount: 2, isBat: true })}>NB + 1 Run (2)</Dropdown.Item>
-                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'nb', { amount: 3, isBat: true })}>NB + 2 Runs (3)</Dropdown.Item>
-                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'nb', { amount: 5, isBat: true })}>NB + 4 Runs (5)</Dropdown.Item>
-                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'nb', { amount: 7, isBat: true })}>NB + 6 Runs (7)</Dropdown.Item>
-                                                                            <Dropdown.Divider />
-                                                                            <div className="fw-bold small text-muted mb-2 text-uppercase">Not Hit (Byes/LB)</div>
-                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'nb', { amount: 2, isBat: false })}>NB + 1 Extra (2)</Dropdown.Item>
-                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'nb', { amount: 5, isBat: false })}>NB + 4 Extras (5)</Dropdown.Item>
-                                                                        </Dropdown.Menu>
-                                                                    </Dropdown>
-
-                                                                    <Dropdown as={ButtonGroup} className="flex-grow-1">
-                                                                        <Button variant="outline-warning" className="px-3 fw-bold shadow-sm py-2 h-100 text-dark" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => {
-                                                                            if (currentInn && currentInn.overs >= limit) return toast.error(`Over limit reached!`);
-                                                                            handleUpdate('extra', 'lb', { amount: 1 });
-                                                                        }}>LB</Button>
-                                                                        <Dropdown.Toggle split variant="outline-warning" id="dropdown-legbye" disabled={isUpdating || selectedMatch.score?.isPaused} className="text-dark" />
-                                                                        <Dropdown.Menu className="border-0 shadow-lg p-2">
-                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'lb', { amount: 1 })}>1 LB</Dropdown.Item>
-                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'lb', { amount: 2 })}>2 LB</Dropdown.Item>
-                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'lb', { amount: 4 })}>4 LB</Dropdown.Item>
-                                                                        </Dropdown.Menu>
-                                                                    </Dropdown>
-
-                                                                    <Dropdown as={ButtonGroup} className="flex-grow-1">
-                                                                        <Button variant="outline-warning" className="px-3 fw-bold shadow-sm py-2 h-100 text-dark" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => {
-                                                                            if (currentInn && currentInn.overs >= limit) return toast.error(`Over limit reached!`);
-                                                                            handleUpdate('extra', 'b', { amount: 1 });
-                                                                        }}>BYE</Button>
-                                                                        <Dropdown.Toggle split variant="outline-warning" id="dropdown-bye" disabled={isUpdating || selectedMatch.score?.isPaused} className="text-dark" />
-                                                                        <Dropdown.Menu className="border-0 shadow-lg p-2">
-                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'b', { amount: 1 })}>1 BYE</Dropdown.Item>
-                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'b', { amount: 2 })}>2 BYES</Dropdown.Item>
-                                                                            <Dropdown.Item onClick={() => handleUpdate('extra', 'b', { amount: 4 })}>4 BYES</Dropdown.Item>
-                                                                        </Dropdown.Menu>
-                                                                    </Dropdown>
-
-                                                                    <Button variant="outline-dark" className="flex-grow-1 px-3 fw-bold shadow-sm py-2"
-                                                                        disabled={isUpdating || selectedMatch.score?.isPaused || !selectedMatch.score?.thisOver?.length}
-                                                                        onClick={() => {
-                                                                            if (currentInn && currentInn.overs >= limit) return toast.error(`Over limit reached!`);
-                                                                            setOverthrowData({ ballType: 'normal', runsCompleted: 0, crossedOnThrow: false, resultType: 'boundary', manualRuns: 0 });
-                                                                            setShowOverthrowModal(true);
-                                                                        }}>⚡ OVERTHROW</Button>
-                                                                </div>
-
-                                                                {/* ROW 4 – PLAYER ACTIONS */}
-                                                                <div className="flex-wrap-gap justify-content-center">
-                                                                    <Button variant="outline-info" className="flex-grow-1 px-3 fw-bold shadow-sm py-2" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => handleUpdate('swap_strike')}>STRIKE</Button>
-                                                                    <Button variant="outline-dark" className="flex-grow-1 px-3 fw-bold shadow-sm py-2" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => { setBatsmanModalType('retire'); setShowBatsmanModal(true); }}>RETIRE</Button>
-                                                                    <Button variant="outline-success" className="flex-grow-1 px-3 fw-bold shadow-sm py-2" disabled={isUpdating || selectedMatch.score?.isPaused} onClick={() => {
-                                                                        if (selectedMatch?.score?.thisOver?.length > 0) {
-                                                                            const overBalls = selectedMatch.score.thisOver;
-                                                                            const legalBalls = overBalls.filter(b => !/(W\+|WD|NB)/i.test(b.toString())).length;
-                                                                            const remaining = BALLS_PER_OVER - legalBalls;
-                                                                            if (remaining > 0) {
-                                                                                toast(`A bowler has been replaced due to injury. There are ${pluralize(remaining, 'Ball')} remaining in this over.`, { icon: '🩹' });
+                                                                {/* 2. CHECKBOXES ROW */}
+                                                                <div className="d-flex justify-content-between flex-wrap gap-2 p-3 bg-white rounded-3 shadow-xs mb-3 border">
+                                                                    <Form.Check 
+                                                                        type="checkbox" 
+                                                                        id="chk-wide" 
+                                                                        label={<span className="fw-bold text-dark small">Wide</span>}
+                                                                        checked={isWideChecked}
+                                                                        onChange={e => {
+                                                                            setIsWideChecked(e.target.checked);
+                                                                            if (e.target.checked) {
+                                                                                setIsNbChecked(false);
+                                                                                setIsByesChecked(false);
+                                                                                setIsLbChecked(false);
                                                                             }
-                                                                        }
-                                                                        setShowBowlerModal(true);
-                                                                    }}>INJURY</Button>
-                                                                    <Button variant={selectedMatch?.score?.freeHit ? "danger" : "outline-secondary"} className="flex-grow-1 px-3 fw-bold shadow-sm py-2" onClick={() => handleUpdate('manual', { ...selectedMatch, score: { ...selectedMatch.score, freeHit: !selectedMatch.score.freeHit } })}>
-                                                                        {selectedMatch?.score?.freeHit ? '🚀 DISABLE FH' : '🚀 FREE HIT'}
-                                                                    </Button>
+                                                                        }}
+                                                                    />
+                                                                    <Form.Check 
+                                                                        type="checkbox" 
+                                                                        id="chk-nb" 
+                                                                        label={<span className="fw-bold text-dark small">No Ball</span>}
+                                                                        checked={isNbChecked}
+                                                                        onChange={e => {
+                                                                            setIsNbChecked(e.target.checked);
+                                                                            if (e.target.checked) {
+                                                                                setIsWideChecked(false);
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                    <Form.Check 
+                                                                        type="checkbox" 
+                                                                        id="chk-byes" 
+                                                                        label={<span className="fw-bold text-dark small">Byes</span>}
+                                                                        checked={isByesChecked}
+                                                                        onChange={e => {
+                                                                            setIsByesChecked(e.target.checked);
+                                                                            if (e.target.checked) {
+                                                                                setIsWideChecked(false);
+                                                                                setIsLbChecked(false);
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                    <Form.Check 
+                                                                        type="checkbox" 
+                                                                        id="chk-lb" 
+                                                                        label={<span className="fw-bold text-dark small">Leg Byes</span>}
+                                                                        checked={isLbChecked}
+                                                                        onChange={e => {
+                                                                            setIsLbChecked(e.target.checked);
+                                                                            if (e.target.checked) {
+                                                                                setIsWideChecked(false);
+                                                                                setIsByesChecked(false);
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                    <Form.Check 
+                                                                        type="checkbox" 
+                                                                        id="chk-wkt" 
+                                                                        label={<span className="fw-bold text-danger small">Wicket</span>}
+                                                                        checked={isWicketChecked}
+                                                                        onChange={e => setIsWicketChecked(e.target.checked)}
+                                                                    />
                                                                 </div>
 
-                                                                {/* ROW 5 – STATE INDICATOR */}
-                                                                <div className="d-flex justify-content-center mt-2">
-                                                                    <div className={`px-5 py-2 rounded-pill fw-black text-uppercase shadow-sm border-2 border ${selectedMatch?.score?.freeHit ? 'bg-danger text-white border-danger animate-pulse' : 'bg-light text-muted border-secondary'}`} style={{ fontSize: '0.9rem', letterSpacing: '1px' }}>
-                                                                        {selectedMatch?.score?.freeHit ? '🚀 FREE HIT ON' : '🚀 FREE HIT OFF'}
+                                                                {/* 3. KEYPAD GRID */}
+                                                                <div className="row g-3">
+                                                                    {/* Left Column: Control Buttons */}
+                                                                    <div className="col-md-5 d-flex flex-column gap-3 justify-content-between">
+                                                                        <Button variant="danger" className="w-100 py-3 fw-black rounded-3 shadow-sm text-uppercase" onClick={undoLastBall} disabled={!selectedMatch.history || selectedMatch.history.length === 0}>
+                                                                            <i className="bi bi-arrow-counterclockwise me-2"></i>Undo
+                                                                        </Button>
+                                                                        <Button variant="primary" className="w-100 py-3 fw-black rounded-3 shadow-sm text-uppercase" onClick={() => setShowPartnershipModal(true)}>
+                                                                            <i className="bi bi-people-fill me-2"></i>Partnerships
+                                                                        </Button>
+                                                                        <Button variant="primary" className="w-100 py-3 fw-black rounded-3 shadow-sm text-uppercase" onClick={() => setShowExtrasBreakdownModal(true)}>
+                                                                            <i className="bi bi-plus-circle-fill me-2"></i>Extras
+                                                                        </Button>
+                                                                        <Button variant="secondary" className="w-100 py-3 fw-black rounded-3 shadow-sm text-uppercase" onClick={() => setShowSettingsModal(true)}>
+                                                                            <i className="bi bi-gear-fill me-2"></i>Settings
+                                                                        </Button>
                                                                     </div>
+
+                                                                    {/* Right Column: Circular Numbers Keyboard */}
+                                                                    <div className="col-md-7 d-flex flex-wrap gap-3 justify-content-center align-content-start">
+                                                                        {[0, 1, 2, 3, 4, 5, 6].map(r => (
+                                                                            <Button 
+                                                                                key={r} 
+                                                                                variant="outline-success" 
+                                                                                className="d-flex align-items-center justify-content-center fw-black fs-3 shadow-sm border-2 rounded-circle hover-scale"
+                                                                                style={{ width: '75px', height: '75px' }}
+                                                                                onClick={() => onRunClick(r)}
+                                                                            >
+                                                                                {r}
+                                                                            </Button>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Helper Utility Buttons (DLS, Squads, Injury, FH) */}
+                                                                <div className="d-flex flex-wrap gap-2 mt-4 pt-3 border-top justify-content-center">
+                                                                    <Button size="sm" variant="outline-dark" className="px-3 fw-bold rounded-pill" onClick={() => setShowSquadModal(true)}>
+                                                                        <i className="bi bi-people-fill me-1"></i>Squads
+                                                                    </Button>
+                                                                    <Button size="sm" variant="outline-dark" className="px-3 fw-bold rounded-pill" onClick={() => setShowDlsModal(true)}>
+                                                                        <i className="bi bi-cloud-rain-fill me-1"></i>DLS
+                                                                    </Button>
+                                                                    <Button size="sm" variant="outline-dark" className="px-3 fw-bold rounded-pill" onClick={() => setShowBowlerModal(true)}>
+                                                                        <i className="bi bi-bandaid me-1"></i>Injury
+                                                                    </Button>
+                                                                    <Button size="sm" variant={selectedMatch?.score?.freeHit ? "danger" : "outline-dark"} className="px-3 fw-bold rounded-pill" onClick={() => handleUpdate('manual', { ...selectedMatch, score: { ...selectedMatch.score, freeHit: !selectedMatch.score.freeHit } })}>
+                                                                        🚀 Free Hit: {selectedMatch?.score?.freeHit ? 'ON' : 'OFF'}
+                                                                    </Button>
                                                                 </div>
                                                             </div>
                                                         )}
