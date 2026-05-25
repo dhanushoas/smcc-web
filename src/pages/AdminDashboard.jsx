@@ -3116,21 +3116,6 @@ const AdminDashboard = () => {
                                                             </div>
                                                         )}
 
-                                                        {/* 3. Run Rate Block (Live) */}
-                                                        {isLive && (
-                                                            <div className="d-flex flex-wrap justify-content-center gap-3 mb-4">
-                                                                <div className="bg-white border rounded-pill px-3 py-2 shadow-sm d-flex align-items-center gap-2">
-                                                                    <span className="x-small fw-black text-muted text-uppercase">Current RR:</span>
-                                                                    <span className="fw-black text-primary">{crr}</span>
-                                                                </div>
-                                                                {rrr && (dRuns > 0 || dOvers > 0) && (
-                                                                    <div className="bg-info bg-opacity-10 border border-info border-opacity-25 rounded-pill px-3 py-2 shadow-sm d-flex align-items-center gap-2">
-                                                                        <span className="x-small fw-black text-info text-uppercase">Required RR:</span>
-                                                                        <span className="fw-black text-info">{rrr}</span>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        )}
 
                                                         {/* 4. Result Block (Finished) */}
                                                         {isFinished && winStr && winStr !== 'Match Completed' && (
@@ -3267,9 +3252,97 @@ const AdminDashboard = () => {
                                                             })()
                                                         )}
 
+                                                        {/* BATTING & BOWLING CARDS - MOVED ON TOP */}
+                                                        {
+                                                            selectedMatch.status === 'live' && (
+                                                                <Row className="g-3 mb-4">
+                                                                    <Col lg={6} xs={12}>
+                                                                        <div className="h-100 bg-info bg-opacity-10 rounded-4 border border-info border-opacity-10 shadow-sm overflow-hidden">
+                                                                            <div className="py-3 px-4">
+                                                                                <div className="d-flex justify-content-between align-items-center mb-3">
+                                                                                    <small className="text-info fw-black text-uppercase letter-spacing-2" style={{ fontSize: '11px' }}>BATTING</small>
+                                                                                </div>
+                                                                                <div className="d-flex flex-column gap-2">
+                                                                                    <div className="d-flex align-items-center justify-content-between">
+                                                                                        <div className="fw-black text-dark letter-spacing-1 d-flex align-items-center gap-2" style={{ fontSize: '1rem' }}>
+                                                                                            <span className="fs-5">🏏</span> {toCamelCase(striker || '...')}{striker && '*'}
+                                                                                        </div>
+                                                                                        <div className="text-end fw-black text-primary" style={{ fontSize: '12px' }}>
+                                                                                            {(() => {
+                                                                                                const b = selectedMatch.currentBatsmen?.find(p => p.onStrike);
+                                                                                                return b ? `${b.runs} (${b.balls})` : '0 (0)';
+                                                                                            })()}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <div className="d-flex align-items-center justify-content-between opacity-75">
+                                                                                        <div className="text-muted fw-bold ps-4" style={{ fontSize: '0.85rem' }}>
+                                                                                            {toCamelCase(nonStriker || '...')}
+                                                                                        </div>
+                                                                                        <div className="text-end fw-bold text-muted" style={{ fontSize: '11px' }}>
+                                                                                            {(() => {
+                                                                                                const b = selectedMatch.currentBatsmen?.find(p => !p.onStrike);
+                                                                                                return b ? `${b.runs} (${b.balls})` : '0 (0)';
+                                                                                            })()}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </Col>
+                                                                    <Col lg={6} xs={12}>
+                                                                        <div className="h-100 bg-success bg-opacity-10 rounded-4 border border-success border-opacity-10 shadow-sm overflow-hidden">
+                                                                            <div className="py-3 px-4">
+                                                                                <div className="d-flex justify-content-between align-items-center mb-3">
+                                                                                    <small className="text-success fw-black text-uppercase letter-spacing-2" style={{ fontSize: '11px' }}>BOWLING</small>
+                                                                                    <div className="text-end text-success fw-black letter-spacing-1 text-nowrap" style={{ fontSize: '10px' }}>
+                                                                                        {(() => {
+                                                                                            const battingIdx = selectedMatch.innings.length > 2 ? selectedMatch.innings.length - 1 : (selectedMatch.score.battingTeam === selectedMatch.teamB ? 1 : 0);
+                                                                                            const bowlingIdx = battingIdx % 2 === 0 ? battingIdx + 1 : battingIdx - 1;
+                                                                                            const bStats = selectedMatch.innings[bowlingIdx]?.bowling.find(p => p.player === bowler);
+                                                                                            if (!bStats) return `0 OV | 0 R | 0 W`;
+                                                                                            return `${bStats.overs} OV | ${bStats.runs} R | ${bStats.wickets} W`;
+                                                                                        })()}
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div className="d-flex justify-content-between align-items-start">
+                                                                                    <div className="fw-black text-dark letter-spacing-1 d-flex align-items-center gap-2 mb-3" style={{ fontSize: '1.2rem' }}>
+                                                                                        <span className="fs-4">⚾</span> {toCamelCase(bowler || '...')}
+                                                                                    </div>
+                                                                                </div>
+                                                                                {selectedMatch.score.thisOver && selectedMatch.score.thisOver.length > 0 && (
+                                                                                    <div className="mt-2 pt-2 border-top border-success border-opacity-10">
+                                                                                        <div className="x-small fw-black text-muted text-uppercase mb-2 letter-spacing-2" style={{ fontSize: '9px' }}>THIS OVER</div>
+                                                                                        <div className="d-flex flex-wrap gap-2">
+                                                                                            {selectedMatch.score.thisOver.map((ball, idx) => {
+                                                                                                const bStr = ball.toString().toUpperCase();
+                                                                                                const isWicket = bStr === 'W' || bStr === 'OUT' || bStr.startsWith('W');
+                                                                                                const isExtra = bStr.includes('+') || bStr === 'WD' || bStr === 'NB' || bStr === 'LB' || bStr === 'B';
+                                                                                                const isBound = bStr === '4' || bStr === '6';
+                                                                                                
+                                                                                                let bgClass = 'bg-white border';
+                                                                                                if (isWicket) bgClass = 'bg-danger text-white border-0';
+                                                                                                else if (isBound) bgClass = 'bg-success text-white border-0';
+                                                                                                else if (isExtra) bgClass = 'bg-warning text-dark border-0';
+                                                                                                
+                                                                                                return (
+                                                                                                    <div key={idx} className={`rounded-circle d-flex align-items-center justify-content-center fw-black shadow-sm ${bgClass}`} style={{ width: '28px', height: '28px', fontSize: '10px' }}>
+                                                                                                        {ball}
+                                                                                                    </div>
+                                                                                                );
+                                                                                            })}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    </Col>
+                                                                </Row>
+                                                            )
+                                                        }
+
                                                         {/* SCORING PANEL - MOBILE MATCHED KEYPAD */}
                                                         {selectedMatch.status === 'live' && selectedMatch.currentBatsmen?.length > 0 && selectedMatch.currentBowler && !isComplete && (
-                                                            <div className="scoring-panel-container bg-light p-4 rounded-4 shadow-sm border w-100">
+                                                            <div className="scoring-panel-container bg-light p-4 rounded-4 shadow-sm border w-100 mb-4">
                                                                 {selectedMatch.toss?.winner && (
                                                                     <div className="bg-warning bg-opacity-10 text-dark text-center fw-bold py-2 mb-3 border border-warning border-opacity-20 rounded-pill shadow-xs small">
                                                                         <i className="bi bi-coin me-2"></i>
@@ -3460,95 +3533,7 @@ const AdminDashboard = () => {
                                                 </div>
                                             )}
                                         </div >
-                                        {
-                                            selectedMatch.status === 'live' && (
-                                                <Row className="g-3 mb-4">
-                                                    <Col lg={6} xs={12}>
-                                                        <div className="h-100 bg-info bg-opacity-10 rounded-4 border border-info border-opacity-10 shadow-sm overflow-hidden">
-                                                            <div className="py-3 px-4">
-                                                                <div className="d-flex justify-content-between align-items-center mb-3">
-                                                                    <small className="text-info fw-black text-uppercase letter-spacing-2" style={{ fontSize: '11px' }}>BATTING</small>
-                                                                    <Button variant="link" size="sm" className="text-info p-0 text-decoration-none fw-black x-small d-flex align-items-center gap-1" onClick={() => handleUpdate('swap_strike')}>
-                                                                        <i className="bi bi-arrow-left-right"></i> SWAP STRIKE
-                                                                    </Button>
-                                                                </div>
-                                                                <div className="d-flex flex-column gap-2">
-                                                                    <div className="d-flex align-items-center justify-content-between">
-                                                                        <div className="fw-black text-dark letter-spacing-1 d-flex align-items-center gap-2" style={{ fontSize: '1rem' }}>
-                                                                            <span className="fs-5">🏏</span> {toCamelCase(striker || '...')}{striker && '*'}
-                                                                        </div>
-                                                                        <div className="text-end fw-black text-primary" style={{ fontSize: '12px' }}>
-                                                                            {(() => {
-                                                                                const b = selectedMatch.currentBatsmen?.find(p => p.onStrike);
-                                                                                return b ? `${b.runs} (${b.balls})` : '0 (0)';
-                                                                            })()}
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className="d-flex align-items-center justify-content-between opacity-75">
-                                                                        <div className="text-muted fw-bold ps-4" style={{ fontSize: '0.85rem' }}>
-                                                                            {toCamelCase(nonStriker || '...')}
-                                                                        </div>
-                                                                        <div className="text-end fw-bold text-muted" style={{ fontSize: '11px' }}>
-                                                                            {(() => {
-                                                                                const b = selectedMatch.currentBatsmen?.find(p => !p.onStrike);
-                                                                                return b ? `${b.runs} (${b.balls})` : '0 (0)';
-                                                                            })()}
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </Col>
-                                                    <Col lg={6} xs={12}>
-                                                        <div className="h-100 bg-success bg-opacity-10 rounded-4 border border-success border-opacity-10 shadow-sm overflow-hidden">
-                                                            <div className="py-3 px-4">
-                                                                <div className="d-flex justify-content-between align-items-center mb-3">
-                                                                    <small className="text-success fw-black text-uppercase letter-spacing-2" style={{ fontSize: '11px' }}>BOWLING</small>
-                                                                    <div className="text-end text-success fw-black letter-spacing-1 text-nowrap" style={{ fontSize: '10px' }}>
-                                                                        {(() => {
-                                                                            const battingIdx = selectedMatch.innings.length > 2 ? selectedMatch.innings.length - 1 : (selectedMatch.score.battingTeam === selectedMatch.teamB ? 1 : 0);
-                                                                            const bowlingIdx = battingIdx % 2 === 0 ? battingIdx + 1 : battingIdx - 1;
-                                                                            const bStats = selectedMatch.innings[bowlingIdx]?.bowling.find(p => p.player === bowler);
-                                                                            if (!bStats) return `0 OV | 0 R | 0 W`;
-                                                                            return `${bStats.overs} OV | ${bStats.runs} R | ${bStats.wickets} W`;
-                                                                        })()}
-                                                                    </div>
-                                                                </div>
-                                                                <div className="d-flex justify-content-between align-items-start">
-                                                                    <div className="fw-black text-dark letter-spacing-1 d-flex align-items-center gap-2 mb-3" style={{ fontSize: '1.2rem' }}>
-                                                                        <span className="fs-4">⚾</span> {toCamelCase(bowler || '...')}
-                                                                    </div>
-                                                                </div>
-                                                                {selectedMatch.score.thisOver && selectedMatch.score.thisOver.length > 0 && (
-                                                                    <div className="mt-2 pt-2 border-top border-success border-opacity-10">
-                                                                        <div className="x-small fw-black text-muted text-uppercase mb-2 letter-spacing-2" style={{ fontSize: '9px' }}>THIS OVER</div>
-                                                                        <div className="d-flex flex-wrap gap-2">
-                                                                            {selectedMatch.score.thisOver.map((ball, idx) => {
-                                                                                const bStr = ball.toString().toUpperCase();
-                                                                                const isWicket = bStr === 'W' || bStr === 'OUT' || bStr.startsWith('W');
-                                                                                const isExtra = bStr.includes('+') || bStr === 'WD' || bStr === 'NB' || bStr === 'LB' || bStr === 'B';
-                                                                                const isBound = bStr === '4' || bStr === '6';
 
-                                                                                let bgClass = 'bg-white border';
-                                                                                if (isWicket) bgClass = 'bg-danger text-white border-0';
-                                                                                else if (isBound) bgClass = 'bg-success text-white border-0';
-                                                                                else if (isExtra) bgClass = 'bg-warning text-dark border-0';
-
-                                                                                return (
-                                                                                    <div key={idx} className={`rounded-circle d-flex align-items-center justify-content-center fw-black shadow-sm ${bgClass}`} style={{ width: '28px', height: '28px', fontSize: '10px' }}>
-                                                                                        {ball}
-                                                                                    </div>
-                                                                                );
-                                                                            })}
-                                                                        </div>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </Col>
-                                                </Row>
-                                            )
-                                        }
 
                                         {/* Batting Summary Table */}
                                         {
