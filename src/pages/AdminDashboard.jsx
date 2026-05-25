@@ -1103,7 +1103,7 @@ const AdminDashboard = () => {
                 } else if (type === 'extra') {
                     const amount = params?.amount || 1;
                     const isBat = params?.isBat || false; // New flag for NB
-                    const settings = updatedMatch.settings || {
+                    const settings = updatedMatch.settings || updatedMatch.score?.settings || {
                         wideBall: { reBall: true, runs: 1 },
                         noBall: { reBall: true, runs: 1 }
                     };
@@ -1256,7 +1256,7 @@ const AdminDashboard = () => {
                                 currentInnings.runs += completedRuns;
                                 currentBowling.bowling[bIdx].runs += completedRuns;
                                 currentInnings.batting[sIdx].runs += completedRuns;
-                                const settings = updatedMatch.settings || {
+                                const settings = updatedMatch.settings || updatedMatch.score?.settings || {
                                     wideBall: { reBall: true, runs: 1 },
                                     noBall: { reBall: true, runs: 1 }
                                 };
@@ -1294,7 +1294,7 @@ const AdminDashboard = () => {
                                 // Regular wickets (caught, bowled, lbw, stumped, hit wicket)
                                 // Stumped on a wide?
                                 if (wDetail.type === 'stumped' && wDetail.ballType === 'wide') {
-                                    const settings = updatedMatch.settings || {
+                                    const settings = updatedMatch.settings || updatedMatch.score?.settings || {
                                         wideBall: { reBall: true, runs: 1 },
                                         noBall: { reBall: true, runs: 1 }
                                     };
@@ -1367,7 +1367,7 @@ const AdminDashboard = () => {
                         setIsUpdating(false); return;
                     }
                     if (updatedMatch.score.lastOverBowler === value) {
-                        toast.error("A bowler cannot bowl two overs in a row! This player bowled the previous over.");
+                        toast.error("New bowler's name can not be the same as previous bowler.");
                         setIsUpdating(false); return;
                     }
 
@@ -1656,7 +1656,7 @@ const AdminDashboard = () => {
     };
 
     const onRunClick = (runs) => {
-        const settings = selectedMatch?.settings || {
+        const settings = selectedMatch?.settings || selectedMatch?.score?.settings || {
             wideBall: { reBall: true, runs: 1 },
             noBall: { reBall: true, runs: 1 }
         };
@@ -1732,11 +1732,11 @@ const AdminDashboard = () => {
 
         try {
             if (!createForm.teamA || !createForm.teamB) {
-                toast.error("Both Team A and Team B are required!");
+                toast.error("Team name is required.");
                 return;
             }
             if (createForm.teamA.trim().toLowerCase() === createForm.teamB.trim().toLowerCase()) {
-                toast.error("Both teams cannot be same");
+                toast.error("Both the teams can not be the same.");
                 return;
             }
 
@@ -2194,7 +2194,7 @@ const AdminDashboard = () => {
                     <Modal.Footer className="border-0 bg-light pb-4 px-4">
                         <Button variant="primary" size="lg" className="w-100 fw-black rounded-pill shadow" disabled={isUpdating} onClick={() => {
                             if (!modalData.s || !modalData.ns || !modalData.b) return toast.error("Select all players!");
-                            if (modalData.s === modalData.ns) return toast.error("Striker and Non-Striker cannot be the same!");
+                            if (modalData.s === modalData.ns) return toast.error("Openers can not be the same.");
                             handleUpdate('init', modalData);
                             setShowStartModal(false);
                         }}>
@@ -2258,7 +2258,7 @@ const AdminDashboard = () => {
                         <Button variant={batsmanModalType === 'wicket' ? 'danger' : 'info'} size="lg" className="flex-grow-2 fw-black rounded-pill shadow" onClick={() => {
                             if (!modalData.nextS) return toast.error("Select a player!");
                             const currentOther = selectedMatch.currentBatsmen.find(b => b.name !== (runOutOutType === 'striker' ? striker : nonStriker))?.name;
-                            if (modalData.nextS === currentOther) return toast.error("Player already on field!");
+                            if (modalData.nextS === currentOther) return toast.error("Batsman's name can not be the same as current batsman.");
                             handleUpdate(batsmanModalType === 'wicket' ? 'wicket_with_replacement' : 'retired_with_replacement', modalData.nextS, { wicketDetails });
                             setShowBatsmanModal(false); setModalData({ ...modalData, nextS: '' });
                         }}>SUBMIT</Button>
@@ -2390,122 +2390,172 @@ const AdminDashboard = () => {
                         <Modal.Title className="fw-black"><i className="bi bi-gear-fill me-2"></i>MATCH SETTINGS</Modal.Title>
                     </Modal.Header>
                     <Modal.Body className="p-4 bg-light">
-                        <Form.Group className="mb-4">
-                            <Form.Label className="fw-bold small text-uppercase text-muted">Players Per Team</Form.Label>
-                            <Form.Control 
-                                type="number" 
-                                size="lg" 
-                                className="rounded-3 border-0 shadow-sm"
-                                value={selectedMatch?.settings?.playersPerTeam ?? 11}
-                                onChange={e => {
-                                    const val = parseInt(e.target.value) || 11;
-                                    const updated = {
-                                        ...selectedMatch,
-                                        settings: {
-                                            ...(selectedMatch.settings || {}),
-                                            playersPerTeam: val
-                                        }
-                                    };
-                                    handleUpdate('manual', updated, { toastMsg: 'Players per team updated' });
-                                }}
-                            />
-                        </Form.Group>
-                        
-                        <h5 className="fw-bold mb-3 text-primary text-uppercase" style={{ letterSpacing: '0.5px' }}>No Ball Config</h5>
-                        <Form.Group className="mb-3 d-flex align-items-center justify-content-between">
-                            <span className="fw-bold text-muted">Re-ball after No Ball</span>
-                            <Form.Check 
-                                type="switch" 
-                                id="settings-nb-reball"
-                                checked={selectedMatch?.settings?.noBall?.reBall !== false}
-                                onChange={e => {
-                                    const val = e.target.checked;
-                                    const updated = {
-                                        ...selectedMatch,
-                                        settings: {
-                                            ...(selectedMatch.settings || {}),
-                                            noBall: {
-                                                ...(selectedMatch.settings?.noBall || { runs: 1 }),
-                                                reBall: val
-                                            }
-                                        }
-                                    };
-                                    handleUpdate('manual', updated, { toastMsg: 'No Ball Re-ball updated' });
-                                }}
-                            />
-                        </Form.Group>
-                        <Form.Group className="mb-4">
-                            <Form.Label className="fw-bold small text-uppercase text-muted">No Ball Runs Penalty</Form.Label>
-                            <Form.Select 
-                                size="lg" 
-                                className="rounded-3 border-0 shadow-sm"
-                                value={selectedMatch?.settings?.noBall?.runs ?? 1}
-                                onChange={e => {
-                                    const val = parseInt(e.target.value);
-                                    const updated = {
-                                        ...selectedMatch,
-                                        settings: {
-                                            ...(selectedMatch.settings || {}),
-                                            noBall: {
-                                                ...(selectedMatch.settings?.noBall || { reBall: true }),
-                                                runs: val
-                                            }
-                                        }
-                                    };
-                                    handleUpdate('manual', updated, { toastMsg: 'No Ball Runs penalty updated' });
-                                }}
-                            >
-                                {[0, 1, 2, 3, 4].map(v => <option key={v} value={v}>{v} Run{v !== 1 ? 's' : ''}</option>)}
-                            </Form.Select>
-                        </Form.Group>
+                        {(() => {
+                            const currentSettings = selectedMatch?.settings || selectedMatch?.score?.settings || {};
+                            const wideSettings = currentSettings.wideBall || { reBall: true, runs: 1 };
+                            const nbSettings = currentSettings.noBall || { reBall: true, runs: 1 };
+                            const playersPerTeam = currentSettings.playersPerTeam ?? 11;
+                            
+                            return (
+                                <>
+                                    <Form.Group className="mb-4">
+                                        <Form.Label className="fw-bold small text-uppercase text-muted">Players Per Team</Form.Label>
+                                        <Form.Control 
+                                            type="number" 
+                                            size="lg" 
+                                            className="rounded-3 border-0 shadow-sm"
+                                            value={playersPerTeam}
+                                            onChange={e => {
+                                                const val = parseInt(e.target.value);
+                                                if (isNaN(val) || val < 2) {
+                                                    toast.error("Team size can not be less than 2 players.");
+                                                    return;
+                                                }
+                                                const updated = {
+                                                    ...selectedMatch,
+                                                    settings: {
+                                                        ...currentSettings,
+                                                        playersPerTeam: val
+                                                    },
+                                                    score: {
+                                                        ...(selectedMatch.score || {}),
+                                                        settings: {
+                                                            ...currentSettings,
+                                                            playersPerTeam: val
+                                                        }
+                                                    }
+                                                };
+                                                handleUpdate('manual', updated, { toastMsg: 'Players per team updated' });
+                                            }}
+                                        />
+                                    </Form.Group>
+                                    
+                                    <h5 className="fw-bold mb-3 text-primary text-uppercase" style={{ letterSpacing: '0.5px' }}>No Ball Config</h5>
+                                    <Form.Group className="mb-3 d-flex align-items-center justify-content-between">
+                                        <span className="fw-bold text-muted">Re-ball after No Ball</span>
+                                        <Form.Check 
+                                            type="switch" 
+                                            id="settings-nb-reball"
+                                            checked={nbSettings.reBall !== false}
+                                            onChange={e => {
+                                                const val = e.target.checked;
+                                                const updatedSettings = {
+                                                    ...currentSettings,
+                                                    noBall: {
+                                                        ...nbSettings,
+                                                        reBall: val
+                                                    }
+                                                };
+                                                const updated = {
+                                                    ...selectedMatch,
+                                                    settings: updatedSettings,
+                                                    score: {
+                                                        ...(selectedMatch.score || {}),
+                                                        settings: updatedSettings
+                                                    }
+                                                };
+                                                handleUpdate('manual', updated, { toastMsg: 'No Ball Re-ball updated' });
+                                            }}
+                                        />
+                                    </Form.Group>
+                                    <Form.Group className="mb-4">
+                                        <Form.Label className="fw-bold small text-uppercase text-muted">No Ball Runs Penalty</Form.Label>
+                                        <Form.Select 
+                                            size="lg" 
+                                            className="rounded-3 border-0 shadow-sm"
+                                            value={nbSettings.runs ?? 1}
+                                            onChange={e => {
+                                                const val = parseInt(e.target.value);
+                                                if (isNaN(val) || val < 0) {
+                                                    toast.error("No ball run can not be negative.");
+                                                    return;
+                                                }
+                                                const updatedSettings = {
+                                                    ...currentSettings,
+                                                    noBall: {
+                                                        ...nbSettings,
+                                                        runs: val
+                                                    }
+                                                };
+                                                const updated = {
+                                                    ...selectedMatch,
+                                                    settings: updatedSettings,
+                                                    score: {
+                                                        ...(selectedMatch.score || {}),
+                                                        settings: updatedSettings
+                                                    }
+                                                };
+                                                handleUpdate('manual', updated, { toastMsg: 'No Ball Runs penalty updated' });
+                                            }}
+                                        >
+                                            {[0, 1, 2, 3, 4].map(v => <option key={v} value={v}>{v} Run{v !== 1 ? 's' : ''}</option>)}
+                                        </Form.Select>
+                                    </Form.Group>
 
-                        <h5 className="fw-bold mb-3 text-primary text-uppercase" style={{ letterSpacing: '0.5px' }}>Wide Ball Config</h5>
-                        <Form.Group className="mb-3 d-flex align-items-center justify-content-between">
-                            <span className="fw-bold text-muted">Re-ball after Wide Ball</span>
-                            <Form.Check 
-                                type="switch" 
-                                id="settings-wide-reball"
-                                checked={selectedMatch?.settings?.wideBall?.reBall !== false}
-                                onChange={e => {
-                                    const val = e.target.checked;
-                                    const updated = {
-                                        ...selectedMatch,
-                                        settings: {
-                                            ...(selectedMatch.settings || {}),
-                                            wideBall: {
-                                                ...(selectedMatch.settings?.wideBall || { runs: 1 }),
-                                                reBall: val
-                                            }
-                                        }
-                                    };
-                                    handleUpdate('manual', updated, { toastMsg: 'Wide Re-ball updated' });
-                                }}
-                            />
-                        </Form.Group>
-                        <Form.Group className="mb-3">
-                            <Form.Label className="fw-bold small text-uppercase text-muted">Wide Ball Runs Penalty</Form.Label>
-                            <Form.Select 
-                                size="lg" 
-                                className="rounded-3 border-0 shadow-sm"
-                                value={selectedMatch?.settings?.wideBall?.runs ?? 1}
-                                onChange={e => {
-                                    const val = parseInt(e.target.value);
-                                    const updated = {
-                                        ...selectedMatch,
-                                        settings: {
-                                            ...(selectedMatch.settings || {}),
-                                            wideBall: {
-                                                ...(selectedMatch.settings?.wideBall || { reBall: true }),
-                                                runs: val
-                                            }
-                                        }
-                                    };
-                                    handleUpdate('manual', updated, { toastMsg: 'Wide Runs penalty updated' });
-                                }}
-                            >
-                                {[0, 1, 2, 3, 4].map(v => <option key={v} value={v}>{v} Run{v !== 1 ? 's' : ''}</option>)}
-                            </Form.Select>
-                        </Form.Group>
+                                    <h5 className="fw-bold mb-3 text-primary text-uppercase" style={{ letterSpacing: '0.5px' }}>Wide Ball Config</h5>
+                                    <Form.Group className="mb-3 d-flex align-items-center justify-content-between">
+                                        <span className="fw-bold text-muted">Re-ball after Wide Ball</span>
+                                        <Form.Check 
+                                            type="switch" 
+                                            id="settings-wide-reball"
+                                            checked={wideSettings.reBall !== false}
+                                            onChange={e => {
+                                                const val = e.target.checked;
+                                                const updatedSettings = {
+                                                    ...currentSettings,
+                                                    wideBall: {
+                                                        ...wideSettings,
+                                                        reBall: val
+                                                    }
+                                                };
+                                                const updated = {
+                                                    ...selectedMatch,
+                                                    settings: updatedSettings,
+                                                    score: {
+                                                        ...(selectedMatch.score || {}),
+                                                        settings: updatedSettings
+                                                    }
+                                                };
+                                                handleUpdate('manual', updated, { toastMsg: 'Wide Re-ball updated' });
+                                            }}
+                                        />
+                                    </Form.Group>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label className="fw-bold small text-uppercase text-muted">Wide Ball Runs Penalty</Form.Label>
+                                        <Form.Select 
+                                            size="lg" 
+                                            className="rounded-3 border-0 shadow-sm"
+                                            value={wideSettings.runs ?? 1}
+                                            onChange={e => {
+                                                const val = parseInt(e.target.value);
+                                                if (isNaN(val) || val < 0) {
+                                                    toast.error("Wide ball run can not be negative.");
+                                                    return;
+                                                }
+                                                const updatedSettings = {
+                                                    ...currentSettings,
+                                                    wideBall: {
+                                                        ...wideSettings,
+                                                        runs: val
+                                                    }
+                                                };
+                                                const updated = {
+                                                    ...selectedMatch,
+                                                    settings: updatedSettings,
+                                                    score: {
+                                                        ...(selectedMatch.score || {}),
+                                                        settings: updatedSettings
+                                                    }
+                                                };
+                                                handleUpdate('manual', updated, { toastMsg: 'Wide Runs penalty updated' });
+                                            }}
+                                        >
+                                            {[0, 1, 2, 3, 4].map(v => <option key={v} value={v}>{v} Run{v !== 1 ? 's' : ''}</option>)}
+                                        </Form.Select>
+                                    </Form.Group>
+                                </>
+                            );
+                        })()}
                     </Modal.Body>
                     <Modal.Footer className="border-0 bg-light pb-4 px-4">
                         <Button variant="dark" size="lg" className="w-100 fw-black rounded-pill shadow" onClick={() => setShowSettingsModal(false)}>DONE</Button>
