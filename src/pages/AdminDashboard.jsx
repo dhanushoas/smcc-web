@@ -1145,7 +1145,8 @@ const AdminDashboard = () => {
                             currentInnings.extras.total = (currentInnings.extras.total || 0) + amount;
                         }
 
-                        currentBowling.bowling[bIdx].runs += amount;
+                        // Per MCC Laws: bowler charged penalty + batter runs (if bat), only penalty (if byes/leg byes)
+                        currentBowling.bowling[bIdx].runs += isBat ? amount : penalty;
                         currentBowling.bowling[bIdx].noBalls = (currentBowling.bowling[bIdx].noBalls || 0) + 1;
                         ballCounts = settings.noBall.reBall === false ? true : false;
                         updatedMatch.score.freeHit = true;
